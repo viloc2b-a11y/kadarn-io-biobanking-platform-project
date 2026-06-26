@@ -415,7 +415,18 @@ BEGIN
     END IF;
 
     BEGIN
-        v_resource_type := TG_TABLE_NAME::audit_resource_type;
+        -- Map plural table names to singular enum values
+        v_resource_type := CASE TG_TABLE_NAME
+            WHEN 'programs' THEN 'program'::audit_resource_type
+            WHEN 'organizations' THEN 'organization'::audit_resource_type
+            WHEN 'organization_memberships' THEN 'organization_membership'::audit_resource_type
+            WHEN 'organization_capabilities' THEN 'organization_capability'::audit_resource_type
+            WHEN 'user_profiles' THEN 'user_profile'::audit_resource_type
+            WHEN 'program_participants' THEN 'program_participant'::audit_resource_type
+            WHEN 'program_access_policies' THEN 'program_access_policy'::audit_resource_type
+            WHEN 'identity_providers' THEN 'identity_provider'::audit_resource_type
+            ELSE TG_TABLE_NAME::audit_resource_type
+        END;
     EXCEPTION WHEN others THEN
         v_resource_type := 'other';
     END;

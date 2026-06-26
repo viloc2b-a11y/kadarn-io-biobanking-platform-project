@@ -180,6 +180,7 @@ export async function tryInsert(
 
 /**
  * Attempts to UPDATE a row as the given user.
+ * Checks that rows were actually affected (RLS may return success with 0 rows).
  */
 export async function tryUpdate(
   actor: AuthenticatedClient,
@@ -194,6 +195,10 @@ export async function tryUpdate(
     }
     const { data, error } = await q.select();
     if (error) return { success: false, error: error.message };
+    // PostgREST may return empty array when RLS blocks (no error, just 0 rows)
+    if (!data || data.length === 0) {
+      return { success: false, error: 'RLS blocked the operation (0 rows affected)' };
+    }
     return { success: true, data };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -202,6 +207,8 @@ export async function tryUpdate(
 
 /**
  * Attempts to DELETE a row as the given user.
+ * PostgREST returns 204 even when RLS blocks 0 rows,
+ * so we verify by attempting to SELECT the row afterward.
  */
 export async function tryDelete(
   actor: AuthenticatedClient,
@@ -209,12 +216,33 @@ export async function tryDelete(
   match: Record<string, any>,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Verify the row exists before delete
+    let check = actor.client.from(table).select('id');
+    for (const [key, value] of Object.entries(match)) {
+      check = check.eq(key, value);
+    }
+    const { data: before } = await check;
+    const existed = before && before.length > 0;
+
     let q = actor.client.from(table).delete();
     for (const [key, value] of Object.entries(match)) {
       q = q.eq(key, value);
     }
-    const { error } = await q;
-    if (error) return { success: false, error: error.message };
+    await q;
+
+    // Verify the row was actually removed
+    let verify = actor.client.from(table).select('id');
+    for (const [key, value] of Object.entries(match)) {
+      verify = verify.eq(key, value);
+    }
+    const { data: after } = await verify;
+    const stillExists = after && after.length > 0;
+
+    // If it existed before and still exists after, RLS blocked the delete
+    if (existed && stillExists) {
+      return { success: false, error: 'RLS blocked the operation (0 rows affected)' };
+    }
+
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };

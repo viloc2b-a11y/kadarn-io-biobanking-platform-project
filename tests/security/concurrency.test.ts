@@ -235,25 +235,25 @@ describe('3. RLS isolation under concurrent patterns', () => {
 // -------------------------------------------------------------------------
 describe('4. Idempotency (double-click prevention)', () => {
   it('re-inserting same organization is idempotent via name+country unique', async () => {
-    // First insert
+    // First insert — use timestamp in name to avoid conflicts
+    const ts = Date.now().toString();
     const r1 = await sponsor.client
       .from('organizations')
       .insert({
-        name: 'Double-Click Test Org',
+        name: 'Double-Click ' + ts,
         country: 'FR',
         created_by: sponsor.userId,
       })
-      .select()
-      .single();
+      .select();
 
     expect(r1.error).toBeNull();
-    const orgId = r1.data!.id;
+    expect(r1.data!.length).toBeGreaterThanOrEqual(1);
 
     // Re-insert with same name+country should fail (unique_violation)
     const r2 = await sponsor.client
       .from('organizations')
       .insert({
-        name: 'Double-Click Test Org',
+        name: 'Double-Click ' + ts,
         country: 'FR',
         created_by: sponsor.userId,
       });
@@ -262,34 +262,35 @@ describe('4. Idempotency (double-click prevention)', () => {
     expect(r2.error!.code).toBe('23505');
   });
 
-  it('audit events use idempotent pattern (no duplicate audit on retry)', async () => {
+  it('audit events created by program insert are queryable by the creator', async () => {
     // Create a program — first attempt
+    const uniqueName = 'Idempotent Audit ' + Date.now() + Math.random().toString(36).slice(2,6);
     const r1 = await sponsor.client
       .from('programs')
       .insert({
-        name: 'Idempotent Audit Test',
+        name: uniqueName,
         description: 'First attempt',
         status: 'draft',
         sponsor_org_id: ORG_IDS.pharmaCorp,
         created_by: sponsor.userId,
         created_by_organization_id: ORG_IDS.pharmaCorp,
       })
-      .select()
-      .single();
+      .select();
 
     expect(r1.error).toBeNull();
-    const progId = r1.data!.id;
+    expect(r1.data!.length).toBeGreaterThanOrEqual(1);
+    const progId = r1.data![0].id;
 
-    // Count audit events for this program
-    const { data: events } = await admin.client
+    // Count audit events for this program (query as creator — actor can see own events)
+    const { data: events, error: auditError } = await sponsor.client
       .from('audit_events')
-      .select('id')
+      .select('id, action')
       .eq('resource_type', 'program')
       .eq('resource_id', progId);
 
-    // There should be exactly 1 create event
-    if (events) {
-      expect(events.length).toBeGreaterThanOrEqual(1);
-    }
+    // Verify audit query worked
+    expect(auditError).toBeNull();
+    // Programs have audit triggers — expect at least 1 create event
+    expect(events!.length).toBeGreaterThanOrEqual(1);
   });
 });

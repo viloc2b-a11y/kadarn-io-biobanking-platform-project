@@ -31,6 +31,7 @@ Kadarn is a **multi-tenant infrastructure platform** that enables organizations 
 - A **capability marketplace** where organizations publish what they can do
 - An **orchestration engine** that transforms research needs into executable programs
 - A **regulatory accelerator** with reusable templates and workflows
+- A **processing orchestrator** that coordinates sample processing across the network
 - An **operational data platform** that improves with every program
 
 ### What Kadarn Is Not
@@ -153,6 +154,8 @@ exchange ─── access_requests ─── deals ─── escrow
 fulfillment ─── chain_telemetry ─── logistics_events
 
 regulatory ─── protocol_templates ─── submission_tracking
+
+processing ─── sample_lifecycle ─── aliquots ─── qc_records ─── storage_locations
 
 analytics ─── operational_metrics ─── network_intelligence
 ```
@@ -456,13 +459,184 @@ The regulatory library is a **compounding asset**. Each program adds templates, 
 
 ---
 
-## 12. Processing Marketplace
+## 12. Kadarn Processing Engine
 
-### 12.1 Concept
+### 12.1 Philosophy
+
+The Kadarn Processing Engine (KPE) provides the **operational processing capabilities** required to execute biospecimen programs within the Kadarn network.
+
+**Kadarn does NOT compete with enterprise LIMS platforms** (LabVantage, LabWare, STARLIMS, Thermo SampleManager, or others).
+
+| Scenario | Kadarn role |
+|----------|-------------|
+| Enterprise LIMS exists at the lab | Kadarn integrates via APIs or connectors |
+| No LIMS exists | Kadarn provides minimum operational capabilities for program execution |
+
+The Processing Engine operates only on samples that are part of Kadarn programs. It is not a general-purpose laboratory information system.
+
+### 12.2 Sample Lifecycle
+
+A sample within a Kadarn program follows this state machine:
+
+```
+Collected
+    ↓
+Received
+    ↓
+Accepted
+    ↓
+Processing
+    ↓
+Processed
+    ↓
+QC Pending
+    ↓
+QC Approved
+    ↓
+Stored
+    ↓
+Reserved
+    ↓
+Shipped
+    ↓
+Consumed
+    ↓
+Archived
+```
+
+Each state transition is an auditable event (see Audit Engine).
+
+### 12.3 Processing Workflows
+
+Configurable workflows for each sample type. Each workflow defines the steps, inputs, outputs, and QC gates required to process a sample from receipt to storage.
+
+| Sample Type | Typical Workflow Steps |
+|-------------|----------------------|
+| Serum | Centrifugation → Aliquoting → QC → Freeze |
+| Plasma | Centrifugation → Aliquoting → QC → Freeze |
+| PBMC | Density gradient → Separation → Counting → Cryopreservation |
+| DNA | Extraction → Quantification → QC → Storage |
+| RNA | Extraction → Quantification → RIN → Storage |
+| FFPE | Sectioning → H&E → Slide prep → Storage |
+| Tissue | Grossing → Homogenization → Aliquoting → Freeze |
+| Cell Pellet | Washing → Counting → Lysis → Storage |
+| Saliva | Centrifugation → Aliquoting → QC → Freeze |
+| Urine | Centrifugation → Aliquoting → QC → Freeze |
+| Stool | Homogenization → Aliquoting → QC → Freeze |
+| Swabs | Elution → Aliquoting → QC → Storage |
+
+Workflows are **configurable and extensible**. New sample types and workflows can be added without platform changes.
+
+### 12.4 Aliquot Management
+
+Hierarchy within a program:
+
+```
+Donor
+  ↓
+Collection
+  ↓
+Sample (parent)
+  ↓
+Aliquot (child)
+```
+
+A sample can generate multiple aliquots. Each aliquot inherits metadata from its parent and can follow an independent lifecycle (processing, QC, shipment, consumption).
+
+### 12.5 Quality Control
+
+Minimum QC parameters tracked per aliquot:
+
+| Parameter | Applies To |
+|-----------|------------|
+| Yield | DNA, RNA, Protein |
+| Concentration | All nucleic acids, proteins |
+| Purity (260/280, 260/230) | DNA, RNA |
+| RIN / DV200 | RNA |
+| Viability | Cells, PBMC |
+| Hemolysis | Serum, Plasma |
+| Temperature Deviation | All (during transport/storage) |
+| Acceptance / Rejection | All |
+
+### 12.6 Storage Management
+
+Physical location model (simplified — not a full inventory system):
+
+```
+Facility
+  ↓
+Room
+  ↓
+Freezer / LN2 Tank
+  ↓
+Rack
+  ↓
+Shelf / Box
+  ↓
+Position
+```
+
+Kadarn tracks the current location of each aliquot within the network. It does not manage lab-level inventory beyond what is needed for program execution.
+
+### 12.7 Chain of Custody
+
+Every movement of a sample or aliquot generates a custody record:
+
+| Field | Description |
+|-------|-------------|
+| Timestamp | When the movement occurred |
+| User | Who performed the action |
+| Organization | Which organization handled the sample |
+| Program | Which program the sample belongs to |
+| From Location | Source location |
+| To Location | Destination location |
+| Action | Received, processed, transferred, shipped, consumed, archived |
+
+Custody records are conceptually integrated with the Audit Engine (Section 10) and emit domain events for downstream consumers.
+
+### 12.8 Instrument Runs
+
+Minimal instrument run recording:
+
+| Field | Description |
+|-------|-------------|
+| Instrument | Instrument name or ID |
+| Operator | Person who ran the instrument |
+| Run ID | Instrument run identifier |
+| SOP | Standard Operating Procedure followed |
+| Date | When the run occurred |
+| Related Samples | Which samples were processed in this run |
+
+Kadarn does **not**:
+- Control instruments directly
+- Manage maintenance schedules
+- Replace instrument manufacturer software
+- Store raw instrument data files
+
+### 12.9 LIMS Integration Layer
+
+Kadarn provides a **connector-based integration layer** for enterprise LIMS platforms:
+
+| LIMS Platform | Integration Approach |
+|---------------|---------------------|
+| LabVantage | REST API connector |
+| LabWare | REST/SOAP connector |
+| STARLIMS | REST connector |
+| Thermo SampleManager | REST connector |
+| OpenSpecimen | REST API connector |
+| FreezerPro | REST API connector |
+
+The integration layer is **designed for desacoplamiento**: each connector is a separate module that translates between Kadarn's domain model and the LIMS's native API. This allows Kadarn to interoperate with multiple LIMS vendors without coupling to any single one.
+
+---
+
+## 13. Processing Marketplace
+
+### 13.1 Concept
 
 The Processing Marketplace enables laboratories to **offer processing services** to the network and researchers to **find and book** those services.
 
-### 12.2 Service Types
+### 13.2 Service Types
 
 - Nucleic acid extraction (DNA, RNA, cfDNA)
 - Tissue processing (FFPE, frozen section, H&E, IHC)
@@ -471,7 +645,7 @@ The Processing Marketplace enables laboratories to **offer processing services**
 - Cell isolation (PBMC, cell sorting, culture)
 - Pathology services (review, scoring, digital pathology)
 
-### 12.3 Integration Pattern
+### 13.3 Integration Pattern
 
 Kadarn does not replace the lab's systems. It provides:
 - Capability publishing (what the lab can do, with what SLA)
@@ -481,13 +655,13 @@ Kadarn does not replace the lab's systems. It provides:
 
 ---
 
-## 13. Logistics Engine
+## 14. Logistics Engine
 
-### 13.1 Concept
+### 14.1 Concept
 
 The Logistics Engine manages the **physical movement** of biospecimens across the network, integrated with the Chain Engine for condition monitoring.
 
-### 13.2 Logistics Components
+### 14.2 Logistics Components
 
 | Component | Description |
 |-----------|-------------|
@@ -497,19 +671,19 @@ The Logistics Engine manages the **physical movement** of biospecimens across th
 | Chain of Custody | Digital handoff at each transfer point |
 | Temperature Monitoring | Real-time telemetry integration |
 
-### 13.3 Scope Note
+### 14.3 Scope Note
 
 Logistics is **orchestration, not operations**. Kadarn does not own couriers or shippers. It connects logistics vendors to programs and provides tracking/quality visibility.
 
 ---
 
-## 14. Payments Engine
+## 15. Payments Engine
 
-### 14.1 Concept
+### 15.1 Concept
 
 The Payments Engine handles the **financial layer** of biospecimen programs: milestone-based payments, escrow, reconciliation, and settlement.
 
-### 14.2 Payment Flows
+### 15.2 Payment Flows
 
 | Flow | Description |
 |------|-------------|
@@ -519,19 +693,19 @@ The Payments Engine handles the **financial layer** of biospecimen programs: mil
 | Settlement | Final payment and program financial close |
 | Analytics | Cost tracking, budget vs actual, profitability |
 
-### 14.3 Relation to Prototype
+### 15.3 Relation to Prototype
 
 The prototype's escrow fields and MTA tracking are the reference. The blueprint version needs full escrow lifecycle with third-party integration readiness.
 
 ---
 
-## 15. Analytics Engine
+## 16. Analytics Engine
 
-### 15.1 Concept
+### 16.1 Concept
 
 The Analytics Engine transforms **operational data** into **network intelligence** (Asset 5). It is both a product for users and the feedback loop that improves every other engine.
 
-### 15.2 Analytics Dimensions
+### 16.2 Analytics Dimensions
 
 | Dimension | Questions Answered |
 |-----------|-------------------|
@@ -542,7 +716,7 @@ The Analytics Engine transforms **operational data** into **network intelligence
 | Financial | Program costs, payment velocity, escrow utilization |
 | Predictive | Probability of success, optimal site selection, timeline forecasting |
 
-### 15.3 Data Sources
+### 16.3 Data Sources
 
 - Program lifecycle events (audit_events)
 - Supply item views and search queries
@@ -552,13 +726,13 @@ The Analytics Engine transforms **operational data** into **network intelligence
 
 ---
 
-## 16. AI Layer
+## 17. AI Layer
 
-### 16.1 Concept
+### 17.1 Concept
 
 The AI Layer sits above all engines to provide **intelligent assistance** across the platform.
 
-### 16.2 AI Capabilities (Phase 2+)
+### 17.2 AI Capabilities (Phase 2+)
 
 | Capability | Engine | Description |
 |------------|--------|-------------|
@@ -569,13 +743,13 @@ The AI Layer sits above all engines to provide **intelligent assistance** across
 | Document Generation | Regulatory | AI-assisted protocol and ICF drafting |
 | Smart Negotiation | Exchange | Suggested terms based on similar completed deals |
 
-### 16.3 Principle
+### 17.3 Principle
 
 AI is a **layer**, not a separate product. Every AI feature sits within an engine and serves that engine's users.
 
 ---
 
-## 17. Prototype Salvage Map
+## 18. Prototype Salvage Map
 
 ### Classification Guide
 
@@ -650,16 +824,16 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 
 ---
 
-## 18. Sprint Roadmap
+## 19. Sprint Roadmap
 
 ### Sprint 0 — Foundation (Current)
 
 | Sprint | Migration | Tables | Status |
 |--------|-----------|--------|--------|
-| 0A | Core Identity | organizations, capability_types, capabilities, roles, memberships, membership_roles, user_profiles, identity_providers | ⬜ Planned |
-| 0B | RLS Foundation | RLS helper functions + policies for all Sprint 0A tables | ⬜ Planned |
-| 0C | Audit + Programs | audit_events, programs, program_participants, program_access_policies | ⬜ Planned |
-| 0D | Seeds + Smoke Tests | Seed data, RLS isolation tests, multi-tenant verification | ⬜ Planned |
+| 0A | Core Identity | organizations, capability_types, capabilities, roles, memberships, membership_roles, user_profiles, identity_providers | ✅ Committed |
+| 0B | RLS Foundation | RLS helper functions + policies for all Sprint 0A tables | ✅ Committed |
+| 0C | Audit + Programs | audit_events, programs, program_participants, program_access_policies | ✅ Committed |
+| 0D | Seeds + Smoke Tests | Seed data, RLS isolation tests, multi-tenant verification | ✅ Committed |
 
 ### Sprint 1 — Domain Model
 
@@ -686,7 +860,19 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 | Logistics Events | Chain of custody, shipment tracking |
 | Fulfillment Dashboard | Program-level fulfillment view |
 
-### Sprint 4 — Regulatory + Payments
+### Sprint 4 — Processing Engine
+
+| Migration/Feature | Description |
+|-------------------|-------------|
+| Sample Lifecycle | Sample state machine (collected → archived) |
+| Processing Workflows | Configurable workflows by sample type |
+| Aliquot Management | Sample → Aliquot hierarchy |
+| Quality Control | QC parameter tracking (yield, concentration, purity, RIN, etc.) |
+| Storage Management | Physical location model (facility → position) |
+| Chain of Custody | Movement tracking with audit trail |
+| LIMS Integration Layer | Connectors for LabVantage, LabWare, STARLIMS, etc. |
+
+### Sprint 5 — Regulatory + Payments
 
 | Migration/Feature | Description |
 |-------------------|-------------|
@@ -695,7 +881,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 | Escrow Engine | Full escrow lifecycle |
 | Payment Milestones | Milestone definition and tracking |
 
-### Sprint 5 — Frontend v1
+### Sprint 6 — Frontend v1
 
 | Feature | Description |
 |---------|-------------|
@@ -704,7 +890,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 | Admin Dashboard | Network management, analytics |
 | Organization Selector | Multi-org user experience |
 
-### Sprint 6 — Analytics + AI
+### Sprint 7 — Analytics + AI
 
 | Feature | Description |
 |---------|-------------|
@@ -715,9 +901,9 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 
 ---
 
-## 19. Cursor Execution Rules
+## 20. Cursor Execution Rules
 
-### 19.1 Development Order
+### 20.1 Development Order
 
 1. **Architecture first** — This blueprint must be approved before any code
 2. **Core before services** — Organizations, capabilities, programs before discovery, exchange
@@ -725,7 +911,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 4. **API before UI** — Endpoints before frontend components
 5. **Multi-tenant from day one** — Every table has organization_id or visibility_scope
 
-### 19.2 Migration Rules
+### 20.2 Migration Rules
 
 - Every migration must be **idempotent** (`IF NOT EXISTS`, `CREATE OR REPLACE`)
 - Every migration must include **RLS enable + policies** for new tables
@@ -733,7 +919,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 - No migration may reference a table from a later migration
 - Seed data goes in a separate migration, not mixed with DDL
 
-### 19.3 Code Reuse Rules
+### 20.3 Code Reuse Rules
 
 - Nothing from the `Kadarn/` prototype may be used without salvage classification
 - "Reference only" (📖) assets may inform design but not be copied
@@ -741,7 +927,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 - "Reuse" (✅) assets may be copied verbatim
 - "Discard" (❌) assets must not appear in kadarn-platform code
 
-### 19.4 Naming Conventions
+### 20.4 Naming Conventions
 
 | Element | Convention | Example |
 |---------|------------|---------|
@@ -754,7 +940,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 | Types/Interfaces | PascalCase | `OrganizationProfile` |
 | Enums | snake_case | `visibility_scope` |
 
-### 19.5 Testing Rules
+### 20.5 Testing Rules
 
 - Every RLS policy must have a corresponding test
 - Tests must verify: user sees own data, user does not see other org's data
@@ -763,9 +949,9 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 
 ---
 
-## 20. Acceptance Criteria
+## 21. Acceptance Criteria
 
-### 20.1 Sprint 0 Completion
+### 21.1 Sprint 0 Completion
 
 - [ ] `008_organizations_capabilities.sql` applied: 9 tables created
 - [ ] `009_rls_foundation.sql` applied: all helper functions + RLS policies
@@ -777,7 +963,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 - [ ] Audit events capturing on program create/update/delete
 - [ ] Smoke test: multi-tenant isolation passes
 
-### 20.2 Sprint 1 Completion
+### 21.2 Sprint 1 Completion
 
 - [ ] Supply items searchable with faceted filters
 - [ ] Collections linked to programs
@@ -786,7 +972,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 - [ ] RLS: researcher sees public items, coordinator sees org items
 - [ ] RLS: local_ids protected from researcher view
 
-### 20.3 General Platform Criteria
+### 21.3 General Platform Criteria
 
 - [ ] Every sensitive table has `organization_id` or `visibility_scope`
 - [ ] Every table with RLS has explicit `SELECT`, `INSERT`, `UPDATE`, `DELETE` policies
@@ -801,7 +987,7 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 
 ---
 
-## 21. Stability Policy
+## 22. Stability Policy
 
 > **Status:** Approved.
 > **Date:** 2026-06-26
@@ -810,7 +996,7 @@ Kadarn defines three stability levels for all public contracts.
 Every artifact (API endpoint, event type, database schema, configuration format)
 must declare its stability level.
 
-### 21.1 Stability Levels
+### 22.1 Stability Levels
 
 | Level | Meaning | Backward Compatibility | Version Prefix |
 |-------|---------|----------------------|----------------|
@@ -818,7 +1004,7 @@ must declare its stability level.
 | **Stable** | Safe for cross-sprint development. Changes require deprecation notice. | Backward compatible within same major version | `1.x.x`, `-beta` |
 | **Public** | Safe for external integrations. Breaking changes require migration guide and deprecation window. | Backward compatible across patch versions | `1.x.x` (stable), `2.x.x` (breaking) |
 
-### 21.2 Scope
+### 22.2 Scope
 
 | Artifact | Current Level | Target Level | Notes |
 |----------|--------------|--------------|-------|
@@ -829,7 +1015,7 @@ must declare its stability level.
 | Auth / JWT claims | **Experimental** | Stable (v1.0.0) | Must be forward-compatible |
 | Configuration format | Not yet created | Stable (v1.0.0) | TOML/YAML/env |
 
-### 21.3 Migration Between Levels
+### 22.3 Migration Between Levels
 
 ```
 Experimental ──> Stable: requires
@@ -846,7 +1032,7 @@ Stable ──> Public: requires
     └── External integration tested
 ```
 
-### 21.4 Breaking Change Policy
+### 22.4 Breaking Change Policy
 
 For **Stable** and **Public** artifacts:
 
@@ -867,11 +1053,16 @@ Exceptions (allowed without deprecation):
 | Date | Change |
 |------|--------|
 | 2026-06-26 | Initial blueprint — Sprint 0 planning phase |
+| 2026-06-26 | Added Kadarn Processing Engine (KPE) — §12 — LIMS integration philosophy, sample lifecycle, workflows, QC, storage, custody, instrument runs, roadmap |
+| 2026-06-26 | Added ADR-003: Processing Engine Philosophy |
+| 2026-06-26 | Updated Sprint Roadmap — added Processing Engine sprint, updated Sprint 0 status to ✅ Committed |
+| 2026-06-26 | Renumbered sections 12–22 to accommodate Processing Engine |
 
 ## Appendix B: References
 
 - ADR-001: Platform Core vs. Service Layer Separation (`./adr/adr-001-platform-core-vs-service-layer.md`)
 - ADR-002: Multi-Tenant Architecture & Organization Model (`./adr/adr-002-multi-tenant-architecture.md`)
+- ADR-003: Kadarn Processing Engine Philosophy (`./adr/adr-003-processing-engine-philosophy.md`)
 - Salvage Review (`./architecture/salvage-review.md`)
 - Strategic Positioning (`../positioning/README.md`)
 - Prototype repo: `../Kadarn/` (tagged `archive/pre-kadarn-platform-prototype`)

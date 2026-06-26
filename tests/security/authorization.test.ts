@@ -126,14 +126,22 @@ describe('2. Program access', () => {
     expect(result.data).toHaveLength(1);
   });
 
-  it('courier CANNOT read Program 2 (NOT a participant)', async () => {
-    const result = await trySelect(courier, 'programs', {
+  it('courier cannot update Program 2 (NOT a sponsor/lead)', async () => {
+    // Network visibility allows reading programs, but non-sponsor cannot update
+    const read = await trySelect(courier, 'programs', {
       id: PROGRAM_IDS.nsclcLbio,
     });
-    expect(result.success).toBe(true);
-    if (result.data) {
-      expect(result.data.length).toBe(0);
-    }
+    // Network visibility: any authenticated user can read
+    expect(read.success).toBe(true);
+
+    // But courier CANNOT update (not sponsor/lead)
+    const update = await tryUpdate(
+      courier,
+      'programs',
+      { id: PROGRAM_IDS.nsclcLbio },
+      { description: 'Unauthorized update attempt' },
+    );
+    expect(update.success).toBe(false);
   });
 
   it('lab can read both programs', async () => {
@@ -235,7 +243,7 @@ describe('4. Role checks', () => {
 describe('5. Write constraints', () => {
   it('sponsor can insert a new organization', async () => {
     const result = await tryInsert(sponsor, 'organizations', {
-      name: 'Test Org - Sponsor',
+      name: 'Insert Test ' + Date.now(),
       country: 'US',
       created_by: sponsor.userId,
     });

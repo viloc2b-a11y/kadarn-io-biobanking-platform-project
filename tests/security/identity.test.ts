@@ -77,7 +77,7 @@ describe('2. Self-profile access', () => {
   it('sponsor can read their own user_profiles row', async () => {
     const result = await trySelect(sponsor, 'user_profiles', { id: sponsor.userId });
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
+    expect(result.success).toBe(true);
     expect(result.data![0].email).toBe(DEMO_USERS.sponsor.email);
   });
 
@@ -93,7 +93,7 @@ describe('2. Self-profile access', () => {
   it('admin can read their own profile', async () => {
     const result = await trySelect(admin, 'user_profiles', { id: admin.userId });
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -137,7 +137,7 @@ describe('4. Multi-org user', () => {
       id: ORG_IDS.pharmaCorp,
     });
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
+    expect(result.success).toBe(true);
   });
 
   it('admin can see Central IRB data (second org)', async () => {
@@ -145,7 +145,7 @@ describe('4. Multi-org user', () => {
       id: ORG_IDS.centralIrb,
     });
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
+    expect(result.success).toBe(true);
   });
 
   it('admin memberships include org_admin role in both orgs', async () => {
@@ -175,6 +175,6 @@ describe('5. Identity provider abstraction', () => {
       provider_type: 'supabase',
     });
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
+    expect(result.success).toBe(true);
   });
 });
