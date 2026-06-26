@@ -799,6 +799,69 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 
 ---
 
+---
+
+## 21. Stability Policy
+
+> **Status:** Approved.
+> **Date:** 2026-06-26
+
+Kadarn defines three stability levels for all public contracts.
+Every artifact (API endpoint, event type, database schema, configuration format)
+must declare its stability level.
+
+### 21.1 Stability Levels
+
+| Level | Meaning | Backward Compatibility | Version Prefix |
+|-------|---------|----------------------|----------------|
+| **Experimental** | Early design, may change without notice. Used for active development. | None guaranteed | `0.x.x`, `-alpha`, `-dev` |
+| **Stable** | Safe for cross-sprint development. Changes require deprecation notice. | Backward compatible within same major version | `1.x.x`, `-beta` |
+| **Public** | Safe for external integrations. Breaking changes require migration guide and deprecation window. | Backward compatible across patch versions | `1.x.x` (stable), `2.x.x` (breaking) |
+
+### 21.2 Scope
+
+| Artifact | Current Level | Target Level | Notes |
+|----------|--------------|--------------|-------|
+| Database schema (migrations) | **Experimental** | Stable (v1.0.0) | Public only for read-only views |
+| RLS helper functions | **Experimental** | Stable (v1.0.0) | Internal to PostgreSQL |
+| Domain events (contracts) | **Experimental** | Stable (Sprint 2) | Will stabilize with Platform Services |
+| REST API (Core + Engines) | Not yet created | Public (v1.0.0) | Primary integration surface |
+| Auth / JWT claims | **Experimental** | Stable (v1.0.0) | Must be forward-compatible |
+| Configuration format | Not yet created | Stable (v1.0.0) | TOML/YAML/env |
+
+### 21.3 Migration Between Levels
+
+```
+Experimental ──> Stable: requires
+    ├── Sprint review approval
+    ├── Test coverage >95%
+    ├── Security review (threat tests pass)
+    └── Deprecation plan for any breaking change
+
+Stable ──> Public: requires
+    ├── Architecture review approval
+    ├── 2+ sprints without breaking change
+    ├── Documentation complete
+    ├── Migration guide exists
+    └── External integration tested
+```
+
+### 21.4 Breaking Change Policy
+
+For **Stable** and **Public** artifacts:
+
+1. Deprecation notice must be published at least 1 sprint before removal
+2. Deprecated features must emit warnings for 1 full sprint
+3. Breaking changes must be documented in a migration guide
+4. Major version bump is required for breaking Public API changes
+
+Exceptions (allowed without deprecation):
+- Security fixes
+- Bug fixes that cannot be exploited (proven)
+- Compliance requirements (HIPAA, GDPR, 21 CFR Part 11)
+
+---
+
 ## Appendix A: Change Log
 
 | Date | Change |

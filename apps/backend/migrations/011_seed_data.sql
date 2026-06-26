@@ -235,7 +235,7 @@ INSERT INTO public.programs (id, name, short_name, description, program_type, th
                              start_date, end_date, status, sponsor_org_id, lead_org_id,
                              default_data_scope, created_by, created_by_organization_id)
 VALUES (
-    'p0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000001',
     'Triple-Negative Breast Cancer Retrospective Cohort',
     'TNBC-RETRO-001',
     'Multi-center retrospective study requiring 500 FFPE blocks and matched clinical data from triple-negative breast cancer patients.',
@@ -255,7 +255,7 @@ INSERT INTO public.programs (id, name, short_name, description, program_type, th
                              start_date, end_date, status, sponsor_org_id, lead_org_id,
                              default_data_scope, created_by, created_by_organization_id)
 VALUES (
-    'p0000000-0000-0000-0000-000000000002',
+    'b0000000-0000-0000-0000-000000000002',
     'NSCLC Liquid Biopsy Prospective Collection',
     'NSCLC-LBIO-002',
     'Prospective collection of 200 liquid biopsy samples from Stage IV NSCLC patients across 5 clinical sites in Brazil and Argentina.',
@@ -281,34 +281,34 @@ VALUES (
 -- Program 1 participants
 INSERT INTO public.program_participants (program_id, organization_id, role, status, joined_at, created_by)
 VALUES
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'sponsor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'sponsor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'lead', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'lead', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000003', 'contributor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000003', 'contributor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000004', 'contributor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000004', 'contributor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000005', 'processor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000005', 'processor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000006', 'processor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000006', 'processor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000007', 'reviewer', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000007', 'reviewer', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test'))
 ON CONFLICT (program_id, organization_id) DO NOTHING;
 
 -- Program 2 participants
 INSERT INTO public.program_participants (program_id, organization_id, role, status, joined_at, created_by)
 VALUES
-    ('p0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'sponsor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'sponsor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'lead', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'lead', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003', 'contributor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003', 'contributor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000005', 'processor', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000005', 'processor', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test')),
-    ('p0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000007', 'reviewer', 'active', now(),
+    ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000007', 'reviewer', 'active', now(),
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test'))
 ON CONFLICT (program_id, organization_id) DO NOTHING;
 
@@ -323,14 +323,14 @@ ON CONFLICT (program_id, organization_id) DO NOTHING;
 -- Program 1: TNBC study — de-identified data, no export, requires approval
 INSERT INTO public.program_access_policies (program_id, name, policy_type, allowed_data_scope, allow_export, require_approval, created_by)
 VALUES
-    ('p0000000-0000-0000-0000-000000000001', 'Default Data Access', 'default', 'de_identified', false, true,
+    ('b0000000-0000-0000-0000-000000000001', 'Default Data Access', 'default', 'de_identified', false, true,
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test'))
 ON CONFLICT DO NOTHING;
 
 -- Program 2: NSCLC collection — metadata only until collection complete
 INSERT INTO public.program_access_policies (program_id, name, policy_type, allowed_data_scope, allow_export, require_approval, created_by)
 VALUES
-    ('p0000000-0000-0000-0000-000000000002', 'Interim Metadata Access', 'default', 'metadata_only', false, true,
+    ('b0000000-0000-0000-0000-000000000002', 'Interim Metadata Access', 'default', 'metadata_only', false, true,
      (SELECT id FROM public.user_profiles WHERE email = 'admin@kadarn.test'))
 ON CONFLICT DO NOTHING;
 

@@ -122,18 +122,18 @@ SELECT public.test_result(
 SELECT public.test_result(
     'Seed data: Program 1 (TNBC) has 7 participants',
     (SELECT COUNT(*) FROM public.program_participants
-     WHERE program_id = 'p0000000-0000-0000-0000-000000000001') = 7,
+     WHERE program_id = 'b0000000-0000-0000-0000-000000000001') = 7,
     format('Found %s participants', (SELECT COUNT(*) FROM public.program_participants
-           WHERE program_id = 'p0000000-0000-0000-0000-000000000001')::TEXT)
+           WHERE program_id = 'b0000000-0000-0000-0000-000000000001')::TEXT)
 );
 
 -- Test 1.10: Program 2 (NSCLC) has 5 participants
 SELECT public.test_result(
     'Seed data: Program 2 (NSCLC) has 5 participants',
     (SELECT COUNT(*) FROM public.program_participants
-     WHERE program_id = 'p0000000-0000-0000-0000-000000000002') = 5,
+     WHERE program_id = 'b0000000-0000-0000-0000-000000000002') = 5,
     format('Found %s participants', (SELECT COUNT(*) FROM public.program_participants
-           WHERE program_id = 'p0000000-0000-0000-0000-000000000002')::TEXT)
+           WHERE program_id = 'b0000000-0000-0000-0000-000000000002')::TEXT)
 );
 
 -- Test 1.11: Programs have created_by_organization_id
@@ -149,7 +149,7 @@ SELECT public.test_result(
     EXISTS (
         SELECT 1 FROM public.programs p
         JOIN public.program_participants pp ON pp.program_id = p.id
-        WHERE p.id = 'p0000000-0000-0000-0000-000000000001'
+        WHERE p.id = 'b0000000-0000-0000-0000-000000000001'
           AND pp.organization_id = p.created_by_organization_id
           AND pp.role = 'sponsor'
     ),
@@ -414,11 +414,11 @@ SELECT public.test_result(
     'Integrity: Program 1 has sponsor, lead, 2 contributors, processor, processor, reviewer',
     (
         SELECT COUNT(DISTINCT role) FROM public.program_participants
-        WHERE program_id = 'p0000000-0000-0000-0000-000000000001'
+        WHERE program_id = 'b0000000-0000-0000-0000-000000000001'
     ) >= 4  -- sponsor, lead, contributor, processor, reviewer
     AND (
         SELECT COUNT(*) FROM public.program_participants
-        WHERE program_id = 'p0000000-0000-0000-0000-000000000001'
+        WHERE program_id = 'b0000000-0000-0000-0000-000000000001'
         AND role = 'contributor'
     ) = 2
 );

@@ -372,7 +372,8 @@ BEGIN
         resource_owner_org_id, organization_id, program_id, summary,
         old_values, new_values, metadata
     ) VALUES (
-        auth.uid(), v_actor_email, p_action, p_resource_type, p_resource_id,
+        COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'),
+        v_actor_email, p_action, p_resource_type, p_resource_id,
         p_resource_owner_org_id, p_organization_id, p_program_id, p_summary,
         p_old_values, p_new_values, p_metadata
     )

@@ -16,10 +16,9 @@
 -- PART 0: EXTENSION SAFETY
 -- ################################################################------------
 
--- pgcrypt is needed for password hashing by admin_create_user.
--- In Supabase it is available in the extensions schema by default.
--- For standalone PostgreSQL, uncomment:
--- CREATE EXTENSION IF NOT EXISTS pgcrypt SCHEMA extensions;
+-- pgcrypto is needed for password hashing by admin_create_user.
+-- Supabase comes with pgcrypto pre-installed in the extensions schema.
+-- The function references extensions.crypt() which is available via search path.
 
 -- pg_trgm supports fuzzy text search on organization names.
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
@@ -485,7 +484,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     UPDATE auth.users
-    SET raw_app_meta_data = jsonb_build_object(
+    SET raw_app_meta_data = raw_app_meta_data || jsonb_build_object(
         'kadarn_profile_id', NEW.id::text,
         'kadarn_email', NEW.email,
         'kadarn_name', NEW.full_name,
@@ -526,22 +525,55 @@ DECLARE
     v_user_id UUID;
 BEGIN
     -- Only service_role or superuser may directly create users
-    IF auth.role() != 'service_role' AND auth.role() != 'superuser' THEN
+    -- Allow null or empty auth context (direct psql/superuser access)
+    IF auth.role() IS DISTINCT FROM NULL
+       AND auth.role() != ''
+       AND auth.role() != 'service_role'
+       AND auth.role() != 'superuser' THEN
         RAISE EXCEPTION 'Only service_role can create users directly';
     END IF;
 
     v_user_id := gen_random_uuid();
 
-    INSERT INTO auth.users (id, email, encrypted_password, raw_user_meta_data)
-    VALUES (
+    INSERT INTO auth.users (
+        id, email, encrypted_password, email_confirmed_at,
+        raw_app_meta_data, raw_user_meta_data,
+        aud, role, is_sso_user, is_anonymous, created_at, updated_at
+    ) VALUES (
         v_user_id,
         p_email,
-        crypt(p_password, gen_salt('bf')),
+        extensions.crypt(p_password, extensions.gen_salt('bf', 10)),
+        now(),
+        jsonb_build_object(
+            'provider', 'email',
+            'providers', ARRAY['email']
+        ),
         jsonb_build_object(
             'full_name', p_full_name,
             'organization_id', p_organization_id::text
-        )
+        ),
+        'authenticated', 'authenticated',
+        false, false,
+        now(), now()
     );
+
+    -- Create identity entry (required by Supabase Auth for password sign-in)
+    INSERT INTO auth.identities (
+        id, user_id, identity_data, provider, provider_id,
+        last_sign_in_at, created_at, updated_at
+    ) VALUES (
+        v_user_id, v_user_id,
+        jsonb_build_object(
+            'sub', v_user_id::text,
+            'email', p_email,
+            'email_verified', true,
+            'full_name', p_full_name,
+            'phone_verified', false
+        ),
+        'email', v_user_id::text,
+        now(), now(), now()
+    )
+    ON CONFLICT (provider_id, provider) DO NOTHING;
 
     -- Ensure profile exists (trigger handles this, but safeguard)
     INSERT INTO public.user_profiles (id, email, full_name)

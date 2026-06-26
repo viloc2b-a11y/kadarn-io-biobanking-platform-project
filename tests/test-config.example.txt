@@ -1,0 +1,8 @@
+# Test Configuration Reference
+# Copy to tests/.env and fill in your local Supabase values.
+# Get values from: supabase status (run in the Kadarn prototype repo)
+
+SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=<your-local-supabase-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<your-local-supabase-service-role-key>
+DEMO_PASSWORD=Test123!
