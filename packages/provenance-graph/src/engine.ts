@@ -20,16 +20,20 @@ import type {
 } from './types.js';
 
 // --------------------------------------------------------------------------
-// traceForward — find all descendants (what derives from this node)
+// bfsTraverse — shared BFS traversal for provenance graph
 // --------------------------------------------------------------------------
-// Follow INCOMING edges: entities that point TO this node.
-// If dataset → specimen (derived_from), then from specimen we follow
-// incoming edges to find dataset.
+// Generic BFS that accepts an edge-fetching callback and a node selector
+// to handle both forward and backward traversal with a single implementation.
 // --------------------------------------------------------------------------
 
-export async function traceForward(
+type BfsEdgeFetcher = (nodeId: string) => Promise<ProvenanceEdge[]>;
+type BfsNodeSelector = (edge: ProvenanceEdge) => { nodeId: string; node: ProvenanceNode | undefined };
+
+async function bfsTraverse(
   adapter: ProvenanceAdapter,
   query: TraceQuery,
+  getEdges: BfsEdgeFetcher,
+  selectNode: BfsNodeSelector,
 ): Promise<{ nodes: ProvenanceNode[]; edges: ProvenanceEdge[] }> {
   const visited = new Set<string>();
   const nodes: ProvenanceNode[] = [];
@@ -41,27 +45,47 @@ export async function traceForward(
   const maxDepth = query.maxDepth ?? 10;
 
   while (queue.length > 0) {
-    const { nodeId, depth } = queue.shift()!;
+    const entry = queue.shift() as { nodeId: string; depth: number };
+    const { nodeId, depth } = entry;
     if (visited.has(nodeId)) continue;
     if (depth >= maxDepth) continue;
     visited.add(nodeId);
 
-    const incomingEdges = await adapter.getIncomingEdges(nodeId);
-    for (const edge of incomingEdges) {
+    const fetchedEdges = await getEdges(nodeId);
+    for (const edge of fetchedEdges) {
       edges.push(edge);
-      if (!visited.has(edge.sourceNodeId)) {
-        const sourceNode = edge.sourceNode ??
-          (await adapter.getNode(edge.sourceNodeId));
-        if (sourceNode) {
-          nodes.push(sourceNode);
-          edge.sourceNode = sourceNode;
-          queue.push({ nodeId: edge.sourceNodeId, depth: depth + 1 });
+      const { nodeId: adjacentId, node: adjacentNode } = selectNode(edge);
+      if (!visited.has(adjacentId)) {
+        const resolvedNode = adjacentNode ?? (await adapter.getNode(adjacentId));
+        if (resolvedNode) {
+          nodes.push(resolvedNode);
+          queue.push({ nodeId: adjacentId, depth: depth + 1 });
         }
       }
     }
   }
 
   return { nodes, edges };
+}
+
+// --------------------------------------------------------------------------
+// traceForward — find all descendants (what derives from this node)
+// --------------------------------------------------------------------------
+// Follow INCOMING edges: entities that point TO this node.
+// If dataset → specimen (derived_from), then from specimen we follow
+// incoming edges to find dataset.
+// --------------------------------------------------------------------------
+
+export function traceForward(
+  adapter: ProvenanceAdapter,
+  query: TraceQuery,
+): Promise<{ nodes: ProvenanceNode[]; edges: ProvenanceEdge[] }> {
+  return bfsTraverse(
+    adapter,
+    query,
+    (nodeId) => adapter.getIncomingEdges(nodeId),
+    (edge) => ({ nodeId: edge.sourceNodeId, node: edge.sourceNode }),
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -72,41 +96,16 @@ export async function traceForward(
 // outgoing edges to find specimen.
 // --------------------------------------------------------------------------
 
-export async function traceBackward(
+export function traceBackward(
   adapter: ProvenanceAdapter,
   query: TraceQuery,
 ): Promise<{ nodes: ProvenanceNode[]; edges: ProvenanceEdge[] }> {
-  const visited = new Set<string>();
-  const nodes: ProvenanceNode[] = [];
-  const edges: ProvenanceEdge[] = [];
-  const queue: Array<{ nodeId: string; depth: number }> = [
-    { nodeId: query.nodeId, depth: 0 },
-  ];
-
-  const maxDepth = query.maxDepth ?? 10;
-
-  while (queue.length > 0) {
-    const { nodeId, depth } = queue.shift()!;
-    if (visited.has(nodeId)) continue;
-    if (depth >= maxDepth) continue;
-    visited.add(nodeId);
-
-    const outgoingEdges = await adapter.getOutgoingEdges(nodeId);
-    for (const edge of outgoingEdges) {
-      edges.push(edge);
-      if (!visited.has(edge.targetNodeId)) {
-        const targetNode = edge.targetNode ??
-          (await adapter.getNode(edge.targetNodeId));
-        if (targetNode) {
-          nodes.push(targetNode);
-          edge.targetNode = targetNode;
-          queue.push({ nodeId: edge.targetNodeId, depth: depth + 1 });
-        }
-      }
-    }
-  }
-
-  return { nodes, edges };
+  return bfsTraverse(
+    adapter,
+    query,
+    (nodeId) => adapter.getOutgoingEdges(nodeId),
+    (edge) => ({ nodeId: edge.targetNodeId, node: edge.targetNode }),
+  );
 }
 
 // --------------------------------------------------------------------------

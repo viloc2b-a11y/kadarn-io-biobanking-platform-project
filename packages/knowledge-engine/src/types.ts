@@ -83,6 +83,16 @@ export interface ExpansionResult {
 }
 
 // --------------------------------------------------------------------------
+// Hierarchy result
+// --------------------------------------------------------------------------
+
+export interface HierarchyResult {
+  term: OntologyTerm;
+  parent: OntologyTerm | null;
+  children: OntologyTerm[];
+}
+
+// --------------------------------------------------------------------------
 // Adapter interface
 // --------------------------------------------------------------------------
 

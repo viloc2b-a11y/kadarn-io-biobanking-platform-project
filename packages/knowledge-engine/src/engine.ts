@@ -10,6 +10,7 @@ import type {
   OntologySynonym,
   NormalizationResult,
   ExpansionResult,
+  HierarchyResult,
   VocabularySet,
 } from './types.js';
 
@@ -26,83 +27,68 @@ import type {
 
 export function normalizeTerm(
   vocabulary: VocabularySet,
-  term: string,
-  terms: OntologyTerm[],
-  synonyms: OntologySynonym[],
+  input: string,
+  allTerms: OntologyTerm[],
+  allSynonyms: OntologySynonym[],
 ): NormalizationResult {
-  const cleaned = term.trim().toLowerCase();
+  const trimmed = input.trim();
 
   // 1. Exact match against preferred_label
-  const exactMatch = terms.find(
-    (t) => t.preferredLabel.toLowerCase() === cleaned,
+  const exact = allTerms.find(
+    (t) => t.vocabulary === vocabulary && t.preferredLabel === trimmed,
   );
-  if (exactMatch) {
-    return {
-      original: term,
-      normalized: exactMatch.preferredLabel,
-      displayName: exactMatch.displayName,
-      vocabulary,
-      found: true,
-      confidence: 1.0,
-    };
-  }
+  if (exact) return { original: trimmed, normalized: exact.preferredLabel, displayName: exact.displayName, vocabulary, found: true, confidence: 1.0 };
 
   // 2. Case-insensitive match
-  const caseMatch = terms.find(
-    (t) => t.preferredLabel.toLowerCase() === cleaned,
+  const caseInsensitive = allTerms.find(
+    (t) => t.vocabulary === vocabulary && t.preferredLabel.toLowerCase() === trimmed.toLowerCase(),
   );
-  if (caseMatch) {
-    return {
-      original: term,
-      normalized: caseMatch.preferredLabel,
-      displayName: caseMatch.displayName,
-      vocabulary,
-      found: true,
-      confidence: 0.95,
-    };
-  }
+  if (caseInsensitive) return { original: trimmed, normalized: caseInsensitive.preferredLabel, displayName: caseInsensitive.displayName, vocabulary, found: true, confidence: 0.95 };
 
   // 3. Match against synonyms
-  const synonymTermId = findTermBySynonym(synonyms, cleaned);
-  if (synonymTermId) {
-    const matchedTerm = terms.find((t) => t.id === synonymTermId);
-    if (matchedTerm) {
-      return {
-        original: term,
-        normalized: matchedTerm.preferredLabel,
-        displayName: matchedTerm.displayName,
-        vocabulary,
-        found: true,
-        confidence: 0.9,
-      };
-    }
+  const synMatch = allSynonyms.find((s) => s.synonym.toLowerCase() === trimmed.toLowerCase());
+  if (synMatch) {
+    const term = allTerms.find((t) => t.id === synMatch.termId);
+    if (term) return { original: trimmed, normalized: term.preferredLabel, displayName: term.displayName, vocabulary, found: true, confidence: 0.9 };
   }
 
-  // 4. Fuzzy match (Levenshtein distance)
-  const fuzzyMatch = fuzzySearch(terms, cleaned);
-  if (fuzzyMatch) {
-    return {
-      original: term,
-      normalized: fuzzyMatch.preferredLabel,
-      displayName: fuzzyMatch.displayName,
-      vocabulary,
-      found: true,
-      confidence: 0.7,
-    };
-  }
+  // 4. Fuzzy match (Levenshtein distance ≤ 2)
+  const fuzzy = allTerms
+    .filter((t) => t.vocabulary === vocabulary)
+    .map((t) => ({ term: t, dist: levenshtein(trimmed.toLowerCase(), t.preferredLabel.toLowerCase()) }))
+    .filter((x) => x.dist <= 2)
+    .sort((a, b) => a.dist - b.dist)[0];
+  if (fuzzy) return { original: trimmed, normalized: fuzzy.term.preferredLabel, displayName: fuzzy.term.displayName, vocabulary, found: true, confidence: 0.7 };
 
-  // 5. Not found — pass through
-  return {
-    original: term,
-    normalized: term,
-    vocabulary,
-    found: false,
-    confidence: 0,
-  };
+  // 5. Pass through
+  return { original: trimmed, normalized: trimmed, vocabulary, found: false, confidence: 0 };
 }
 
 // --------------------------------------------------------------------------
-// getSynonyms — get all synonyms for a term
+// expandQuery — expand a query with synonyms and related terms
+// --------------------------------------------------------------------------
+
+export function expandQuery(
+  termIdOrLabel: string,
+  allTerms: OntologyTerm[],
+  allSynonyms: OntologySynonym[],
+): ExpansionResult {
+  // Match by ID first, then by preferredLabel
+  const term = allTerms.find((t) => t.id === termIdOrLabel || t.preferredLabel === termIdOrLabel);
+  if (!term) return { original: termIdOrLabel, expanded: [termIdOrLabel], synonyms: [] };
+
+  const synonyms = allSynonyms
+    .filter((s) => s.termId === term.id)
+    .map((s) => s.synonym);
+
+  // Children are not included automatically — only direct synonyms + the term itself
+  const expanded = [term.preferredLabel, ...synonyms];
+
+  return { original: term.preferredLabel, expanded, synonyms };
+}
+
+// --------------------------------------------------------------------------
+// getSynonyms — get all synonym strings for a term
 // --------------------------------------------------------------------------
 
 export function getSynonyms(
@@ -115,40 +101,8 @@ export function getSynonyms(
 }
 
 // --------------------------------------------------------------------------
-// expandQuery — expand a term with synonyms
-// --------------------------------------------------------------------------
-
-export function expandQuery(
-  term: string,
-  terms: OntologyTerm[],
-  allSynonyms: OntologySynonym[],
-): ExpansionResult {
-  const matchedTerm = terms.find(
-    (t) => t.preferredLabel.toLowerCase() === term.toLowerCase(),
-  );
-
-  if (!matchedTerm) {
-    return { original: term, expanded: [term], synonyms: [] };
-  }
-
-  const synonyms = getSynonyms(matchedTerm.id, allSynonyms);
-
-  return {
-    original: term,
-    expanded: [matchedTerm.preferredLabel, ...synonyms],
-    synonyms,
-  };
-}
-
-// --------------------------------------------------------------------------
 // getHierarchy — get parent/child relationships
 // --------------------------------------------------------------------------
-
-export interface HierarchyResult {
-  term: OntologyTerm;
-  parent: OntologyTerm | null;
-  children: OntologyTerm[];
-}
 
 export function getHierarchy(
   termId: string,
@@ -167,62 +121,33 @@ export function getHierarchy(
 }
 
 // --------------------------------------------------------------------------
-// Helpers
+// getTermsByVocabulary — get all terms in a vocabulary set
 // --------------------------------------------------------------------------
 
-function findTermBySynonym(
-  synonyms: OntologySynonym[],
-  query: string,
-): string | null {
-  const match = synonyms.find((s) => s.synonym.toLowerCase() === query);
-  return match?.termId ?? null;
+export function getTermsByVocabulary(
+  vocabulary: VocabularySet,
+  allTerms: OntologyTerm[],
+): OntologyTerm[] {
+  return allTerms.filter((t) => t.vocabulary === vocabulary);
 }
 
-function fuzzySearch(
-  terms: OntologyTerm[],
-  query: string,
-): OntologyTerm | null {
-  let bestMatch: OntologyTerm | null = null;
-  let bestDistance = 3; // max Levenshtein distance
+// --------------------------------------------------------------------------
+// levenshtein — compute edit distance between two strings
+// --------------------------------------------------------------------------
 
-  for (const term of terms) {
-    const dist = levenshteinDistance(
-      term.preferredLabel.toLowerCase(),
-      query,
-    );
-    if (dist < bestDistance) {
-      bestDistance = dist;
-      bestMatch = term;
-    }
-  }
-
-  return bestMatch;
-}
-
-/**
- * Levenshtein distance between two strings.
- * Minimal edit distance (insertions, deletions, substitutions).
- */
-function levenshteinDistance(a: string, b: string): number {
+function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
-  const dp: number[][] = [];
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
 
-  for (let i = 0; i <= m; i++) {
-    dp[i] = [i];
-  }
-  for (let j = 0; j <= n; j++) {
-    dp[0][j] = j;
-  }
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,      // deletion
-        dp[i][j - 1] + 1,      // insertion
-        dp[i - 1][j - 1] + cost, // substitution
-      );
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
     }
   }
 

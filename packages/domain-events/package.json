@@ -1,6 +1,7 @@
 {
   "name": "@kadarn/domain-events",
   "version": "0.1.0",
+  "type": "module",
   "description": "Kadarn domain event contracts — experimental, will stabilize at v1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",

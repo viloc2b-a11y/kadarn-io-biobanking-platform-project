@@ -50,4 +50,6 @@ export type {
   ShipmentScheduledPayload,
   TemperatureReadingPayload,
   TemperatureBreachPayload,
+  CollectionStatus,
+  CollectionTwinState,
 } from './types.js';
