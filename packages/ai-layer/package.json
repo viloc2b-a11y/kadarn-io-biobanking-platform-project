@@ -1,0 +1,13 @@
+{
+  "name": "@kadarn/ai-layer",
+  "version": "0.11.0",
+  "description": "Kadarn AI Layer — intelligent assistance across all engines",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
