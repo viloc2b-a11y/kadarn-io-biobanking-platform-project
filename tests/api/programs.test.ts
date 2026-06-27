@@ -208,10 +208,23 @@ describe('Program Milestones', () => {
 // -------------------------------------------------------------------------
 describe('Program Requirements', () => {
   it('creates structured requirements', async () => {
-    const { data: req } = await sponsor.client
+    // Use a fresh program ID to avoid unique constraint conflicts
+    const { data: prog } = await sponsor.client
+      .from('programs')
+      .insert({
+        name: 'Requirements Test ' + Date.now(),
+        status: 'draft',
+        sponsor_org_id: ORG_IDS.pharmaCorp,
+        created_by: sponsor.userId,
+        created_by_organization_id: ORG_IDS.pharmaCorp,
+      })
+      .select()
+      .single();
+
+    const { data: req, error } = await sponsor.client
       .from('program_requirements')
       .insert({
-        program_id: PROGRAM_IDS.tnbcRetro,
+        program_id: prog!.id,
         sample_types: ['tissue_ffpe', 'tissue_frozen'],
         total_sample_count: 500,
         disease_icd10: 'ICD-10:C50.9',
@@ -223,7 +236,7 @@ describe('Program Requirements', () => {
       .select()
       .single();
 
-    expect(req).toBeDefined();
+    expect(error).toBeNull();
     expect(req!.total_sample_count).toBe(500);
   });
 
