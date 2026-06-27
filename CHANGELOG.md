@@ -86,3 +86,140 @@ and Kadarn follows [Semantic Versioning](https://semver.org/) once it reaches a 
 | 0.10.0 | 9 | Processing Marketplace |
 | 0.11.0 | 10 | Analytics |
 | 0.12.0 | 11 | AI Layer |
+
+---
+
+## [1.0.0-beta] — 2026-06-26 — Architecture Crystallization
+
+### Added
+
+- **Architecture Documentation Pack** — 10 new documents:
+  - Kadarn Manifesto (canonical `what is Kadarn` statement)
+  - Ecosystem Reference Architecture (17 actors, 14 flows, 10 frictions)
+  - Architectural Lexicon (30+ terms, changelog)
+  - KRM-RAO Reference Model (9 abstractions, 7 layers, 9 engines)
+  - KRM-BNO Biospecimen Profile (5 asset types, 5 Twins, 19-phase lifecycle)
+  - Event Catalog (62 canonical events, standardized envelope, versioning)
+  - Graph-Native Query Layer (cross-graph composition)
+  - Traceability Matrix (principle → ADR → module)
+  - Current State vs Reference Model (51% completion baseline)
+  - v1.0.0-beta Readiness Checklist
+
+- **Architecture Decision Records** — 12 new ADRs (005→016):
+  - ADR-005: Architectural Lexicon
+  - ADR-006: Ecosystem-First Architecture
+  - ADR-007: Platform Principles
+  - ADR-008: KRM-RAO Reference Model
+  - ADR-009: KRM-BNO Profile
+  - ADR-010: Policy Engine
+  - ADR-011: Trust Engine
+  - ADR-012: Operational Twins
+  - ADR-013: Event-First Platform
+  - ADR-014: Provenance Graph
+  - ADR-015: Knowledge Engine
+  - ADR-016: Graph-Native Query Layer
+
+- **Policy Engine** (`packages/policy-engine/`) — ADR-010:
+  - JSON expression tree: eq, neq, gt, gte, lt, lte, in, contains, all, any, not
+  - evaluate() — recursive condition walker with dot-notation var resolution
+  - compose() — deny-wins composition strategy
+  - 36 unit tests
+
+- **Trust Engine** (`packages/trust-engine/`) — ADR-011:
+  - 4 trust dimensions: operational, regulatory, financial, technical
+  - Exponential decay: score × (1 - rate)^days
+  - 17 default impact sources with severity multipliers
+  - TrustEngineService: recordEvent, getScores (decay on read), getTrajectory, fileChallenge
+  - 36 unit tests
+
+- **Operational Twins** (`packages/operational-twins/`) — ADR-012:
+  - Hybrid event-sourcing: immutable event store + materialized state table
+  - Specimen Twin with 11 event types, typed payloads
+  - Status state machine: 7 states with valid transitions
+  - reconstructStateAt() — time-travel query
+  - 24 unit tests
+
+- **Provenance Graph** (`packages/provenance-graph/`) — ADR-014:
+  - DAG lineage: provenance_nodes, provenance_edges, provenance_evidence
+  - traceForward / traceBackward / fullLineage
+  - Evidence chains linked to lineage nodes
+  - 11 unit tests
+
+- **Knowledge Engine** (`packages/knowledge-engine/`) — ADR-015:
+  - 6 controlled vocabulary sets with 100+ seed terms
+  - Synonym resolution with fuzzy matching (Levenshtein)
+  - Query expansion, hierarchy traversal
+  - 18 unit tests
+
+- **Graph Query Layer** (`packages/graph-query/`) — ADR-016:
+  - Cross-graph query orchestration
+  - matchingSuppliers(): Knowledge → Trust → Network composition
+  - 8 unit tests
+
+- **Database migrations** — 5 new (013→017):
+  - 013: Policy Engine (policies, policy_evaluations)
+  - 014: Trust Engine (organization_trust, trust_events, trust_challenges)
+  - 015: Operational Twins (twin_events, specimen_twins, apply_twin_event)
+  - 016: Provenance Graph (provenance_nodes, provenance_edges, provenance_evidence)
+  - 017: Knowledge Engine (ontology_terms, ontology_synonyms, ontology_mappings)
+
+- **CI Scripts** — `scripts/terminology-lint.sh`, `scripts/cross-doc-consistency.sh`
+
+### Changed
+
+- Domain events package updated: standardized envelope, 16 new canonical events (62 total)
+- Dependency order established: Manifesto → Ecosystem → KRM-RAO → KRM-BNO → Lexicon
+
+### Engineering
+
+- 259 total tests (86 security + 173 engine unit tests)
+- 6 engine packages across 3 P0 capabilities
+- 17 database migrations (008→017)
+- 16 architecture decision records
+- Zero breaking changes to existing v0.11.0 modules
+
+## [1.0.0-beta.2] — 2026-06-26 — Full KRM-RAO Coverage
+
+### Added
+
+- **Workflow Engine 2.0** (`packages/workflow-engine/`) — ADR-017:
+  - Dynamic, policy-driven workflow orchestration
+  - Policy integration at every decision point (allow/deny/conditional)
+  - 16 tests
+
+- **Transaction + Shipment Twins** (migration 019):
+  - Full twin tables with event-sourced state
+  - Transaction lifecycle: initiated → governance → MTA → fulfillment → settlement
+  - Shipment lifecycle: scheduled → picked_up → in_transit → delivered → accepted
+
+- **5 remaining KRM-RAO engines:**
+  - Matching Engine (ADR-018): ranked, filtered specimen matching
+  - Fulfillment Engine (ADR-019): fulfillment lifecycle orchestration
+  - Financial Engine (ADR-020): fee calculation and settlement
+  - Intelligence Engine (ADR-021): AI-assisted transversal capability
+  - Integration Engine: external system event ingestion with retry
+
+- **Collection + Organization Twins** (migration 020):
+  - Collection Twin: protocol enrollment, consent model, status tracking
+  - Organization Twin: view combining organizations + trust scores
+
+- **Documentation:** Policy Catalog, Integration Reference
+
+### Engineering
+
+- 9/9 KRM-RAO engines implemented
+- 5/5 Operational Twins implemented
+- 4/4 Graphs + Query Layer implemented
+- 20 ADRs (001-021)
+- 13 migrations (008-020)
+- 14 packages (incl. apps/api)
+- 298 total tests (170 engine + 128 security)
+
+### Added
+
+- **API Layer** (`apps/api/`) — Express REST API exposing Three Experiences:
+  - Marketplace routes: /specimens, /network, /services
+  - Workspace routes: /profile, /applications, /inventory, /exchange
+  - Operations Center routes: /health, /trust, /provenance/:id, /exceptions, /kpe
+  - JWT auth middleware, helmet, CORS
+  - 6 API integration tests
