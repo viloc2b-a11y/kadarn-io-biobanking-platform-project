@@ -1,0 +1,18 @@
+{
+  "name": "@kadarn/workflow-engine",
+  "version": "0.1.0",
+  "description": "Kadarn Workflow Engine 2.0 — dynamic, policy-driven, versionable workflow orchestration",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {}
+}
