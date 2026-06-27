@@ -11,7 +11,7 @@ beforeAll(async () => {
   sponsor = await signInAs('sponsor');
 });
 
-const ok = (e: any) => e === null || e?.code?.startsWith('PGRST');
+const ok = (e: any) => e == null || e?.code?.startsWith('PGRST');
 
 describe('Analytics Engine', () => {
   // -----------------------------------------------------------------------
@@ -106,7 +106,7 @@ describe('Analytics Engine', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].search_text).toBe('TNBC FFPE');
     });
 

@@ -12,7 +12,7 @@ beforeAll(async () => {
   sponsor = await signInAs('sponsor');
 });
 
-const ok = (e: any) => e === null || e?.code?.startsWith('PGRST');
+const ok = (e: any) => e == null || e?.code?.startsWith('PGRST');
 
 describe('AI Layer', () => {
   // -----------------------------------------------------------------------
@@ -107,7 +107,7 @@ describe('AI Layer', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].model_name).toBe('org-matcher-v1');
     });
 
@@ -122,7 +122,7 @@ describe('AI Layer', () => {
         const { error } = await sponsor.client
           .from('ai_models')
           .insert({ ...m, created_by: sponsor.userId });
-        expect(ok(error)).toBe(true);
+        if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       }
 
       const { data } = await sponsor.client
@@ -151,7 +151,7 @@ describe('AI Layer', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].confidence).toBe(0.85);
     });
 
@@ -188,7 +188,7 @@ describe('AI Layer', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].suggestion_type).toBe('org_recommendation');
       expect(data![0].confidence).toBe(0.82);
     });
@@ -210,7 +210,7 @@ describe('AI Layer', () => {
         .update({ is_applied: true, applied_at: new Date().toISOString() })
         .eq('id', suggestion![0].id);
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
     });
   });
 

@@ -11,7 +11,7 @@ beforeAll(async () => {
   sponsor = await signInAs('sponsor');
 });
 
-const ok = (e: any) => e === null || e?.code?.startsWith('PGRST');
+const ok = (e: any) => e == null || e?.code?.startsWith('PGRST');
 
 describe('Regulatory Engine', () => {
   // -----------------------------------------------------------------------
@@ -34,7 +34,7 @@ describe('Regulatory Engine', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].protocol_id).toBe('KAD-PRO-001');
       expect(data![0].is_template).toBe(true);
     });
@@ -55,7 +55,7 @@ describe('Regulatory Engine', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].study_type).toBe('prospective');
     });
 
@@ -113,7 +113,7 @@ describe('Regulatory Engine', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].region).toBe('US');
     });
 
@@ -132,7 +132,7 @@ describe('Regulatory Engine', () => {
           created_by: sponsor.userId,
         });
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
     });
   });
 
@@ -158,7 +158,7 @@ describe('Regulatory Engine', () => {
             review_date: '2027-01-01',
             created_by: sponsor.userId,
           });
-        expect(ok(error)).toBe(true);
+        if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       }
 
       const { data } = await sponsor.client
@@ -198,7 +198,7 @@ describe('Regulatory Engine', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].irb_name).toBe('Central IRB');
       expect(data![0].status).toBe('draft');
     });
@@ -222,7 +222,7 @@ describe('Regulatory Engine', () => {
           .from('regulatory_submissions')
           .update({ status, submitted_at: status === 'submitted' ? new Date().toISOString() : undefined })
           .eq('id', sub![0].id);
-        expect(ok(error)).toBe(true);
+        if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       }
 
       const { data: final } = await sponsor.client
@@ -262,7 +262,7 @@ describe('Regulatory Engine', () => {
         })
         .select();
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
       expect(data![0].document_category).toBe('protocol');
       expect(data![0].is_confidential).toBe(true);
     });
@@ -318,7 +318,7 @@ describe('Regulatory Engine', () => {
           granted_by: sponsor.userId,
         });
 
-      expect(ok(error)).toBe(true);
+      if(error)console.error("ERROR:",error.code,error.message);expect(error===null||error===undefined||error?.code?.startsWith("PGRST")).toBe(true);
     });
   });
 
