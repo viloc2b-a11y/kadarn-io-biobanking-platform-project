@@ -42,8 +42,6 @@ describe('1. Write generates audit event', () => {
     expect(orgError).toBeNull();
     expect(orgData).toBeDefined();
     expect(orgData!.length).toBeGreaterThanOrEqual(1);
-    const orgId = orgData![0].id;
-
     const orgId = orgData!.id;
 
     // Verify the audit event was created
