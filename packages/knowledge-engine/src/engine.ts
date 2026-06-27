@@ -26,40 +26,42 @@ import type {
 // --------------------------------------------------------------------------
 
 export function normalizeTerm(
-  input: string,
   vocabulary: VocabularySet,
+  input: string,
   allTerms: OntologyTerm[],
   allSynonyms: OntologySynonym[],
 ): NormalizationResult {
+  const trimmed = input.trim();
+
   // 1. Exact match against preferred_label
   const exact = allTerms.find(
-    (t) => t.vocabulary === vocabulary && t.preferredLabel === input,
+    (t) => t.vocabulary === vocabulary && t.preferredLabel === trimmed,
   );
-  if (exact) return { original: input, normalized: exact.preferredLabel, displayName: exact.displayName, vocabulary, found: true, confidence: 1.0 };
+  if (exact) return { original: trimmed, normalized: exact.preferredLabel, displayName: exact.displayName, vocabulary, found: true, confidence: 1.0 };
 
   // 2. Case-insensitive match
   const caseInsensitive = allTerms.find(
-    (t) => t.vocabulary === vocabulary && t.preferredLabel.toLowerCase() === input.toLowerCase(),
+    (t) => t.vocabulary === vocabulary && t.preferredLabel.toLowerCase() === trimmed.toLowerCase(),
   );
-  if (caseInsensitive) return { original: input, normalized: caseInsensitive.preferredLabel, displayName: caseInsensitive.displayName, vocabulary, found: true, confidence: 0.95 };
+  if (caseInsensitive) return { original: trimmed, normalized: caseInsensitive.preferredLabel, displayName: caseInsensitive.displayName, vocabulary, found: true, confidence: 0.95 };
 
   // 3. Match against synonyms
-  const synMatch = allSynonyms.find((s) => s.synonym.toLowerCase() === input.toLowerCase());
+  const synMatch = allSynonyms.find((s) => s.synonym.toLowerCase() === trimmed.toLowerCase());
   if (synMatch) {
     const term = allTerms.find((t) => t.id === synMatch.termId);
-    if (term) return { original: input, normalized: term.preferredLabel, displayName: term.displayName, vocabulary, found: true, confidence: 0.9 };
+    if (term) return { original: trimmed, normalized: term.preferredLabel, displayName: term.displayName, vocabulary, found: true, confidence: 0.9 };
   }
 
   // 4. Fuzzy match (Levenshtein distance ≤ 2)
   const fuzzy = allTerms
     .filter((t) => t.vocabulary === vocabulary)
-    .map((t) => ({ term: t, dist: levenshtein(input.toLowerCase(), t.preferredLabel.toLowerCase()) }))
+    .map((t) => ({ term: t, dist: levenshtein(trimmed.toLowerCase(), t.preferredLabel.toLowerCase()) }))
     .filter((x) => x.dist <= 2)
     .sort((a, b) => a.dist - b.dist)[0];
-  if (fuzzy) return { original: input, normalized: fuzzy.term.preferredLabel, displayName: fuzzy.term.displayName, vocabulary, found: true, confidence: 0.8 };
+  if (fuzzy) return { original: trimmed, normalized: fuzzy.term.preferredLabel, displayName: fuzzy.term.displayName, vocabulary, found: true, confidence: 0.7 };
 
   // 5. Pass through
-  return { original: input, normalized: input, vocabulary, found: false, confidence: 0 };
+  return { original: trimmed, normalized: trimmed, vocabulary, found: false, confidence: 0 };
 }
 
 // --------------------------------------------------------------------------
@@ -67,21 +69,35 @@ export function normalizeTerm(
 // --------------------------------------------------------------------------
 
 export function expandQuery(
-  termId: string,
+  termIdOrLabel: string,
   allTerms: OntologyTerm[],
   allSynonyms: OntologySynonym[],
 ): ExpansionResult {
-  const term = allTerms.find((t) => t.id === termId);
-  if (!term) return { original: termId, expanded: [], synonyms: [] };
+  // Match by ID first, then by preferredLabel
+  const term = allTerms.find((t) => t.id === termIdOrLabel || t.preferredLabel === termIdOrLabel);
+  if (!term) return { original: termIdOrLabel, expanded: [termIdOrLabel], synonyms: [] };
 
   const synonyms = allSynonyms
-    .filter((s) => s.termId === termId)
+    .filter((s) => s.termId === term.id)
     .map((s) => s.synonym);
 
   // Children are not included automatically — only direct synonyms + the term itself
   const expanded = [term.preferredLabel, ...synonyms];
 
   return { original: term.preferredLabel, expanded, synonyms };
+}
+
+// --------------------------------------------------------------------------
+// getSynonyms — get all synonym strings for a term
+// --------------------------------------------------------------------------
+
+export function getSynonyms(
+  termId: string,
+  allSynonyms: OntologySynonym[],
+): string[] {
+  return allSynonyms
+    .filter((s) => s.termId === termId)
+    .map((s) => s.synonym);
 }
 
 // --------------------------------------------------------------------------

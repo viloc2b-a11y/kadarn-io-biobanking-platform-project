@@ -86,6 +86,8 @@ export type SpecimenEventType =
 // --------------------------------------------------------------------------
 
 export interface SpecimenCollectedPayload {
+  specimenId: string;
+  collectionId: string;
   organizationId: string;
   specimenType: string;
   containerType: string;

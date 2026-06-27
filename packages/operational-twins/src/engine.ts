@@ -9,20 +9,26 @@ import type {
   SpecimenTwinState,
   SpecimenEventType,
   SpecimenStatus,
-  SpecimenCollectedPayload,
-  QCPayload,
-  FreezeThawPayload,
-  VolumeAdjustedPayload,
-  ShipmentInitiatedPayload,
-  LocationChangedPayload,
-  ConsentUpdatedPayload,
-  AliquotCreatedPayload,
+  SpecimenEventPayloadMap,
   TwinEvent,
   TransactionTwinState,
   TransactionEventType,
   ShipmentTwinState,
   ShipmentEventType,
 } from './types.js';
+
+// --------------------------------------------------------------------------
+// getPayload — type-safe payload accessor via SpecimenEventPayloadMap
+// --------------------------------------------------------------------------
+// Cast is constrained to the payload map — one place to audit instead of 9.
+// Runtime validation should be added at the adapter boundary (see scout finding).
+
+function getPayload<K extends keyof SpecimenEventPayloadMap>(
+  event: { eventType: string; payload: Record<string, unknown> },
+  _eventType: K,
+): SpecimenEventPayloadMap[K] {
+  return event.payload as SpecimenEventPayloadMap[K];
+}
 
 // --------------------------------------------------------------------------
 // createInitialState — create the initial state for a new specimen twin
@@ -58,7 +64,7 @@ export function applyEventToState(
 
   switch (event.eventType as SpecimenEventType) {
     case 'SpecimenCollected': {
-      const p = event.payload as unknown as SpecimenCollectedPayload;
+      const p = getPayload(event, 'SpecimenCollected');
       newState.status = 'collected';
       newState.specimenType = p.specimenType;
       newState.containerType = p.containerType;
@@ -74,7 +80,7 @@ export function applyEventToState(
     }
 
     case 'AliquotCreated': {
-      const p = event.payload as unknown as AliquotCreatedPayload;
+      const p = getPayload(event, 'AliquotCreated');
       // The aliquot twin is created as a separate entity.
       // For the parent specimen, reduce available quantity.
       newState.remainingQuantity = state.remainingQuantity
@@ -84,14 +90,14 @@ export function applyEventToState(
     }
 
     case 'QCPassed': {
-      const p = event.payload as unknown as QCPayload;
+      const p = getPayload(event, 'QCPassed');
       newState.lastQcResult = 'passed';
       newState.lastQcAt = new Date().toISOString();
       break;
     }
 
     case 'QCFailed': {
-      const p = event.payload as unknown as QCPayload;
+      const p = getPayload(event, 'QCFailed');
       newState.lastQcResult = 'failed';
       newState.lastQcAt = new Date().toISOString();
       newState.status = 'quarantined';
@@ -99,19 +105,19 @@ export function applyEventToState(
     }
 
     case 'FreezeThawRecorded': {
-      const p = event.payload as unknown as FreezeThawPayload;
+      const p = getPayload(event, 'FreezeThawRecorded');
       newState.freezeThawCount = state.freezeThawCount + 1;
       break;
     }
 
     case 'VolumeAdjusted': {
-      const p = event.payload as unknown as VolumeAdjustedPayload;
+      const p = getPayload(event, 'VolumeAdjusted');
       newState.remainingQuantity = p.remainingAfter;
       break;
     }
 
     case 'ShipmentInitiated': {
-      const p = event.payload as unknown as ShipmentInitiatedPayload;
+      const p = getPayload(event, 'ShipmentInitiated');
       newState.status = 'shipped';
       newState.currentLocation = {
         ...state.currentLocation,
@@ -131,7 +137,7 @@ export function applyEventToState(
     }
 
     case 'LocationChanged': {
-      const p = event.payload as unknown as LocationChangedPayload;
+      const p = getPayload(event, 'LocationChanged');
       newState.currentLocation = {
         organizationId: p.organizationId,
         facility: p.facility,
@@ -144,7 +150,7 @@ export function applyEventToState(
     }
 
     case 'ConsentUpdated': {
-      const p = event.payload as unknown as ConsentUpdatedPayload;
+      const p = getPayload(event, 'ConsentUpdated');
       newState.consentStatus = p.consentStatus;
       newState.consentId = p.consentId;
       break;

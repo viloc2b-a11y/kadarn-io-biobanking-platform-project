@@ -135,6 +135,7 @@ export interface CollectionCompletedPayload {
 export interface SpecimenCollectedPayload {
   specimenId: string;
   collectionId: string;
+  organizationId: string;
   specimenType: string;
   containerType: string;
   preservationType: string;
@@ -143,6 +144,7 @@ export interface SpecimenCollectedPayload {
   unit: string;
   consentStatus: string;
   consentId?: string;
+  collectionProtocol?: string;
 }
 
 export interface AliquotCreatedPayload {
