@@ -1,16 +1,15 @@
-import { withErrorHandling, createRouteClient } from '@/lib/supabase-server'
+import { withAuth, createRouteClient } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
-import { recordDiscoveryProvenance, createCorrelationId } from '@/lib/exchange-helper'
 
 type CapabilityType = { key: string; name: string }
 
 // Unified search across supply_items + organizations
 export const GET = withAsyncTracing(
-  withErrorHandling(async (request) => {
+  withAuth(async (request) => {
     const { searchParams } = new URL(request.url)
     const q      = searchParams.get('q') ?? ''
     const limit  = Math.min(Number(searchParams.get('limit') ?? 5), 20)
-    const correlationId = createCorrelationId()
+    const offset = Math.max(Number(searchParams.get('offset') ?? 0), 0)
 
     if (!q.trim()) {
       return Response.json({ data: { items: [], organizations: [] }, error: null })
@@ -27,7 +26,7 @@ export const GET = withAsyncTracing(
         p_country:         null,
         p_commercial_only: null,
         p_limit:           limit,
-        p_offset:          0,
+        p_offset:          offset,
       }),
       supabase
         .from('organizations')
@@ -37,10 +36,6 @@ export const GET = withAsyncTracing(
         .in('visibility_scope', ['network', 'public'])
         .limit(limit),
     ])
-
-    // ── Cross-engine hooks (fire-and-forget) ────────────────────────────
-    recordDiscoveryProvenance(q, null, correlationId)
-      .catch((err: unknown) => console.error('[DISCOVERY] Provenance failed:', err))
 
     return Response.json({
       data: {

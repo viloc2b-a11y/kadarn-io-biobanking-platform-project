@@ -1,12 +1,13 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 
 const DOMAIN_NODE_TYPES: Record<string, string[]> = {
-  asset:      ['specimen', 'aliquot', 'qc_result'],
+  asset:      ['specimen', 'aliquot', 'qc_result', 'twin_event'],
   logistics:  ['shipment', 'receipt', 'temperature_log'],
   consent:    ['consent', 'document'],
-  exchange:   ['access_request'],
-  settlement: ['dataset'],
-  governance: ['protocol', 'policy_evaluation', 'program'],
+  exchange:   ['access_request', 'exchange_deal', 'feasibility_assessment'],
+  settlement: ['settlement', 'dataset'],
+  governance: ['protocol', 'policy_evaluation', 'program', 'organization'],
+  workflow:   ['workflow_activity'],
 }
 
 type OrganizationName = { name: string }
@@ -85,16 +86,31 @@ export const GET = withAuth(async (request, user) => {
     // Fallback: if batch RPC not available, compute per-node via individual RPC
     const getIntegrity = async (nodeId: string, nodeType: string): Promise<string> => {
       if (integrityByNode[nodeId]) return integrityByNode[nodeId]
+      console.warn('[provenance] Falling back to individual integrity RPC for node', nodeId)
       const { data } = await supabase
         .rpc('provenance_node_integrity_status', { p_node_id: nodeId, p_node_type: nodeType })
       return (data as string | null) ?? 'warning'
     }
 
-    // Fetch edge counts for each node in bulk (still needed for edge_count field)
-    const { data: edges } = await supabase
+    // Fetch edge counts for each node in bulk — two safe queries instead of string-interpolated .or()
+    const { data: edgesFromSource } = await supabase
       .from('provenance_edges')
       .select('source_node_id, target_node_id, edge_type')
-      .or(`source_node_id.in.(${nodeIds.map(id => `"${id}"`).join(',')}),target_node_id.in.(${nodeIds.map(id => `"${id}"`).join(',')})`)
+      .in('source_node_id', nodeIds)
+
+    const { data: edgesFromTarget } = await supabase
+      .from('provenance_edges')
+      .select('source_node_id, target_node_id, edge_type')
+      .in('target_node_id', nodeIds)
+
+    // Merge: deduplicate by edge identity (source + target + type)
+    const edgeSet = new Set()
+    const edges = [...(edgesFromSource ?? []), ...(edgesFromTarget ?? [])].filter(e => {
+      const key = e.source_node_id + '|' + e.target_node_id + '|' + e.edge_type
+      if (edgeSet.has(key)) return false
+      edgeSet.add(key)
+      return true
+    })
 
     const edgeCountByNode: Record<string, number> = {}
     for (const e of edges ?? []) {

@@ -1,5 +1,20 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { paginationSchema } from '@/lib/validation'
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { requireValidatedActiveOrg } from '@/lib/workspace'
+import { createCorrelationId } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
+import { z } from 'zod'
+
+const specimenCreateSchema = z.object({
+  external_id: z.string().min(1),
+  specimen_type: z.string().min(1),
+  organization_id: z.string().uuid(),
+  collection_id: z.string().uuid().optional(),
+  program_id: z.string().uuid().optional(),
+  status: z.string().optional(),
+  properties: z.record(z.unknown()).optional(),
+})
 
 type JsonObject = Record<string, unknown>
 
@@ -7,7 +22,7 @@ type JsonObject = Record<string, unknown>
  * GET /api/v1/specimens
  * List specimen_twins with pagination.
  */
-export const GET = withAuth(async (request) => {
+export const GET = withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
     const url = new URL(request.url)
@@ -16,9 +31,12 @@ export const GET = withAuth(async (request) => {
       offset: url.searchParams.get('offset'),
     })
 
+    const orgId = await requireValidatedActiveOrg(user)
+
     const { data, error, count } = await supabase
       .from('specimen_twins')
       .select('*', { count: 'exact' })
+      .eq('organization_id', orgId)
       .range(offset, offset + limit - 1)
 
     if (error) throw new ApiError(500, 'Failed to fetch specimens', error.message)
@@ -47,24 +65,16 @@ export const GET = withAuth(async (request) => {
  *
  * Auto-sets: status='collected' if not provided, collected_at = now()
  */
-export const POST = withAuth(async (request, user) => {
+export const POST = withAsyncTracing(
+  withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
-    const body = (await request.json()) as JsonObject
-
-    if (!body.external_id) {
-      throw new ApiError(400, 'external_id is required')
-    }
-    if (!body.specimen_type) {
-      throw new ApiError(400, 'specimen_type is required')
-    }
-    if (!body.organization_id) {
-      throw new ApiError(400, 'organization_id is required')
-    }
+    const body = specimenCreateSchema.parse(await request.json())
+    const correlationId = createCorrelationId()
 
     // Build metadata bundle for fields that don't have dedicated columns
     const extraMeta: Record<string, unknown> = {
-      ...((body.properties as JsonObject | undefined) ?? {}),
+      ...((body.properties as Record<string, unknown> | undefined) ?? {}),
       external_id: body.external_id,
       ...(body.collection_id ? { collection_id: body.collection_id } : {}),
       ...(body.program_id ? { program_id: body.program_id } : {}),
@@ -91,8 +101,27 @@ export const POST = withAuth(async (request, user) => {
       throw new ApiError(500, 'Failed to create specimen twin', error.message)
     }
 
+    runPipeline(
+      'specimen-twin',
+      createPipelineContext({
+        correlationId,
+        actorId: user.id,
+        organizationId: body.organization_id as string,
+      }),
+      {
+        specimenId: data.id,
+        externalId: body.external_id,
+        specimenType: body.specimen_type,
+        title: body.external_id,
+        route: 'specimens',
+      },
+    )
+
     return Response.json({ data }, { status: 201 })
   } catch (err) {
     return handleApiError(err)
   }
-})
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'specimens', 'kadarn.api.method': 'POST' } },
+)

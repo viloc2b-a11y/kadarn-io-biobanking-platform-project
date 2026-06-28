@@ -1,11 +1,9 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import {
-  emitShipmentCreated,
-  recordShipmentProvenance,
-  evaluateProviderTrust,
   createCorrelationId,
 } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 type JsonObject = Record<string, unknown>
 
@@ -71,6 +69,10 @@ export const POST = withAsyncTracing(
 
       if (!body.organization_id || typeof body.organization_id !== 'string')
         throw new ApiError(400, 'organization_id (UUID) is required')
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(body.organization_id))
+        throw new ApiError(400, 'organization_id must be a valid UUID')
       if (!body.program_id || typeof body.program_id !== 'string')
         throw new ApiError(400, 'program_id (UUID) is required')
       if (!body.carrier || typeof body.carrier !== 'string')
@@ -128,10 +130,24 @@ export const POST = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const orgId = body.organization_id as string
-      evaluateProviderTrust(body.destination_org_id as string ?? orgId)
-      recordShipmentProvenance(shipment.id, orgId, carrier, correlationId)
-        .catch((err: unknown) => console.error('[SHIPMENT] Provenance failed:', err))
-      emitShipmentCreated(shipment.id, orgId, body.program_id as string, carrier, user.id, correlationId)
+      runPipeline(
+        'shipment',
+        createPipelineContext({
+          correlationId,
+          actorId: user.id,
+          organizationId: orgId,
+          programId: body.program_id as string,
+        }),
+        {
+          shipmentId: shipment.id,
+          carrier,
+          programId: body.program_id,
+          providerOrgId: body.destination_org_id ?? orgId,
+          originOrgId: body.origin_org_id,
+          destinationOrgId: body.destination_org_id,
+          route: 'shipments',
+        },
+      )
 
       return Response.json({ data: shipment }, { status: 201 })
     } catch (err) {

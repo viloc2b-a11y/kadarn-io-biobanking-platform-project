@@ -137,12 +137,18 @@ async function scoreProvenance(
   const nodeIds = allNodes.map(n => n.id)
   let edgeCount = 0
   if (nodeIds.length > 0) {
-    const { data: edges } = await supabase
+    // Two safe queries instead of string-interpolated .or() to prevent SQL injection
+    const { data: edgesFromSource, count: sourceCount } = await supabase
       .from('provenance_edges')
-      .select('id, source_node_id, target_node_id', { count: 'exact', head: false })
-      .or(`source_node_id.in.(${nodeIds.map(id => `"${id}"`).join(',')}),target_node_id.in.(${nodeIds.map(id => `"${id}"`).join(',')})`)
+      .select('id', { count: 'exact', head: true })
+      .in('source_node_id', nodeIds)
 
-    edgeCount = edges?.length ?? 0
+    const { data: edgesFromTarget, count: targetCount } = await supabase
+      .from('provenance_edges')
+      .select('id', { count: 'exact', head: true })
+      .in('target_node_id', nodeIds)
+
+    edgeCount = (sourceCount ?? 0) + (targetCount ?? 0)
   }
 
   // Score: how well-connected is the provenance graph?
