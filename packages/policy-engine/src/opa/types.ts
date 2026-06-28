@@ -41,6 +41,8 @@ export interface PolicyDecision {
   reasons: string[];
   /** ISO 8601 timestamp */
   evaluatedAt: string;
+  /** Evaluation mode: shadow (non-blocking) or enforce (authoritative) */
+  mode: 'shadow' | 'enforce';
 }
 
 // --------------------------------------------------------------------------

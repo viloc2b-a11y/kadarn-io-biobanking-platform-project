@@ -122,6 +122,7 @@ export class ShadowModeRunner {
         kadarnDecision: 'allow', // Existing auth already approved (we're in the handler)
         opaDecision: opaAllow ? 'allow' : 'deny',
         match: true, // In shadow mode, existing auth is the truth
+        mode: 'shadow',
         reasons,
         evaluatedAt: new Date().toISOString(),
       };
