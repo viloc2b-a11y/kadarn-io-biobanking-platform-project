@@ -1,0 +1,23 @@
+{
+  "subagents": {
+    "agentOverrides": {
+      "worker": {
+        "defaultContext": "fork"
+      },
+      "planner": {
+        "defaultContext": "fork"
+      },
+      "oracle": {
+        "defaultContext": "fork"
+      }
+    }
+  },
+  "gentle-ai": {
+    "sdd": {
+      "mode": "interactive",
+      "artifactStore": "openspec",
+      "chainedPR": "auto-forecast",
+      "reviewBudgetLines": 400
+    }
+  }
+}
