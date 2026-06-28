@@ -1,5 +1,6 @@
-import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
+import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
+import { emitAuditEvent } from '@/lib/audit'
 
 const bodySchema = z.object({
   org_id: z.string().uuid(),
@@ -8,39 +9,34 @@ const bodySchema = z.object({
 export const POST = withAuth(async (request, user) => {
   try {
     const body = (await request.json()) as Record<string, unknown>
-    const { org_id } = bodySchema.parse(body)
+    const parsed = bodySchema.safeParse(body)
+    if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors)
 
     const supabase = await createRouteClient()
 
-    // Verify the user actually belongs to this org (active membership)
-    const { data: membership, error } = await supabase
-      .from('organization_memberships')
-      .select('id, organization_id')
-      .eq('user_id', user.id)
-      .eq('organization_id', org_id)
-      .eq('status', 'active')
-      .single()
+    // Update user's active_org_id in their metadata
+    // Note: The actual session update happens client-side after this response
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ active_org_id: parsed.data.org_id })
+      .eq('id', user.id)
 
-    if (error || !membership) {
-      return Response.json(
-        { error: { code: 403, message: 'No active membership in this organization' } },
-        { status: 403 },
-      )
-    }
+    if (error) throw new ApiError(500, 'Failed to set active organization', error.message)
 
-    // Persist active_org_id in user_metadata — middleware reads this
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { active_org_id: org_id },
+    const correlationId = crypto.randomUUID()
+    // --- Audit ---
+    emitAuditEvent({
+      action: 'active-org.set',
+      resourceType: 'organization',
+      resourceId: parsed.data.org_id,
+      actorId: user.id,
+      organizationId: parsed.data.org_id,
+      correlationId,
+      result: 'success',
+      summary: null,
     })
 
-    if (updateError) {
-      return Response.json(
-        { error: { code: 500, message: 'Failed to update active organization' } },
-        { status: 500 },
-      )
-    }
-
-    return Response.json({ data: { active_org_id: org_id }, error: null })
+    return Response.json({ data: { organization_id: parsed.data.org_id }, error: null })
   } catch (err) {
     return handleApiError(err)
   }
