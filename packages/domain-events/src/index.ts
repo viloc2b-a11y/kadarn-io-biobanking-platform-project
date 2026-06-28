@@ -160,6 +160,56 @@ export interface ExchangeDealCreatedPayload {
 }
 
 // --------------------------------------------------------------------------
+// Collection events
+// --------------------------------------------------------------------------
+export interface CollectionCreatedPayload {
+  collectionId: string;
+  organizationId: string;
+  name: string;
+  createdBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Shipment events
+// --------------------------------------------------------------------------
+export interface ShipmentCreatedPayload {
+  shipmentId: string;
+  organizationId: string;
+  programId: string;
+  carrier: string;
+  createdBy: string;
+}
+
+export interface ShipmentStatusChangedPayload {
+  shipmentId: string;
+  organizationId: string;
+  fromStatus: string;
+  toStatus: string;
+  changedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// QC events
+// --------------------------------------------------------------------------
+export interface QcCompletedPayload {
+  aliquotId: string;
+  sampleId: string;
+  qcStatus: string;
+  organizationId: string;
+  completedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Settlement events
+// --------------------------------------------------------------------------
+export interface SettlementInitiatedPayload {
+  dealId: string;
+  organizationId: string;
+  amount: number | null;
+  initiatedBy: string;
+}
+
+// --------------------------------------------------------------------------
 // Access events
 // --------------------------------------------------------------------------
 export interface AccessRequestSubmittedPayload {
@@ -212,6 +262,11 @@ export interface KadarnEventMap {
   ProgramParticipantRemoved: ProgramParticipantRemovedPayload;
   ProgramParticipantRoleChanged: ProgramParticipantRoleChangedPayload;
   FeasibilityAssessmentCompleted: FeasibilityAssessmentCompletedPayload;
+  CollectionCreated: CollectionCreatedPayload;
+  ShipmentCreated: ShipmentCreatedPayload;
+  ShipmentStatusChanged: ShipmentStatusChangedPayload;
+  QcCompleted: QcCompletedPayload;
+  SettlementInitiated: SettlementInitiatedPayload;
   ExchangeDealCreated: ExchangeDealCreatedPayload;
   AccessRequestSubmitted: AccessRequestSubmittedPayload;
   AccessRequestApproved: AccessRequestApprovedPayload;

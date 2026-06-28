@@ -1,11 +1,12 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { paginationSchema } from '@/lib/validation'
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { emitCollectionCreated, recordCollectionProvenance, createCorrelationId } from '@/lib/logistics-helper'
 
 type JsonObject = Record<string, unknown>
 
 /**
- * GET /api/v1/collections
- * List collection_twins with pagination.
+ * GET /api/v1/collections — List collection_twins with pagination.
  */
 export const GET = withAuth(async (request) => {
   try {
@@ -33,57 +34,50 @@ export const GET = withAuth(async (request) => {
 })
 
 /**
- * POST /api/v1/collections
- * Create a new collection_twin.
- *
- * Accepts:
- *   name (string)            — collection name (stored in metadata)
- *   organization_id (UUID)   — owning organization
- *   target_enrollment? (int) — planned enrollment target
- *   actual_enrollment? (int) — current enrollment count
- *   status? (string)         — defaults to 'active'
- *   program_id? (UUID)       — associated program (stored in metadata for traceability)
- *   metadata? (jsonb)        — additional arbitrary metadata
+ * POST /api/v1/collections — Create a new collection_twin.
  */
-export const POST = withAuth(async (request, user) => {
-  try {
-    const supabase = await createRouteClient()
-    const body = (await request.json()) as JsonObject
+export const POST = withAsyncTracing(
+  withAuth(async (request, user) => {
+    try {
+      const supabase = await createRouteClient()
+      const body = (await request.json()) as JsonObject
+      const correlationId = createCorrelationId()
 
-    // Required fields
-    if (!body.organization_id) {
-      throw new ApiError(400, 'organization_id is required')
+      if (!body.organization_id) throw new ApiError(400, 'organization_id is required')
+      if (!body.name) throw new ApiError(400, 'name is required')
+
+      const payload: Record<string, unknown> = {
+        organization_id: body.organization_id,
+        status: body.status ?? 'active',
+        target_enrollment: body.target_enrollment ?? null,
+        actual_enrollment: body.actual_enrollment ?? 0,
+        metadata: {
+          ...((body.metadata as JsonObject | undefined) ?? {}),
+          name: body.name,
+          ...(body.program_id ? { program_id: body.program_id } : {}),
+          created_by: user.id,
+        },
+      }
+
+      const { data, error } = await supabase
+        .from('collection_twins')
+        .insert(payload)
+        .select()
+        .single()
+
+      if (error) throw new ApiError(500, 'Failed to create collection twin', error.message)
+
+      // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
+      const orgId = body.organization_id as string
+      recordCollectionProvenance(data.id, orgId, body.name as string, correlationId)
+        .catch((err: unknown) => console.error('[COLLECTION] Provenance failed:', err))
+      emitCollectionCreated(data.id, orgId, body.name as string, user.id, correlationId)
+
+      return Response.json({ data }, { status: 201 })
+    } catch (err) {
+      return handleApiError(err)
     }
-    if (!body.name) {
-      throw new ApiError(400, 'name is required')
-    }
-
-    const payload: Record<string, unknown> = {
-      organization_id: body.organization_id,
-      status: body.status ?? 'active',
-      target_enrollment: body.target_enrollment ?? null,
-      actual_enrollment: body.actual_enrollment ?? 0,
-      // Store extra fields in twin-specific metadata for queryability
-      metadata: {
-        ...((body.metadata as JsonObject | undefined) ?? {}),
-        name: body.name,
-        ...(body.program_id ? { program_id: body.program_id } : {}),
-        created_by: user.id,
-      },
-    }
-
-    const { data, error } = await supabase
-      .from('collection_twins')
-      .insert(payload)
-      .select()
-      .single()
-
-    if (error) {
-      throw new ApiError(500, 'Failed to create collection twin', error.message)
-    }
-
-    return Response.json({ data }, { status: 201 })
-  } catch (err) {
-    return handleApiError(err)
-  }
-})
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'collections', 'kadarn.api.method': 'POST' } },
+)
