@@ -8,7 +8,6 @@
 // ==========================================================================
 
 export { EXCHANGE_REQUEST_WORKFLOW_DEFINITION } from './exchange-request-workflow.js';
-export { ExchangeRequestWorkflow } from './exchange-request-workflow.js';
 
 export {
   createExchangeRequestWorkflow,

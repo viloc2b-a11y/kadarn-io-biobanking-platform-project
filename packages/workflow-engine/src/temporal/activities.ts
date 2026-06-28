@@ -205,7 +205,7 @@ registerActivity('assess_request_timeout', async (input) => {
     return { success: false, error: 'assess_request_timeout requires deadline' };
   }
 
-  const deadlineDate = new Date(deadline);
+  const deadlineDate = new Date(deadline as string);
   const now = new Date();
   const timedOut = now > deadlineDate;
 

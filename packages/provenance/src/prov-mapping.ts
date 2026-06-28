@@ -59,7 +59,6 @@ const NODE_TYPE_MAPPINGS: Record<string, NodeTypeMapping> = {
 
   // ── Agents ─────────────────────────────────────────────────────────────
   organization: { category: 'Agent', provType: 'prov:Organization' },
-  program:      { category: 'Agent', provType: 'prov:Organization' },
 };
 
 // --------------------------------------------------------------------------
