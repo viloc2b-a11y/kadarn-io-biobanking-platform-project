@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS public.analytics_network_snapshots (
     active_deals            INTEGER NOT NULL DEFAULT 0,
     total_audit_events      INTEGER NOT NULL DEFAULT 0,
 
-    Data
     metadata                JSONB DEFAULT '{}',
     computed_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
 

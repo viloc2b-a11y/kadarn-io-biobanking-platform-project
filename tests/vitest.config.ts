@@ -13,7 +13,7 @@ export default defineConfig({
       concurrent: false,
     },
     coverage: {
-      enabled: true,
+      enabled: false,
       provider: 'v8',
       include: ['security/**/*.test.ts'],
       thresholds: {

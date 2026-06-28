@@ -24,7 +24,7 @@ export const GET = withAuth(async (request) => {
 
 export const POST = withAuth(async (request, user) => {
   const supabase = await import('@/lib/supabase-server').then(m => m.createRouteClient());
-  const body = await request.json();
+  const body = (await request.json()) as Record<string, unknown>;
 
   const parsed = createProgramSchema.safeParse(body);
   if (!parsed.success) {

@@ -285,6 +285,21 @@ AS $$
 $$;
 
 -- ############################################################################
+-- PART 1G: USER ORGANIZATIONS VIEW
+-- ############################################################################
+--
+-- Convenience view mapping users to their active organizations.
+-- Used throughout all engine RLS policies.
+-- ============================================================================
+
+CREATE OR REPLACE VIEW public.user_organizations AS
+    SELECT DISTINCT m.user_id, m.organization_id, r.key AS role
+    FROM public.organization_memberships m
+    JOIN public.membership_roles mr ON mr.membership_id = m.id
+    JOIN public.organization_roles r ON r.id = mr.role_id
+    WHERE m.status = 'active';
+
+-- ############################################################################
 -- PART 2: ROW LEVEL SECURITY — ENABLE
 -- ############################################################################
 --
@@ -420,7 +435,7 @@ CREATE POLICY org_roles_update ON public.organization_roles
     USING (public.is_org_admin())
     WITH CHECK (
         public.is_org_admin()
-        AND is_system_role = OLD.is_system_role
+        AND is_system_role = (SELECT original.is_system_role FROM public.organization_roles original WHERE original.id = organization_roles.id)
     );
 
 -- DELETE: org_admin, cannot delete system roles
@@ -477,7 +492,7 @@ CREATE POLICY org_memberships_update_self ON public.organization_memberships
     USING (user_id = auth.uid())
     WITH CHECK (
         user_id = auth.uid()
-        AND organization_id = OLD.organization_id
+        AND organization_id = (SELECT original.organization_id FROM public.organization_memberships original WHERE original.id = organization_memberships.id)
     );
 
 -- DELETE: org_admin or self
@@ -570,7 +585,7 @@ CREATE POLICY user_profiles_update_self ON public.user_profiles
     USING (id = auth.uid())
     WITH CHECK (
         id = auth.uid()
-        AND email = OLD.email  -- email managed by auth provider, not direct update
+        AND email = (SELECT original.email FROM public.user_profiles original WHERE original.id = user_profiles.id)  -- email managed by auth provider, not direct update
     );
 
 -- ############################################################################

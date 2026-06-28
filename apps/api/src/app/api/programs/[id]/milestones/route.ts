@@ -32,7 +32,7 @@ export const GET = withAuth(async (_request, _user, params) => {
 export const POST = withAuth(async (request, user, params) => {
   const supabase = await createRouteClient();
   const { id } = params!;
-  const body = await request.json();
+  const body = (await request.json()) as Record<string, unknown>;
   const parsed = createMilestoneSchema.safeParse(body);
   if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors);
 

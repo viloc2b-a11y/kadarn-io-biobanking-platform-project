@@ -44,3 +44,22 @@ export const paginationSchema = z.object({
 export const uuidParamSchema = z.object({
   id: z.string().uuid('ID must be a valid UUID'),
 });
+
+// ---------------------------------------------------------------------------
+// Exchange deal schemas
+// ---------------------------------------------------------------------------
+export const createExchangeDealSchema = z.object({
+  request_id: z.string().uuid('Request ID must be a valid UUID'),
+  sponsor_org_id: z.string().uuid('Sponsor organization ID must be a valid UUID'),
+  provider_org_id: z.string().uuid('Provider organization ID must be a valid UUID'),
+  program_id: z.string().uuid('Program ID must be a valid UUID').optional().nullable(),
+  title: z.string().min(1, 'Title is required').max(200),
+  description: z.string().max(5000).optional().nullable(),
+  total_value: z.number().positive('Total value must be positive').optional().nullable(),
+  currency: z.string().length(3, 'Currency must be ISO 4217').default('USD'),
+  expected_start_date: z.string().optional().nullable(),
+  expected_end_date: z.string().optional().nullable(),
+  sample_count_expected: z.number().int().positive('Sample count must be positive').optional().nullable(),
+});
+
+export type CreateExchangeDealInput = z.infer<typeof createExchangeDealSchema>;

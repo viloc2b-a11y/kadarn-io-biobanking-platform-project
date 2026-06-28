@@ -379,29 +379,37 @@ SET search_path = public
 AS $$
 DECLARE
     v_current sample_state;
+    v_new_ord INTEGER;
+    v_cur_ord INTEGER;
 BEGIN
     SELECT current_state INTO v_current FROM public.processing_samples WHERE id = p_sample_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Sample not found'; END IF;
 
-    -- Validate transition: must move forward in lifecycle
-    -- Collected → Received → Accepted → Processing → Processed → QC Pending → QC Approved → Stored → Reserved → Shipped → Consumed → Archived
-    -- QC Rejected is allowed from QC Pending
-    WITH states AS (
-        SELECT * FROM (VALUES
-            ('collected'::sample_state, 1), ('received'::sample_state, 2), ('accepted'::sample_state, 3),
-            ('processing'::sample_state, 4), ('processed'::sample_state, 5), ('qc_pending'::sample_state, 6),
-            ('qc_approved'::sample_state, 7), ('qc_rejected'::sample_state, 7),
-            ('stored'::sample_state, 8), ('reserved'::sample_state, 9),
-            ('shipped'::sample_state, 10), ('consumed'::sample_state, 11), ('archived'::sample_state, 12)
-        ) AS t(s, ord)
-    )
-    PERFORM 1 FROM states WHERE s = p_new_state
-    AND ord > (SELECT ord FROM states WHERE s = v_current);
+    SELECT ord INTO v_new_ord FROM (VALUES
+        ('collected'::sample_state, 1), ('received'::sample_state, 2), ('accepted'::sample_state, 3),
+        ('processing'::sample_state, 4), ('processed'::sample_state, 5), ('qc_pending'::sample_state, 6),
+        ('qc_approved'::sample_state, 7), ('qc_rejected'::sample_state, 7),
+        ('stored'::sample_state, 8), ('reserved'::sample_state, 9),
+        ('shipped'::sample_state, 10), ('consumed'::sample_state, 11), ('archived'::sample_state, 12)
+    ) AS t(s, ord) WHERE s = p_new_state;
 
-    IF NOT FOUND THEN
-        -- Allow QC rejected → qc_pending (retest)
+    SELECT ord INTO v_cur_ord FROM (VALUES
+        ('collected'::sample_state, 1), ('received'::sample_state, 2), ('accepted'::sample_state, 3),
+        ('processing'::sample_state, 4), ('processed'::sample_state, 5), ('qc_pending'::sample_state, 6),
+        ('qc_approved'::sample_state, 7), ('qc_rejected'::sample_state, 7),
+        ('stored'::sample_state, 8), ('reserved'::sample_state, 9),
+        ('shipped'::sample_state, 10), ('consumed'::sample_state, 11), ('archived'::sample_state, 12)
+    ) AS t(s, ord) WHERE s = v_current;
+
+    IF v_new_ord IS NULL OR v_cur_ord IS NULL THEN
+        RAISE EXCEPTION 'Unknown sample state: new="%" current="%"', p_new_state, v_current;
+    END IF;
+
+    -- Must move forward in lifecycle, unless special case
+    IF v_new_ord <= v_cur_ord THEN
+        -- Allow QC rejected -> qc_pending (retest)
         IF NOT (v_current = 'qc_rejected' AND p_new_state = 'qc_pending') THEN
-            RAISE EXCEPTION 'Invalid sample state transition: % → %', v_current, p_new_state;
+            RAISE EXCEPTION 'Invalid sample state transition: % -> %', v_current, p_new_state;
         END IF;
     END IF;
 
@@ -449,10 +457,10 @@ CREATE POLICY processing_aliquots_select ON public.processing_aliquots
     USING (public.can_access_program(program_id) OR public.is_org_admin());
 CREATE POLICY processing_aliquots_insert ON public.processing_aliquots
     FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = sample_id AND public.is_org_admin(s.organization_id)));
+    WITH CHECK (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = processing_aliquots.sample_id AND public.is_org_admin(s.organization_id)));
 CREATE POLICY processing_aliquots_update ON public.processing_aliquots
     FOR UPDATE
-    USING (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = sample_id AND public.is_org_admin(s.organization_id)));
+    USING (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = processing_aliquots.sample_id AND public.is_org_admin(s.organization_id)));
 
 -- Workflows: read for all authenticated, manage for org_admin
 CREATE POLICY processing_workflows_select ON public.processing_workflows
@@ -463,10 +471,10 @@ CREATE POLICY processing_workflows_insert ON public.processing_workflows
 -- QC: program participants
 CREATE POLICY qc_results_select ON public.quality_control_results
     FOR SELECT
-    USING (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = sample_id AND public.can_access_program(s.program_id)));
+    USING (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = quality_control_results.sample_id AND public.can_access_program(s.program_id)));
 CREATE POLICY qc_results_insert ON public.quality_control_results
     FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = sample_id AND public.is_org_admin(s.organization_id)));
+    WITH CHECK (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = quality_control_results.sample_id AND public.is_org_admin(s.organization_id)));
 
 -- Storage: org_admin manages own org locations
 CREATE POLICY storage_locations_select ON public.storage_locations
@@ -487,7 +495,7 @@ CREATE POLICY sample_movements_select ON public.sample_movements
     USING (public.can_access_program(program_id) OR public.is_org_admin(organization_id));
 CREATE POLICY sample_movements_insert ON public.sample_movements
     FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = sample_id AND public.is_org_admin(s.organization_id)));
+    WITH CHECK (EXISTS (SELECT 1 FROM public.processing_samples s WHERE s.id = sample_movements.sample_id AND public.is_org_admin(s.organization_id)));
 
 -- ############################################################################
 -- PART 13: POSTGREST PERMISSIONS

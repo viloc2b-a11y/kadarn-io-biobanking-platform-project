@@ -115,32 +115,7 @@ COMMENT ON TABLE public.logistics_shipments IS
     'Shipping records for biospecimen transport. Tracks carrier, status, and documentation.';
 
 -- ############################################################################
--- PART 3: TABLE — logistics_shipment_items
--- ############################################################################
---
--- Links samples/aliquots to shipments.
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS public.logistics_shipment_items (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    shipment_id         UUID NOT NULL REFERENCES public.logistics_shipments(id) ON DELETE CASCADE,
-    sample_id           UUID REFERENCES public.processing_samples(id) ON DELETE SET NULL,
-    aliquot_id          UUID REFERENCES public.processing_aliquots(id) ON DELETE SET NULL,
-    container_id        UUID REFERENCES public.logistics_containers(id) ON DELETE SET NULL,
-
-    description         TEXT,  -- description of what's being shipped
-    quantity            INTEGER NOT NULL DEFAULT 1,
-    unit                TEXT,
-    declared_value      NUMERIC(12,2),
-
-    CHECK (sample_id IS NOT NULL OR aliquot_id IS NOT NULL)
-);
-
-CREATE INDEX IF NOT EXISTS idx_log_ship_items_shipment ON public.logistics_shipment_items(shipment_id);
-CREATE INDEX IF NOT EXISTS idx_log_ship_items_sample ON public.logistics_shipment_items(sample_id);
-
--- ############################################################################
--- PART 4: TABLE — logistics_containers
+-- PART 3: TABLE — logistics_containers
 -- ############################################################################
 --
 -- Shipping containers for biospecimen transport.
@@ -165,6 +140,31 @@ CREATE INDEX IF NOT EXISTS idx_log_containers_org ON public.logistics_containers
 
 COMMENT ON TABLE public.logistics_containers IS
     'Shipping containers (dry ice boxes, LN2 dry shippers, etc.).';
+
+-- ############################################################################
+-- PART 4: TABLE — logistics_shipment_items
+-- ############################################################################
+--
+-- Links samples/aliquots to shipments.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.logistics_shipment_items (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shipment_id         UUID NOT NULL REFERENCES public.logistics_shipments(id) ON DELETE CASCADE,
+    sample_id           UUID REFERENCES public.processing_samples(id) ON DELETE SET NULL,
+    aliquot_id          UUID REFERENCES public.processing_aliquots(id) ON DELETE SET NULL,
+    container_id        UUID REFERENCES public.logistics_containers(id) ON DELETE SET NULL,
+
+    description         TEXT,  -- description of what's being shipped
+    quantity            INTEGER NOT NULL DEFAULT 1,
+    unit                TEXT,
+    declared_value      NUMERIC(12,2),
+
+    CHECK (sample_id IS NOT NULL OR aliquot_id IS NOT NULL)
+);
+
+CREATE INDEX IF NOT EXISTS idx_log_ship_items_shipment ON public.logistics_shipment_items(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_log_ship_items_sample ON public.logistics_shipment_items(sample_id);
 
 -- ############################################################################
 -- PART 5: TABLE — logistics_telemetry

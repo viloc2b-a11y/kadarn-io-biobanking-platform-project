@@ -41,7 +41,7 @@ export const GET = withAuth(async (request, user) => {
 // POST /api/exchange — create a new request
 export const POST = withAuth(async (request, user) => {
   const supabase = await createRouteClient();
-  const body = await request.json();
+  const body = (await request.json()) as Record<string, unknown>;
   const parsed = createRequestSchema.safeParse(body);
   if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors);
 

@@ -310,7 +310,7 @@ CREATE INDEX IF NOT EXISTS idx_prog_access_policies_type
     ON public.program_access_policies(policy_type);
 CREATE INDEX IF NOT EXISTS idx_prog_access_policies_valid
     ON public.program_access_policies(program_id, valid_from, valid_until)
-    WHERE valid_until IS NULL OR valid_until > now();
+    WHERE valid_until IS NULL;
 
 COMMENT ON TABLE public.program_access_policies IS
     'Data sharing rules within programs. Controls role-based access to resource types.';

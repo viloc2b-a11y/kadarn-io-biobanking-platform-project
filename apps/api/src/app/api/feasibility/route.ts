@@ -25,7 +25,7 @@ const createAssessmentSchema = z.object({
 // ---------------------------------------------------------------------------
 export const POST = withAuth(async (request, user) => {
   const supabase = await createRouteClient();
-  const body = await request.json();
+  const body = (await request.json()) as Record<string, unknown>;
 
   const parsed = createAssessmentSchema.safeParse(body);
   if (!parsed.success) {

@@ -97,46 +97,7 @@ COMMENT ON TABLE public.exchange_requests IS
     'Research access requests. Submitted by researchers to express interest in supply items or programs.';
 
 -- ############################################################################
--- PART 3: TABLE — exchange_messages
--- ############################################################################
---
--- Multi-party negotiation messaging.
--- (Blueprint §9.2 — Negotiation phase)
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS public.exchange_messages (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    request_id          UUID NOT NULL REFERENCES public.exchange_requests(id) ON DELETE CASCADE,
-    deal_id             UUID REFERENCES public.exchange_deals(id) ON DELETE SET NULL,
-
-    -- Who sent it
-    sender_id           UUID NOT NULL,
-    sender_org_id       UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
-    sender_name         TEXT,
-
-    -- Content
-    message             TEXT NOT NULL,
-    message_type        TEXT NOT NULL DEFAULT 'general'
-                        CHECK (message_type IN ('general', 'offer', 'counter', 'acceptance', 'rejection', 'question', 'file')),
-
-    -- Attachments (file IDs)
-    attachments         UUID[] DEFAULT '{}',
-
-    -- Metadata
-    metadata            JSONB DEFAULT '{}',
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_exchange_msg_request
-    ON public.exchange_messages(request_id, created_at ASC);
-CREATE INDEX IF NOT EXISTS idx_exchange_msg_deal
-    ON public.exchange_messages(deal_id);
-
-COMMENT ON TABLE public.exchange_messages IS
-    'Multi-party negotiation messages. Threaded by request_id.';
-
--- ############################################################################
--- PART 4: TABLE — exchange_deals
+-- PART 3: TABLE — exchange_deals
 -- ############################################################################
 --
 -- A deal represents an agreed exchange between parties.
@@ -200,6 +161,45 @@ CREATE INDEX IF NOT EXISTS idx_exchange_deals_status
 
 COMMENT ON TABLE public.exchange_deals IS
     'Exchange deals — the commercial agreement between sponsor and provider.';
+
+-- ############################################################################
+-- PART 4: TABLE — exchange_messages
+-- ############################################################################
+--
+-- Multi-party negotiation messaging.
+-- (Blueprint §9.2 — Negotiation phase)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.exchange_messages (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id          UUID NOT NULL REFERENCES public.exchange_requests(id) ON DELETE CASCADE,
+    deal_id             UUID REFERENCES public.exchange_deals(id) ON DELETE SET NULL,
+
+    -- Who sent it
+    sender_id           UUID NOT NULL,
+    sender_org_id       UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
+    sender_name         TEXT,
+
+    -- Content
+    message             TEXT NOT NULL,
+    message_type        TEXT NOT NULL DEFAULT 'general'
+                        CHECK (message_type IN ('general', 'offer', 'counter', 'acceptance', 'rejection', 'question', 'file')),
+
+    -- Attachments (file IDs)
+    attachments         UUID[] DEFAULT '{}',
+
+    -- Metadata
+    metadata            JSONB DEFAULT '{}',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_exchange_msg_request
+    ON public.exchange_messages(request_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_exchange_msg_deal
+    ON public.exchange_messages(deal_id);
+
+COMMENT ON TABLE public.exchange_messages IS
+    'Multi-party negotiation messages. Threaded by request_id.';
 
 -- ############################################################################
 -- PART 5: TABLE — exchange_escrow

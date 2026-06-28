@@ -5,7 +5,9 @@
   "description": "Kadarn Trust & Security Foundation — integration tests with real JWTs",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run policy provenance events financial fulfillment graph integration intelligence knowledge matching trust twins web workflow",
+    "test:all": "vitest run",
+    "test:integration": "vitest run api security",
     "test:watch": "vitest",
     "test:identity": "vitest run tests/security/identity.test.ts",
     "test:authorization": "vitest run tests/security/authorization.test.ts",
