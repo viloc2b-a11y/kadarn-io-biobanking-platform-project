@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 EXIT_CODE=0
 
-EXCLUDE=":!.env.example :!apps/*/.env.example :!docs/ops/SUPABASE-SECRETS-SETUP.md :!docs/ops/SUPABASE-INFRASTRUCTURE-VALIDATION.md :!docs/pilots/FIRST-BIOBANK-PILOT-RUNBOOK.md :!docs/pilots/ALPHA-SEED-DATA.md :!tests/test-config.example.txt :!scripts/check-secrets.sh"
+EXCLUDE=":!.env.example :!apps/*/.env.example :!docs/ops/SUPABASE-SECRETS-SETUP.md :!docs/ops/SUPABASE-INFRASTRUCTURE-VALIDATION.md :!docs/pilots/FIRST-BIOBANK-PILOT-RUNBOOK.md :!docs/pilots/ALPHA-SEED-DATA.md :!scripts/seed-pilot-users.ts :!tests/test-config.example.txt :!scripts/check-secrets.sh"
 
 echo "=== Kadarn Secret Scanner ==="
 echo ""
