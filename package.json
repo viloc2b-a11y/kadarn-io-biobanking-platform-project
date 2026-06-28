@@ -1,0 +1,17 @@
+{
+  "name": "kadarn-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tests"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "dev:api": "npm run dev -w apps/api",
+    "build": "npm run build -w apps/web",
+    "lint": "npm run lint -w apps/web",
+    "test": "npm run test -w tests",
+    "typecheck": "node apps/api/node_modules/typescript/bin/tsc -p packages/types/tsconfig.json --noEmit"
+  }
+}

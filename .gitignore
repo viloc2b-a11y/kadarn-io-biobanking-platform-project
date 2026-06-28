@@ -38,3 +38,6 @@ gen.js
 kadarn-dashboard.html
 nul
 *.tmp
+supabase/.temp/
+*.bak
+supabase/.branches/

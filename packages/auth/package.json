@@ -1,0 +1,13 @@
+{
+  "name": "@kadarn/auth",
+  "version": "0.1.0",
+  "description": "Shared Supabase auth utilities for Kadarn platform",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@supabase/ssr": "^0.6.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "@kadarn/types": "*"
+  }
+}
