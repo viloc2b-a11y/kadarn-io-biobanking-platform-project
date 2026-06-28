@@ -9,11 +9,18 @@ build/
 *.tsbuildinfo
 .next
 
-# Environment
+# Environment — NEVER commit real secrets
 .env
 .env.local
 .env.production
+.env.staging
+.env.development
 .env.*.local
+
+# Allow example env files (contain only placeholders)
+!.env.example
+!apps/*/.env.example
+!apps/web/.env.example
 
 # IDE
 .vscode/
