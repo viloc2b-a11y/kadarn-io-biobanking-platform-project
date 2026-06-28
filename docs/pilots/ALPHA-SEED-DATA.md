@@ -40,16 +40,50 @@ psql "$DATABASE_URL" -f scripts/seed-pilot.sql
 
 All inserts use `ON CONFLICT DO NOTHING`. Safe to run multiple times.
 
+## Users & Memberships — Bootstrap
+
+Run the identity bootstrap script AFTER the seed data:
+
+```bash
+cd kadarn-platform
+
+# 1. Set the service role key
+export SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+
+# 2. (Optional) Set individual passwords. If not set, random ones are generated.
+export PILOT_PASSWORD_BIOBANK_ADMIN=MySecurePass1
+export PILOT_PASSWORD_SPONSOR_PM=MySecurePass2
+
+# 3. Run bootstrap
+npx tsx scripts/seed-pilot-users.ts
+```
+
+This creates 7 pilot users with:
+- Supabase Auth accounts (email confirmed)
+- User profiles with full names
+- Organization memberships (active)
+- Role assignments (org_admin / member / platform_admin)
+
+**Idempotent:** Safe to run multiple times. Existing users are skipped.
+
+## Full Bootstrap Sequence
+
+```bash
+# Step 1: Seed data (organizations, programs, collections, etc.)
+docker exec -i supabase_db_kadarn-platform psql -U postgres -d postgres \
+  < scripts/seed-pilot.sql
+
+# Step 2: Create auth users and memberships
+export SUPABASE_SERVICE_ROLE_KEY=<key>
+npx tsx scripts/seed-pilot-users.ts
+
+# Step 3: Run verification
+npm test
+bash scripts/check-secrets.sh
+```
+
 ## Gaps
 
 | Entity | Reason |
 |---|---|
-| Users & Memberships | Require `auth.users` (Supabase Auth). Create via Auth API first. |
 | Capabilities | Require `organization_capability_types` to exist in target DB. |
-
-## Next Steps
-
-1. Create auth users for pilot organizations
-2. Insert memberships
-3. Assign capabilities
-4. Run SIT-01 gate tests

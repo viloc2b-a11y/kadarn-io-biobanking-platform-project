@@ -79,6 +79,19 @@ discovery → request → agreement → collection → shipment → QC → settl
 
 ### User Creation Procedure
 
+Run the automated bootstrap script:
+
+```bash
+cd kadarn-platform
+export SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+npx tsx scripts/seed-pilot-users.ts
+```
+
+This creates all 7 users, profiles, and memberships in one command.
+See `docs/pilots/ALPHA-SEED-DATA.md` for details.
+
+### Manual Alternative
+
 ```bash
 # For each user, run:
 supabase auth create-user \
