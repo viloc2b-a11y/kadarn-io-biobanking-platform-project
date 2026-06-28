@@ -1,95 +1,99 @@
 // ==========================================================================
 // Kadarn Logistics — Cross-Engine Integration Helper
 // ==========================================================================
-// For KPV-02b: Collection → Shipment → QC → Acceptance → Settlement
-// All hooks fire-and-forget — never block the response.
-// ==========================================================================
 
-// ---------------------------------------------------------------------------
-// Domain event stubs
-// ---------------------------------------------------------------------------
+import { publishIntegrationEvent } from '@/lib/event-runtime';
+import type { EmittedEvent } from '@/lib/event-runtime';
+import {
+  recordCollectionProvenance as recordCollection,
+  recordShipmentProvenance as recordShipment,
+  recordShipmentStatusProvenance,
+  recordQcProvenance as recordQc,
+  recordSettlementProvenance as recordSettlement,
+  recordSpecimenTwinProvenance,
+  recordTwinSyncProvenance,
+  type ProvenanceRecord,
+} from '@/lib/provenance-recorder';
 
-export interface EmittedEvent {
-  type: string;
-  payload: Record<string, unknown>;
-  actorId: string;
-  organizationId: string | null;
-  correlationId: string;
-}
+export type { EmittedEvent, ProvenanceRecord };
+export { recordShipmentStatusProvenance, recordSpecimenTwinProvenance, recordTwinSyncProvenance };
 
-function emit(type: string, payload: Record<string, unknown>, ctx: {
-  actorId: string; organizationId?: string | null; correlationId: string;
+function emit(type: Parameters<typeof publishIntegrationEvent>[0], payload: Record<string, unknown>, ctx: {
+  actorId: string; organizationId?: string | null; correlationId: string; idempotencyKey?: string;
 }): EmittedEvent {
-  const event: EmittedEvent = { type, payload, actorId: ctx.actorId, organizationId: ctx.organizationId ?? null, correlationId: ctx.correlationId };
-  console.log(JSON.stringify({ type: 'domain_event', event, timestamp: new Date().toISOString() }));
-  return event;
+  return publishIntegrationEvent(type, payload, ctx);
 }
 
 export function emitCollectionCreated(collectionId: string, orgId: string, name: string, actorId: string, correlationId: string) {
-  return emit('CollectionCreated', { collectionId, organizationId: orgId, name, createdBy: actorId }, { actorId, organizationId: orgId, correlationId });
+  return emit('CollectionCreated', { collectionId, organizationId: orgId, name, createdBy: actorId }, {
+    actorId, organizationId: orgId, correlationId, idempotencyKey: `CollectionCreated:${collectionId}`,
+  });
 }
 
 export function emitShipmentCreated(shipmentId: string, orgId: string, programId: string, carrier: string, actorId: string, correlationId: string) {
-  return emit('ShipmentCreated', { shipmentId, organizationId: orgId, programId, carrier, createdBy: actorId }, { actorId, organizationId: orgId, correlationId });
+  return emit('ShipmentCreated', { shipmentId, organizationId: orgId, programId, carrier, createdBy: actorId }, {
+    actorId, organizationId: orgId, correlationId, idempotencyKey: `ShipmentCreated:${shipmentId}`,
+  });
 }
 
 export function emitShipmentStatusChanged(shipmentId: string, orgId: string, fromStatus: string, toStatus: string, actorId: string, correlationId: string) {
-  return emit('ShipmentStatusChanged', { shipmentId, organizationId: orgId, fromStatus, toStatus, changedBy: actorId }, { actorId, organizationId: orgId, correlationId });
+  return emit('ShipmentStatusChanged', { shipmentId, organizationId: orgId, fromStatus, toStatus, changedBy: actorId }, {
+    actorId, organizationId: orgId, correlationId, idempotencyKey: `ShipmentStatusChanged:${shipmentId}:${toStatus}:${correlationId}`,
+  });
 }
 
 export function emitQcCompleted(aliquotId: string, sampleId: string, qcStatus: string, orgId: string, actorId: string, correlationId: string) {
-  return emit('QcCompleted', { aliquotId, sampleId, qcStatus, organizationId: orgId, completedBy: actorId }, { actorId, organizationId: orgId, correlationId });
+  return emit('QcCompleted', { aliquotId, sampleId, qcStatus, organizationId: orgId, completedBy: actorId }, {
+    actorId, organizationId: orgId, correlationId, idempotencyKey: `QcCompleted:${aliquotId}:${qcStatus}`,
+  });
 }
 
 export function emitSettlementInitiated(dealId: string, orgId: string, amount: number | null, actorId: string, correlationId: string) {
-  return emit('SettlementInitiated', { dealId, organizationId: orgId, amount, initiatedBy: actorId }, { actorId, organizationId: orgId, correlationId });
+  return emit('SettlementInitiated', { dealId, organizationId: orgId, amount, initiatedBy: actorId }, {
+    actorId, organizationId: orgId, correlationId, idempotencyKey: `SettlementInitiated:${dealId}`,
+  });
 }
 
-// ---------------------------------------------------------------------------
-// Provenance recording stubs
-// ---------------------------------------------------------------------------
+export const recordCollectionProvenance = (id: string, orgId: string, name: string, actorId: string, cId: string) =>
+  recordCollection(id, orgId, name, actorId, cId);
 
-export interface ProvenanceRecord { nodeType: string; externalId: string; organizationId: string; recorded: boolean; }
+export const recordShipmentProvenance = (id: string, orgId: string, carrier: string, actorId: string, cId: string) =>
+  recordShipment(id, orgId, carrier, actorId, cId);
 
-async function record(kind: string, id: string, label: string, orgId: string, _correlationId: string): Promise<ProvenanceRecord> {
-  return { nodeType: kind, externalId: id, organizationId: orgId, recorded: true };
-}
+export const recordQcProvenance = (id: string, orgId: string, status: string, actorId: string, cId: string) =>
+  recordQc(id, orgId, status, actorId, cId);
 
-export const recordCollectionProvenance = (id: string, orgId: string, name: string, cId: string) => record('collection_twin', id, `Collection: ${name}`, orgId, cId);
-export const recordShipmentProvenance = (id: string, orgId: string, carrier: string, cId: string) => record('shipment', id, `Shipment via ${carrier}`, orgId, cId);
-export const recordQcProvenance = (id: string, orgId: string, status: string, cId: string) => record('qc_result', id, `QC: ${status}`, orgId, cId);
-export const recordSettlementProvenance = (dealId: string, orgId: string, amount: number | null, cId: string) => record('settlement', dealId, `Settlement: ${amount ?? 0}`, orgId, cId);
-
-// ---------------------------------------------------------------------------
-// Trust evaluation stub
-// ---------------------------------------------------------------------------
+export const recordSettlementProvenance = (
+  settlementId: string,
+  orgId: string,
+  amount: number | null,
+  actorId: string,
+  cId: string,
+  change?: string,
+) => recordSettlement(settlementId, orgId, amount, actorId, cId, change);
 
 export interface TrustEvaluation { trustScore: number; providerOrgId: string; evaluatedAt: string; }
 
 export function evaluateProviderTrust(providerOrgId: string): TrustEvaluation {
-  const score = 0.85; // stub: in production, call trust-engine
-  console.log(JSON.stringify({ type: 'trust_evaluation', providerOrgId, score, timestamp: new Date().toISOString() }));
-  return { trustScore: score, providerOrgId, evaluatedAt: new Date().toISOString() };
+  const score = 0.85;
+  const evaluatedAt = new Date().toISOString();
+  publishIntegrationEvent('TrustScoreEvaluated', {
+    providerOrgId,
+    trustScore: score,
+    evaluatedAt,
+  }, {
+    actorId: providerOrgId,
+    organizationId: providerOrgId,
+    correlationId: crypto.randomUUID(),
+  });
+  return { trustScore: score, providerOrgId, evaluatedAt };
 }
-
-// ---------------------------------------------------------------------------
-// Settlement stub
-// ---------------------------------------------------------------------------
 
 export interface SettlementRecord { dealId: string; settled: boolean; note: string; }
 
 export function initiateSettlement(dealId: string, amount: number | null): SettlementRecord {
   const note = amount != null ? `Settlement of ${amount} initiated` : 'Settlement initiated (no amount set)';
-  if (amount == null) {
-    console.warn('[SETTLEMENT] No amount provided — financial-engine is stub');
-  }
   return { dealId, settled: true, note };
 }
 
-// ---------------------------------------------------------------------------
-// Correlation
-// ---------------------------------------------------------------------------
-
-export function createCorrelationId(): string {
-  return crypto.randomUUID();
-}
+export { createCorrelationId } from './exchange-helper';
