@@ -1,5 +1,7 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { createCorrelationId } from '@/lib/exchange-helper'
 
 const supplyItemTypeEnum = [
   'existing_collection',
@@ -37,7 +39,7 @@ const createSupplyItemSchema = z.object({
 
 /**
  * GET /api/v1/marketplace/supply-items
- * List supply items for the caller's organization (not search — that's /specimens).
+ * List supply items for the caller's organization.
  */
 export const GET = withAuth(async (request, user) => {
   try {
@@ -45,9 +47,7 @@ export const GET = withAuth(async (request, user) => {
     const url = new URL(request.url)
     const orgId = url.searchParams.get('organization_id') ?? user.user_metadata?.active_org_id as string
 
-    if (!orgId) {
-      return Response.json({ data: [], error: null })
-    }
+    if (!orgId) return Response.json({ data: [], error: null })
 
     const { data, error } = await supabase
       .from('supply_items')
@@ -56,9 +56,7 @@ export const GET = withAuth(async (request, user) => {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (error) {
-      throw new ApiError(500, 'Failed to fetch supply items', error.message)
-    }
+    if (error) throw new ApiError(500, 'Failed to fetch supply items', error.message)
 
     return Response.json({ data: data ?? [], error: null })
   } catch (err) {
@@ -68,40 +66,46 @@ export const GET = withAuth(async (request, user) => {
 
 /**
  * POST /api/v1/marketplace/supply-items
- * Create a new supply item (collection, service, or data resource).
+ * Create a new supply item. Makes the hospital "discovery ready".
  */
-export const POST = withAuth(async (request, user) => {
-  try {
-    const supabase = await createRouteClient()
-    const orgId = user.user_metadata?.active_org_id as string | null
+export const POST = withAsyncTracing(
+  withAuth(async (request, user) => {
+    try {
+      const supabase = await createRouteClient()
+      const orgId = user.user_metadata?.active_org_id as string | null
+      const correlationId = createCorrelationId()
 
-    if (!orgId) {
-      throw new ApiError(400, 'No active organization selected')
+      if (!orgId) throw new ApiError(400, 'No active organization selected')
+
+      const body = (await request.json()) as Record<string, unknown>
+      const parsed = createSupplyItemSchema.safeParse(body)
+
+      if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors)
+
+      const { data, error } = await supabase
+        .from('supply_items')
+        .insert({ organization_id: orgId, created_by: user.id, ...parsed.data })
+        .select()
+        .single()
+
+      if (error) throw new ApiError(500, 'Failed to create supply item', error.message)
+
+      // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
+      console.log(JSON.stringify({
+        type: 'domain_event',
+        event: {
+          type: 'SupplyItemCreated',
+          payload: { supplyItemId: data.id, organizationId: orgId, type: parsed.data.type, title: parsed.data.title, createdBy: user.id },
+          actorId: user.id, organizationId: orgId, correlationId,
+        },
+        timestamp: new Date().toISOString(),
+      }))
+
+      return Response.json({ data, error: null }, { status: 201 })
+    } catch (err) {
+      return handleApiError(err)
     }
-
-    const body = (await request.json()) as Record<string, unknown>
-    const parsed = createSupplyItemSchema.safeParse(body)
-
-    if (!parsed.success) {
-      throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors)
-    }
-
-    const { data, error } = await supabase
-      .from('supply_items')
-      .insert({
-        organization_id: orgId,
-        created_by: user.id,
-        ...parsed.data,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      throw new ApiError(500, 'Failed to create supply item', error.message)
-    }
-
-    return Response.json({ data, error: null }, { status: 201 })
-  } catch (err) {
-    return handleApiError(err)
-  }
-})
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'marketplace.supply-items', 'kadarn.api.method': 'POST' } },
+)
