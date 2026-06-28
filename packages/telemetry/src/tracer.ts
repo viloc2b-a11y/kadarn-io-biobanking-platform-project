@@ -185,7 +185,7 @@ export function withTracing<T extends (...args: Parameters<T>) => ReturnType<T>>
  * Wrap an async function with tracing.
  * The wrapped function is behaviorally identical to the original.
  */
-export function withAsyncTracing<T extends (...args: Parameters<T>) => Promise<ReturnType<T>>>(
+export function withAsyncTracing<T extends (...args: any[]) => any>(
   fn: T,
   spanName: string,
   options?: {
@@ -193,7 +193,7 @@ export function withAsyncTracing<T extends (...args: Parameters<T>) => Promise<R
     attributes?: SpanAttributes;
   },
 ): T {
-  const wrapped = (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+  const wrapped = (async (...args: any[]): Promise<any> => {
     const tracer = getTracer();
     if (tracer === NOOP_TRACER) {
       return await fn(...args);
@@ -207,16 +207,18 @@ export function withAsyncTracing<T extends (...args: Parameters<T>) => Promise<R
       error = err instanceof Error ? err : new Error(String(err));
       throw err;
     } finally {
-      const span = tracer.startSpan(spanName, options);
       if (error) {
+        const span = tracer.startSpan(spanName, options);
         span.recordException(error);
         span.setStatus({ code: 'error', message: error.message });
+        span.end();
       } else {
+        const span = tracer.startSpan(spanName, options);
         span.setStatus({ code: 'ok' });
+        span.end();
       }
-      span.end();
     }
-  }) as T;
+  }) as unknown as T;
 
   return wrapped;
 }
