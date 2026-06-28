@@ -1,6 +1,7 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { uuidParamSchema } from '@/lib/validation'
 import { z } from 'zod'
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -20,7 +21,7 @@ const addParticipantSchema = z.object({
 })
 
 // ---------------------------------------------------------------------------
-// GET — list participants (existing)
+// GET — list participants
 // ---------------------------------------------------------------------------
 export const GET = withAuth(async (_request, _user, params) => {
   try {
@@ -66,94 +67,98 @@ export const GET = withAuth(async (_request, _user, params) => {
 })
 
 // ---------------------------------------------------------------------------
-// POST — add a participant
+// POST — add a participant (negotiation step in sponsor flow)
 // ---------------------------------------------------------------------------
-export const POST = withAuth(async (request, user, params) => {
-  try {
-    const { id: programId } = uuidParamSchema.parse(params)
-    const supabase = await createRouteClient()
+export const POST = withAsyncTracing(
+  withAuth(async (request, user, params) => {
+    try {
+      const supabase = await createRouteClient()
+      const { id: programId } = uuidParamSchema.parse(params)
 
-    // Parse request body
-    const body = (await request.json()) as Record<string, unknown>
-    const parsed = addParticipantSchema.safeParse(body)
-    if (!parsed.success) {
-      throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors)
+      const body = (await request.json()) as Record<string, unknown>
+      const parsed = addParticipantSchema.safeParse(body)
+      if (!parsed.success) {
+        throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors)
+      }
+
+      const { organization_id, role, data_scope_override } = parsed.data
+
+      const { data: program, error: progErr } = await supabase
+        .from('programs')
+        .select('id, sponsor_org_id, lead_org_id, created_by_organization_id')
+        .eq('id', programId)
+        .single()
+
+      if (progErr || !program) throw new ApiError(404, 'Program not found')
+
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('id', organization_id)
+        .single()
+
+      if (!org) throw new ApiError(400, 'Organization not found')
+
+      const activeOrgId = user.user_metadata?.active_org_id as string | null
+      const isKocInternal = user.user_metadata?.kadarn_role === 'kadarn_internal'
+      const authorizedOrgs = [
+        program.sponsor_org_id,
+        program.lead_org_id,
+        program.created_by_organization_id,
+      ].filter(Boolean) as string[]
+
+      if (!isKocInternal && (!activeOrgId || !authorizedOrgs.includes(activeOrgId))) {
+        throw new ApiError(403, 'Access denied — must be an admin of the sponsor or lead organization')
+      }
+
+      const { data: existing } = await supabase
+        .from('program_participants')
+        .select('id')
+        .eq('program_id', programId)
+        .eq('organization_id', organization_id)
+        .maybeSingle()
+
+      if (existing) throw new ApiError(409, 'Organization is already a participant in this program')
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from('program_participants')
+        .insert({
+          program_id: programId,
+          organization_id,
+          role,
+          status: 'invited',
+          data_scope_override: data_scope_override ?? null,
+          invited_at: new Date().toISOString(),
+          created_by: user.id,
+        })
+        .select(`
+          id, organization_id, role, status, data_scope_override,
+          invited_at, joined_at, created_at,
+          organizations ( id, name, country, is_active )
+        `)
+        .single()
+
+      if (insertErr) throw new ApiError(500, 'Failed to add participant', insertErr.message)
+
+      // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
+      const _corrId = crypto.randomUUID()
+      console.log(JSON.stringify({
+        type: 'domain_event',
+        event: {
+          type: 'ProgramParticipantAdded',
+          payload: { participantId: inserted.id, programId, organizationId: organization_id, role },
+          actorId: user.id,
+          organizationId: organization_id,
+          correlationId: _corrId,
+        },
+        timestamp: new Date().toISOString(),
+      }))
+
+      return Response.json({ data: inserted, error: null }, { status: 201 })
+    } catch (err) {
+      return handleApiError(err)
     }
-
-    const { organization_id, role, data_scope_override } = parsed.data
-
-    // Verify the program exists
-    const { data: program, error: progErr } = await supabase
-      .from('programs')
-      .select('id, sponsor_org_id, lead_org_id, created_by_organization_id')
-      .eq('id', programId)
-      .single()
-
-    if (progErr || !program) {
-      throw new ApiError(404, 'Program not found')
-    }
-
-    // Verify the target organization exists
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('id', organization_id)
-      .single()
-
-    if (!org) {
-      throw new ApiError(400, 'Organization not found')
-    }
-
-    // Check authorization: caller must be org_admin of sponsor, lead, or creator org
-    const activeOrgId = user.user_metadata?.active_org_id as string | null
-    const isKocInternal = user.user_metadata?.kadarn_role === 'kadarn_internal'
-    const authorizedOrgs = [
-      program.sponsor_org_id,
-      program.lead_org_id,
-      program.created_by_organization_id,
-    ].filter(Boolean) as string[]
-
-    if (!isKocInternal && (!activeOrgId || !authorizedOrgs.includes(activeOrgId))) {
-      throw new ApiError(403, 'Access denied — must be an admin of the sponsor or lead organization')
-    }
-
-    // Check for existing participant (prevent duplicates)
-    const { data: existing } = await supabase
-      .from('program_participants')
-      .select('id')
-      .eq('program_id', programId)
-      .eq('organization_id', organization_id)
-      .maybeSingle()
-
-    if (existing) {
-      throw new ApiError(409, 'Organization is already a participant in this program')
-    }
-
-    // Insert the participant
-    const { data: inserted, error: insertErr } = await supabase
-      .from('program_participants')
-      .insert({
-        program_id: programId,
-        organization_id,
-        role,
-        status: 'invited',
-        data_scope_override: data_scope_override ?? null,
-        invited_at: new Date().toISOString(),
-        created_by: user.id,
-      })
-      .select(`
-        id, organization_id, role, status, data_scope_override,
-        invited_at, joined_at, created_at,
-        organizations ( id, name, country, is_active )
-      `)
-      .single()
-
-    if (insertErr) {
-      throw new ApiError(500, 'Failed to add participant', insertErr.message)
-    }
-
-    return Response.json({ data: inserted, error: null }, { status: 201 })
-  } catch (err) {
-    return handleApiError(err)
-  }
-})
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'programs.participants', 'kadarn.api.method': 'POST' } },
+)
