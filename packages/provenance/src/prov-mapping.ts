@@ -56,6 +56,7 @@ const NODE_TYPE_MAPPINGS: Record<string, NodeTypeMapping> = {
   protocol:         { category: 'Activity', provType: 'kadarn:protocol' },
   program:          { category: 'Activity', provType: 'kadarn:program' },
   temperature_log:  { category: 'Activity', provType: 'kadarn:temperatureLog' },
+  settlement:       { category: 'Entity', provType: 'kadarn:settlement' },
 
   // ── Agents ─────────────────────────────────────────────────────────────
   organization: { category: 'Agent', provType: 'prov:Organization' },

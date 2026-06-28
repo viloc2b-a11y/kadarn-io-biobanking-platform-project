@@ -202,6 +202,17 @@ export interface QcCompletedPayload {
 // --------------------------------------------------------------------------
 // Settlement events
 // --------------------------------------------------------------------------
+export interface SettlementStatusChangedPayload {
+  settlementId: string;
+  dealId: string;
+  fromStatus: string;
+  toStatus: string;
+  amount: number;
+  organizationId: string | null;
+  changedBy: string;
+  reason: string | null;
+}
+
 export interface SettlementInitiatedPayload {
   dealId: string;
   organizationId: string;
@@ -278,6 +289,7 @@ export interface KadarnEventMap {
   ShipmentStatusChanged: ShipmentStatusChangedPayload;
   QcCompleted: QcCompletedPayload;
   SettlementInitiated: SettlementInitiatedPayload;
+  SettlementStatusChanged: SettlementStatusChangedPayload;
   SupplyItemCreated: SupplyItemCreatedPayload;
   ExchangeDealCreated: ExchangeDealCreatedPayload;
   AccessRequestSubmitted: AccessRequestSubmittedPayload;
