@@ -38,7 +38,7 @@ discovery → request → agreement → collection → shipment → QC → settl
 | Kadarn API | `https://api.kadarn-demo.io` | HTTPS |
 | Kadarn Web UI | `https://app.kadarn-demo.io` | Browser |
 | Supabase Studio | `https://supabase.kadarn-demo.io` | Admin only |
-| Supabase Database | `postgresql://...` | Admin only |
+| Supabase Database | `postgresql://user:pass@host:port/db` | Admin only |
 
 ### Required Environment Variables
 
@@ -565,7 +565,7 @@ At pilot completion, produce:
 npm test
 
 # Run integration gate (requires Supabase)
-export SUPABASE_SERVICE_ROLE_KEY=<key>
+export SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 npx vitest run tests/integration/sit-01-supabase-gate.test.ts
 
 # Check for secrets leaks
