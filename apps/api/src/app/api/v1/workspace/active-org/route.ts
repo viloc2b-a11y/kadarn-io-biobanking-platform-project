@@ -25,7 +25,7 @@ export const POST = withAuth(async (request, user) => {
 
     const correlationId = crypto.randomUUID()
     // --- Audit ---
-    emitAuditEvent({
+    void emitAuditEvent({
       action: 'active-org.set',
       resourceType: 'organization',
       resourceId: parsed.data.org_id,
