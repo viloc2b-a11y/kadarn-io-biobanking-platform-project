@@ -5,6 +5,12 @@
 import { withAuth, ApiError, createRouteClient } from '@/lib/supabase-server';
 import { z } from 'zod';
 import { paginationSchema } from '@/lib/validation';
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry';
+import {
+  emitFeasibilityCompleted,
+  recordFeasibilityProvenance,
+  createCorrelationId,
+} from '@/lib/exchange-helper';
 
 const createAssessmentSchema = z.object({
   program_name: z.string().min(1).max(200),
@@ -23,86 +29,96 @@ const createAssessmentSchema = z.object({
 // ---------------------------------------------------------------------------
 // POST /api/feasibility — Create and run an assessment
 // ---------------------------------------------------------------------------
-export const POST = withAuth(async (request, user) => {
-  const supabase = await createRouteClient();
-  const body = (await request.json()) as Record<string, unknown>;
+export const POST = withAsyncTracing(
+  withAuth(async (request, user) => {
+    const supabase = await createRouteClient();
+    const body = (await request.json()) as Record<string, unknown>;
+    const correlationId = createCorrelationId();
 
-  const parsed = createAssessmentSchema.safeParse(body);
-  if (!parsed.success) {
-    throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors);
-  }
+    const parsed = createAssessmentSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors);
+    }
 
-  // Get user's active organization
-  const { data: memberships } = await supabase
-    .from('organization_memberships')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .limit(1);
+    // Get user's active organization
+    const { data: memberships } = await supabase
+      .from('organization_memberships')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .limit(1);
 
-  if (!memberships || memberships.length === 0) {
-    throw new ApiError(400, 'You must belong to an active organization to run feasibility assessments');
-  }
+    if (!memberships || memberships.length === 0) {
+      throw new ApiError(400, 'You must belong to an active organization to run feasibility assessments');
+    }
 
-  const organizationId = memberships[0].organization_id;
+    const organizationId = memberships[0].organization_id;
 
-  // Create the assessment
-  const { data: assessment, error: createError } = await supabase
-    .from('feasibility_assessments')
-    .insert({
-      created_by: user.id,
-      organization_id: organizationId,
-      program_name: parsed.data.program_name,
-      program_description: parsed.data.program_description,
-      program_type: parsed.data.program_type,
-      therapeutic_area: parsed.data.therapeutic_area,
-      disease_icd10: parsed.data.disease_icd10,
-      disease_label: parsed.data.disease_label,
-      required_sample_types: parsed.data.required_sample_types ?? [],
-      required_capabilities: parsed.data.required_capabilities,
-      target_countries: parsed.data.target_countries ?? [],
-      estimated_sample_count: parsed.data.estimated_sample_count,
-      urgency: parsed.data.urgency ?? 'standard',
-      status: 'pending',
-    })
-    .select()
-    .single();
+    // Create the assessment
+    const { data: assessment, error: createError } = await supabase
+      .from('feasibility_assessments')
+      .insert({
+        created_by: user.id,
+        organization_id: organizationId,
+        program_name: parsed.data.program_name,
+        program_description: parsed.data.program_description,
+        program_type: parsed.data.program_type,
+        therapeutic_area: parsed.data.therapeutic_area,
+        disease_icd10: parsed.data.disease_icd10,
+        disease_label: parsed.data.disease_label,
+        required_sample_types: parsed.data.required_sample_types ?? [],
+        required_capabilities: parsed.data.required_capabilities,
+        target_countries: parsed.data.target_countries ?? [],
+        estimated_sample_count: parsed.data.estimated_sample_count,
+        urgency: parsed.data.urgency ?? 'standard',
+        status: 'pending',
+      })
+      .select()
+      .single();
 
-  if (createError) throw new ApiError(500, 'Failed to create assessment', createError.message);
+    if (createError) throw new ApiError(500, 'Failed to create assessment', createError.message);
 
-  // Run the scoring
-  const { error: runError } = await supabase.rpc('run_feasibility_assessment', {
-    p_assessment_id: assessment.id,
-  });
+    // Run the scoring
+    const { error: runError } = await supabase.rpc('run_feasibility_assessment', {
+      p_assessment_id: assessment.id,
+    });
 
-  if (runError) {
-    // Mark as failed
-    await supabase.from('feasibility_assessments')
-      .update({ status: 'failed', summary: runError.message })
-      .eq('id', assessment.id);
-    throw new ApiError(500, 'Assessment scoring failed', runError.message);
-  }
+    if (runError) {
+      await supabase.from('feasibility_assessments')
+        .update({ status: 'failed', summary: runError.message })
+        .eq('id', assessment.id);
+      throw new ApiError(500, 'Assessment scoring failed', runError.message);
+    }
 
-  // Fetch completed assessment with scores
-  const { data: completed } = await supabase
-    .from('feasibility_assessments')
-    .select('*')
-    .eq('id', assessment.id)
-    .single();
+    // Fetch completed assessment with scores
+    const { data: completed } = await supabase
+      .from('feasibility_assessments')
+      .select('*')
+      .eq('id', assessment.id)
+      .single();
 
-  const { data: scores } = await supabase
-    .from('feasibility_scores')
-    .select('*')
-    .eq('assessment_id', assessment.id)
-    .order('overall_score', { ascending: false });
+    const { data: scores } = await supabase
+      .from('feasibility_scores')
+      .select('*')
+      .eq('assessment_id', assessment.id)
+      .order('overall_score', { ascending: false });
 
-  return Response.json({
-    data: {
-      assessment: completed,
-      scores: scores ?? [],
-    },
-  }, { status: 201 });
-});
+    // ── Cross-engine hooks (fire-and-forget) ────────────────────────────
+    const bestScore = (scores?.[0]?.overall_score as number | undefined) ?? 0;
+    recordFeasibilityProvenance(assessment.id, organizationId, parsed.data.program_name, correlationId)
+      .catch((err: unknown) => console.error('[FEASIBILITY] Provenance failed:', err));
+    emitFeasibilityCompleted(assessment.id, organizationId, parsed.data.program_name, bestScore, user.id, correlationId);
+
+    return Response.json({
+      data: {
+        assessment: completed,
+        scores: scores ?? [],
+      },
+    }, { status: 201 });
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'feasibility', 'kadarn.api.method': 'POST' } },
+);
 
 // ---------------------------------------------------------------------------
 // GET /api/feasibility — List assessments

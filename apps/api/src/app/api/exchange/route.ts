@@ -5,6 +5,13 @@
 import { withAuth, ApiError, createRouteClient } from '@/lib/supabase-server';
 import { z } from 'zod';
 import { paginationSchema } from '@/lib/validation';
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry';
+import {
+  emitAccessRequestSubmitted,
+  recordExchangeRequestProvenance,
+  signalExchangeRequestWorkflow,
+  createCorrelationId,
+} from '@/lib/exchange-helper';
 
 const createRequestSchema = z.object({
   title: z.string().min(1).max(200),
@@ -39,44 +46,64 @@ export const GET = withAuth(async (request, user) => {
 });
 
 // POST /api/exchange — create a new request
-export const POST = withAuth(async (request, user) => {
-  const supabase = await createRouteClient();
-  const body = (await request.json()) as Record<string, unknown>;
-  const parsed = createRequestSchema.safeParse(body);
-  if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors);
+export const POST = withAsyncTracing(
+  withAuth(async (request, user) => {
+    const supabase = await createRouteClient();
+    const body = (await request.json()) as Record<string, unknown>;
+    const correlationId = createCorrelationId();
+    const parsed = createRequestSchema.safeParse(body);
+    if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors);
 
-  // Get user's active org
-  const { data: membership } = await supabase
-    .from('organization_memberships')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .limit(1);
+    // Get user's active org
+    const { data: membership } = await supabase
+      .from('organization_memberships')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .limit(1);
 
-  if (!membership || membership.length === 0) {
-    throw new ApiError(400, 'You must belong to an active organization');
-  }
+    if (!membership || membership.length === 0) {
+      throw new ApiError(400, 'You must belong to an active organization');
+    }
 
-  const { data, error } = await supabase
-    .from('exchange_requests')
-    .insert({
-      requester_id: user.id,
-      organization_id: membership[0].organization_id,
-      title: parsed.data.title,
-      description: parsed.data.description,
-      program_id: parsed.data.program_id,
-      supply_item_id: parsed.data.supply_item_id,
-      target_org_ids: parsed.data.target_org_ids ?? [],
-      requested_sample_count: parsed.data.requested_sample_count,
-      requested_timeline_days: parsed.data.requested_timeline_days,
-      budget_range_min: parsed.data.budget_range_min,
-      budget_range_max: parsed.data.budget_range_max,
-      commercial_use: parsed.data.commercial_use ?? false,
-      status: 'draft',
-    })
-    .select()
-    .single();
+    const { data, error } = await supabase
+      .from('exchange_requests')
+      .insert({
+        requester_id: user.id,
+        organization_id: membership[0].organization_id,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        program_id: parsed.data.program_id,
+        supply_item_id: parsed.data.supply_item_id,
+        target_org_ids: parsed.data.target_org_ids ?? [],
+        requested_sample_count: parsed.data.requested_sample_count,
+        requested_timeline_days: parsed.data.requested_timeline_days,
+        budget_range_min: parsed.data.budget_range_min,
+        budget_range_max: parsed.data.budget_range_max,
+        commercial_use: parsed.data.commercial_use ?? false,
+        status: 'submitted',
+      })
+      .select()
+      .single();
 
-  if (error) throw new ApiError(500, 'Failed to create request', error.message);
-  return Response.json({ data }, { status: 201 });
-});
+    if (error) throw new ApiError(500, 'Failed to create request', error.message);
+
+    // ── Cross-engine hooks (fire-and-forget) ────────────────────────────
+    const orgId = membership[0].organization_id;
+    const requesterName = user.email ?? user.id;
+
+    recordExchangeRequestProvenance(data.id, orgId, data.title, correlationId)
+      .catch((err: unknown) => console.error('[EXCHANGE] Provenance failed:', err));
+
+    emitAccessRequestSubmitted(data.id, data.program_id, user.id, {
+      title: data.title,
+      sampleCount: data.requested_sample_count,
+    }, orgId, user.id, correlationId);
+
+    signalExchangeRequestWorkflow(data.id, orgId, data.target_org_ids?.[0] ?? 'unknown', requesterName, correlationId);
+
+    return Response.json({ data }, { status: 201 });
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'exchange', 'kadarn.api.method': 'POST' } },
+);

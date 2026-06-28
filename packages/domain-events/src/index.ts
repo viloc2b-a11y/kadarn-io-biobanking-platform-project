@@ -136,6 +136,30 @@ export interface ProgramParticipantRoleChangedPayload {
 }
 
 // --------------------------------------------------------------------------
+// Feasibility events
+// --------------------------------------------------------------------------
+export interface FeasibilityAssessmentCompletedPayload {
+  assessmentId: string;
+  organizationId: string;
+  programName: string;
+  score: number;
+  completedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Exchange deal events
+// --------------------------------------------------------------------------
+export interface ExchangeDealCreatedPayload {
+  dealId: string;
+  requestId: string;
+  sponsorOrgId: string;
+  providerOrgId: string;
+  title: string;
+  totalValue: number | null;
+  createdBy: string;
+}
+
+// --------------------------------------------------------------------------
 // Access events
 // --------------------------------------------------------------------------
 export interface AccessRequestSubmittedPayload {
@@ -187,6 +211,8 @@ export interface KadarnEventMap {
   ProgramParticipantAdded: ProgramParticipantAddedPayload;
   ProgramParticipantRemoved: ProgramParticipantRemovedPayload;
   ProgramParticipantRoleChanged: ProgramParticipantRoleChangedPayload;
+  FeasibilityAssessmentCompleted: FeasibilityAssessmentCompletedPayload;
+  ExchangeDealCreated: ExchangeDealCreatedPayload;
   AccessRequestSubmitted: AccessRequestSubmittedPayload;
   AccessRequestApproved: AccessRequestApprovedPayload;
   AccessRequestRejected: AccessRequestRejectedPayload;

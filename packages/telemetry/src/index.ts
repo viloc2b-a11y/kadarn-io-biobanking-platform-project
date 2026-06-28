@@ -13,7 +13,7 @@ export {
   withAsyncTracing,
   getTraceContext,
   createChildContext,
-} from './tracer.js';
+} from './tracer';
 
 export type {
   Span,
@@ -25,7 +25,7 @@ export type {
   Tracer,
   TraceContext,
   TraceableFunction,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // Predefined span names for the 4 KPE-08 trace points
