@@ -38,6 +38,9 @@ export interface DomainEvent<T = Record<string, unknown>> {
   /** Program context (UUID or null if not program-scoped) */
   programId: string | null;
 
+  /** Correlation ID to link events across engines (policy, workflow, provenance) */
+  correlationId: string | null;
+
   /** Event-specific payload */
   payload: T;
 }
