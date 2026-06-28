@@ -1,0 +1,18 @@
+{
+  "name": "@kadarn/telemetry",
+  "version": "0.1.0",
+  "description": "Kadarn Telemetry — minimal tracing abstraction with no-op default. Replaceable with real OpenTelemetry without changing call sites.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {}
+}
