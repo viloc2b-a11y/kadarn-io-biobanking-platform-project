@@ -1,13 +1,18 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
+import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { createCorrelationId } from '@/lib/exchange-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 /**
  * POST /api/v1/marketplace/feasibility
  * Create a new feasibility assessment request.
  */
-export const POST = withAuth(async (request, user) => {
+export const POST = withAsyncTracing(
+  withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
     const orgId = user.user_metadata?.active_org_id as string | null
+    const correlationId = createCorrelationId()
 
     if (!orgId) {
       throw new ApiError(400, 'No active organization selected')
@@ -48,11 +53,30 @@ export const POST = withAuth(async (request, user) => {
       throw new ApiError(500, 'Failed to create feasibility assessment', error.message)
     }
 
+    runPipeline(
+      'feasibility',
+      createPipelineContext({
+        correlationId,
+        actorId: user.id,
+        organizationId: orgId,
+      }),
+      {
+        assessmentId: data.id,
+        programName,
+        score: 0,
+        title: programName,
+        route: 'marketplace.feasibility',
+      },
+    )
+
     return Response.json({ data, error: null }, { status: 201 })
   } catch (err) {
     return handleApiError(err)
   }
-})
+  }),
+  SPAN_API_REQUEST,
+  { attributes: { 'kadarn.api.route': 'marketplace.feasibility', 'kadarn.api.method': 'POST' } },
+)
 
 /**
  * GET /api/v1/marketplace/feasibility
