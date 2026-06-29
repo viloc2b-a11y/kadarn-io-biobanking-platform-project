@@ -318,3 +318,35 @@ Where scientific value compounds instead of disappearing.
 Where continuity replaces fragmentation.
 
 Where opportunity follows merit.
+
+---
+
+## The Defining Sentence
+
+Kadarn does not verify organizations.
+
+Kadarn verifies institutional capability accumulated over time.
+
+*Kadarn no verifica organizaciones. Kadarn verifica la capacidad institucional acumulada a lo largo del tiempo.*
+
+Because an organization can change.
+
+It can grow.
+
+It can bring in new researchers.
+
+It can open a lab.
+
+It can lose certifications.
+
+It can improve.
+
+What Kadarn verifies is not a photograph.
+
+It is a trajectory.
+
+We are not building a system to say "this site is good."
+
+We are building a system capable of demonstrating, with evidence and continuity, how that site became good and how it continues to evolve.
+
+That difference is, in our conviction, one of the greatest strategic differentiators of Kadarn.

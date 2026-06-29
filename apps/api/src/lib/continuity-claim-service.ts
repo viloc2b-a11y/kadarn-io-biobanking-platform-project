@@ -620,3 +620,232 @@ export async function promoteToLedger(
 
   return { ledgerId, claimId }
 }
+
+// --------------------------------------------------------------------------
+// Site Passport Score — executive summary
+// --------------------------------------------------------------------------
+
+/**
+ * Compute the overall continuity score and executive summary for a site.
+ * Aggregates all claims, evidence, and references into a single scorecard.
+ */
+export async function computeSiteScore(
+  db: ContinuityDbClient,
+  profileId: string,
+) {
+  const { data: claims } = await db
+    .from('continuity_experience_claims')
+    .select('*, continuity_evidence_items(id), continuity_references(id, status)')
+    .eq('site_continuity_profile_id', profileId)
+
+  const list = claims ?? []
+  const total = list.length
+
+  let totalEvidence = 0
+  let totalConfirmedRefs = 0
+  const therapeuticAreasSet = new Set<string>()
+  let totalBiospecimens = 0
+  let totalStudies = 0
+  let earliestDate: string | null = null
+  let verifiedCount = 0
+  let hasEvidence = 0
+  let hasConfirmedRef = 0
+  let infraOk = false
+  let regulatoryOk = false
+
+  for (const c of list) {
+    const evCount = (c.continuity_evidence_items ?? []).length
+    totalEvidence += evCount
+    if (evCount > 0) hasEvidence++
+
+    const refs = (c.continuity_references ?? []) as Array<{ status: string }>
+    const confirmed = refs.filter(r => r.status === 'confirmed').length
+    totalConfirmedRefs += confirmed
+    if (confirmed > 0) hasConfirmedRef++
+
+    if (c.therapeutic_area) therapeuticAreasSet.add(c.therapeutic_area)
+    if (c.quantity) totalBiospecimens += Number(c.quantity)
+    if (c.claim_type === 'clinical_study' || c.category === 'clinical_study') totalStudies++
+
+    if (c.start_date && (!earliestDate || c.start_date < earliestDate)) earliestDate = c.start_date
+    if (c.verification_status === 'kadarn_verified' || c.status === 'verified' || c.badge_level === 'kadarn_verified') verifiedCount++
+    if (c.claim_type === 'infrastructure' || c.category === 'infrastructure') infraOk = true
+    if (c.claim_type === 'regulatory' || c.category === 'regulatory') regulatoryOk = true
+  }
+
+  const legacyYears = earliestDate
+    ? Math.max(1, Math.round((Date.now() - new Date(earliestDate).getTime()) / (365.25 * 86400000)))
+    : 0
+
+  const evidenceCoverage = total > 0 ? Math.round((hasEvidence / total) * 100) : 0
+  const referenceCoverage = total > 0 ? Math.round((hasConfirmedRef / total) * 100) : 0
+
+  const components = {
+    evidenceScore: evidenceCoverage * 0.25,
+    referenceScore: referenceCoverage * 0.20,
+    verificationScore: total > 0 ? (verifiedCount / total) * 100 * 0.25 : 0,
+    coverageScore: Math.min(100, (total / Math.max(1, total + 3)) * 100) * 0.15,
+    tenureScore: Math.min(100, legacyYears * 5) * 0.15,
+  }
+  const overallScore = Math.round(
+    components.evidenceScore + components.referenceScore + components.verificationScore +
+    components.coverageScore + components.tenureScore,
+  )
+
+  const trustLevel = verifiedCount > 0
+    ? 'Kadarn Verified'
+    : hasConfirmedRef > 0
+      ? 'Reference Confirmed'
+      : hasEvidence > 0
+        ? 'Evidence Backed'
+        : 'Self Reported'
+
+  const continuityLevel = overallScore >= 80
+    ? 'Advanced'
+    : overallScore >= 50
+      ? 'Established'
+      : overallScore >= 20
+        ? 'Developing'
+        : 'Initial'
+
+  return {
+    overallScore,
+    legacyYears,
+    clinicalStudies: totalStudies || total,
+    therapeuticAreas: therapeuticAreasSet.size || Math.min(total, 5),
+    biospecimens: totalBiospecimens,
+    trustLevel,
+    continuityLevel,
+    evidenceCoverage,
+    referenceCoverage,
+    infrastructure: infraOk ? 'Verified' : 'Not Verified',
+    regulatoryReadiness: regulatoryOk ? 'Verified' : 'Not Verified',
+  }
+}
+
+// --------------------------------------------------------------------------
+// Missing Evidence Intelligence
+// --------------------------------------------------------------------------
+
+export async function generateRecommendations(
+  db: ContinuityDbClient,
+  profileId: string,
+) {
+  const { data: claims } = await db
+    .from('continuity_experience_claims')
+    .select('*, continuity_evidence_items(id), continuity_references(id, status)')
+    .eq('site_continuity_profile_id', profileId)
+
+  const list = claims ?? []
+  const recommendations: Array<{ category: string; action: string; priority: string; estimatedTrustIncrease: number }> = []
+
+  const therapeuticAreas = new Set<string>()
+  let hasGcpEvidence = false
+  let hasLabCapability = false
+  let totalEvidence = 0
+  let totalConfirmedRefs = 0
+
+  for (const c of list) {
+    if (c.therapeutic_area) therapeuticAreas.add(c.therapeutic_area)
+    const evCount = (c.continuity_evidence_items ?? []).length
+    totalEvidence += evCount
+    const refs = (c.continuity_references ?? []) as Array<{ status: string }>
+    totalConfirmedRefs += refs.filter(r => r.status === 'confirmed').length
+
+    for (const ev of (c.continuity_evidence_items ?? []) as Array<{ evidence_type?: string }>) {
+      if (ev.evidence_type?.toLowerCase().includes('gcp')) hasGcpEvidence = true
+      if (ev.evidence_type?.toLowerCase().includes('lab') || ev.evidence_type?.toLowerCase().includes('capability')) hasLabCapability = true
+    }
+  }
+
+  for (const ta of therapeuticAreas) {
+    const claimsInTa = list.filter((c: { therapeutic_area: string }) => c.therapeutic_area === ta)
+    const evInTa = claimsInTa.reduce((sum: number, c: { continuity_evidence_items?: Array<unknown> }) =>
+      sum + (c.continuity_evidence_items ?? []).length, 0)
+    if (evInTa === 0) {
+      recommendations.push({ category: 'Evidence', action: 'Add evidence for ' + ta + ' experience', priority: 'high', estimatedTrustIncrease: 8 })
+    }
+    const refsInTa = claimsInTa.reduce((sum: number, c: { continuity_references?: Array<unknown> }) =>
+      sum + (c.continuity_references ?? []).length, 0)
+    if (refsInTa === 0) {
+      recommendations.push({ category: 'References', action: 'Add references for ' + ta, priority: 'medium', estimatedTrustIncrease: 5 })
+    }
+  }
+
+  if (!hasGcpEvidence) {
+    recommendations.push({ category: 'Certification', action: 'Upload GCP certificates', priority: 'high', estimatedTrustIncrease: 12 })
+  }
+  if (!hasLabCapability) {
+    recommendations.push({ category: 'Infrastructure', action: 'Verify laboratory capabilities', priority: 'medium', estimatedTrustIncrease: 7 })
+  }
+
+  const evCovered = list.filter((c: { continuity_evidence_items?: Array<unknown> }) => (c.continuity_evidence_items ?? []).length > 0).length
+  if (list.length > 0 && evCovered / list.length < 0.5) {
+    recommendations.push({ category: 'Evidence', action: 'Add evidence documents to existing claims', priority: 'high', estimatedTrustIncrease: 10 })
+  }
+
+  const refCovered = list.filter((c: { continuity_references?: Array<unknown> }) =>
+    (c.continuity_references ?? []).filter((r: { status: string }) => r.status === 'confirmed').length > 0).length
+  if (list.length > 0 && refCovered / list.length < 0.3) {
+    recommendations.push({ category: 'References', action: 'Confirm pending references to boost credibility', priority: 'medium', estimatedTrustIncrease: 6 })
+  }
+
+  const evidenceScore = Math.min(40, (totalEvidence / Math.max(1, list.length * 2)) * 40)
+  const refScore = Math.min(30, (totalConfirmedRefs / Math.max(1, list.length)) * 30)
+  const coverageScore = Math.min(30, (list.length / 10) * 30)
+  const completionPercent = Math.round(Math.min(100, evidenceScore + refScore + coverageScore))
+
+  return { completionPercent, recommendations: recommendations.slice(0, 8) }
+}
+
+// --------------------------------------------------------------------------
+// Opportunity Readiness
+// --------------------------------------------------------------------------
+
+export async function computeOpportunityReadiness(
+  db: ContinuityDbClient,
+  profileId: string,
+) {
+  const { data: claims } = await db
+    .from('continuity_experience_claims')
+    .select('*, continuity_evidence_items(id), continuity_references(id, status)')
+    .eq('site_continuity_profile_id', profileId)
+
+  const list = claims ?? []
+  const therapeuticAreas = new Set<string>()
+  let hasVerified = false
+  let hasFrozenShipment = false
+  let hasCapCert = false
+  let totalConfirmedRefs = 0
+
+  for (const c of list) {
+    if (c.therapeutic_area) therapeuticAreas.add(c.therapeutic_area)
+    if (c.badge_level === 'kadarn_verified' || c.verification_status === 'kadarn_verified') hasVerified = true
+    const refs = (c.continuity_references ?? []) as Array<{ status: string }>
+    totalConfirmedRefs += refs.filter(r => r.status === 'confirmed').length
+    if (c.claim_type?.toLowerCase().includes('frozen') || c.title?.toLowerCase().includes('frozen')) hasFrozenShipment = true
+    if (c.category?.toLowerCase().includes('cap') || c.claim_type?.toLowerCase().includes('cap')) hasCapCert = true
+  }
+
+  const readyFor: Array<{ area: string; status: string }> = []
+  const common = ['Oncology', 'Obesity', 'Diabetes', 'Respiratory', 'Cardiovascular', 'Rare Disease', 'CNS', 'Infectious Disease', 'IVD', 'Immunology']
+
+  for (const opp of common) {
+    if (therapeuticAreas.has(opp)) readyFor.push({ area: opp, status: 'ready' })
+  }
+  for (const ta of therapeuticAreas) {
+    if (!common.includes(ta)) readyFor.push({ area: ta, status: 'ready' })
+  }
+
+  const needs: string[] = []
+  if (!hasCapCert) needs.push('CAP certification')
+  if (!hasFrozenShipment) needs.push('Frozen shipment validation')
+  if (totalConfirmedRefs < 2) needs.push('Two verified references')
+  if (!hasVerified) needs.push('Kadarn verification')
+
+  const readyCount = readyFor.filter(r => r.status === 'ready').length
+  const totalOpps = Math.max(1, readyCount + needs.length)
+  const readinessScore = Math.round((readyCount / totalOpps) * 100)
+
+  return { readyFor, needs, readinessScore }
+}
