@@ -82,7 +82,10 @@ CREATE TABLE IF NOT EXISTS policies (
                rules @> '[{"effect": "deny"}]'::jsonb),
 
     -- Unique name per organization (global policies have NULL org)
-    CONSTRAINT policies_name_unique
+    -- NOTE: NULLS NOT DISTINCT requires PostgreSQL 15+. On PG < 15, replace with
+   -- a partial unique index: CREATE UNIQUE INDEX ... WHERE organization_id IS NOT NULL
+   -- and handle the NULL case separately.
+   CONSTRAINT policies_name_unique
         UNIQUE NULLS NOT DISTINCT (organization_id, name)
 );
 
