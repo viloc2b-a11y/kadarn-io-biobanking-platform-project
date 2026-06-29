@@ -214,15 +214,29 @@ export class TrustEngineService {
     if (resolution.status === 'accepted' && resolution.newScore !== undefined) {
       const challenge = await this.adapter.getChallenge(resolution.challengeId);
       if (challenge) {
+        // Fetch current trust scores so non-challenged dimensions are preserved,
+        // not overwritten with 0.5 defaults.
+        const current = await this.adapter.getOrganizationTrust(challenge.organizationId);
         await this.adapter.upsertOrganizationTrust({
           organizationId: challenge.organizationId,
           [dimensionToColumn(challenge.dimension)]: resolution.newScore,
           overallScore: computeOverall({
-            operational: challenge.dimension === 'operational' ? resolution.newScore : 0.5,
-            regulatory: challenge.dimension === 'regulatory' ? resolution.newScore : 0.5,
-            financial: challenge.dimension === 'financial' ? resolution.newScore : 0.5,
-            technical: challenge.dimension === 'technical' ? resolution.newScore : 0.5,
+            operational: challenge.dimension === 'operational'
+              ? resolution.newScore
+              : (current?.operationalScore ?? 0.5),
+            regulatory: challenge.dimension === 'regulatory'
+              ? resolution.newScore
+              : (current?.regulatoryScore ?? 0.5),
+            financial: challenge.dimension === 'financial'
+              ? resolution.newScore
+              : (current?.financialScore ?? 0.5),
+            technical: challenge.dimension === 'technical'
+              ? resolution.newScore
+              : (current?.technicalScore ?? 0.5),
           }),
+          // Update timestamps to prevent immediate decay of the freshly-set score
+          lastEventAt: resolution.reviewedAt,
+          lastDecayAt: resolution.reviewedAt,
         });
       }
     }

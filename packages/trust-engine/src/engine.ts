@@ -13,7 +13,7 @@ import {
   DEFAULT_DECAY_CONFIG,
   DEFAULT_IMPACT_SOURCES,
   SEVERITY_MULTIPLIERS,
-} from './types.js';
+} from './types';
 
 import type {
   TrustDimension,
@@ -23,7 +23,7 @@ import type {
   OrganizationTrust,
   DecayConfig,
   TrajectoryPoint,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // computeOverall — weighted composite of dimension scores
@@ -173,7 +173,8 @@ export function buildTrajectory(
     impact: number;
     dimension: TrustDimension;
     source: string;
-    created_at: string;
+    created_at?: string;
+    createdAt?: string;
     description?: string;
   }>,
   startScores?: DimensionScoreMap,
@@ -184,7 +185,7 @@ export function buildTrajectory(
   for (const event of events) {
     scores[event.dimension] = applyImpact(scores[event.dimension], event.impact);
     trajectory.push({
-      date: event.created_at,
+      date: event.created_at ?? event.createdAt ?? new Date().toISOString(),
       score: scores[event.dimension],
       dimension: event.dimension,
       eventSource: event.source,
