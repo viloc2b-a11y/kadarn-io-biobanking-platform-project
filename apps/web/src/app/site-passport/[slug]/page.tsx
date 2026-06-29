@@ -85,6 +85,30 @@ function Recommendations({ data }: { data: any }) {
   )
 }
 
+function Timeline({ data }: { data: any }) {
+  if (!data?.milestones) return null
+  const colors: Record<string, string> = {
+    founding: '#10b981', milestone: '#3b82f6', growth: '#8b5cf6',
+    capability: '#f59e0b', infrastructure: '#06b6d4', regulatory: '#ec4899',
+    ivd: '#f97316', verified: '#10b981', future: '#64748b',
+  }
+  return (
+    <section style={{ border: '1px solid #d1d5db', borderRadius: 16, padding: 24 }}>
+      <h2 style={{ fontSize: 18, marginTop: 0, marginBottom: 20 }}>Institutional Growth Timeline</h2>
+      <div style={{ position: 'relative', paddingLeft: 24 }}>
+        <div style={{ position: 'absolute', left: 10, top: 0, bottom: 0, width: 2, background: '#334155' }} />
+        {data.milestones.map((m: any, i: number) => (
+          <div key={i} style={{ position: 'relative', paddingBottom: 20, paddingLeft: 20 }}>
+            <div style={{ position: 'absolute', left: -18, top: 4, width: 12, height: 12, borderRadius: '50%', background: colors[m.type] ?? '#3b82f6', border: '2px solid #0f172a' }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: colors[m.type] ?? '#94a3b8' }}>{m.label}</div>
+            <div style={{ fontSize: 14, color: '#e2e8f0', marginTop: 2 }}>{m.description}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function Opportunities({ data }: { data: any }) {
   if (!data) return null
   return (
@@ -125,6 +149,7 @@ export default async function SitePassportPage({ params }: PassportPageProps) {
   const score = await fetchJson(`/api/v1/continuity/passport/${slug}/score`)
   const recommendations = await fetchJson(`/api/v1/continuity/passport/${slug}/recommendations`)
   const opportunities = await fetchJson(`/api/v1/continuity/passport/${slug}/opportunities`)
+  const timeline = await fetchJson(`/api/v1/continuity/passport/${slug}/timeline`)
 
   if (!data) {
     return (
@@ -150,6 +175,8 @@ export default async function SitePassportPage({ params }: PassportPageProps) {
         <Recommendations data={recommendations} />
         <Opportunities data={opportunities} />
       </div>
+
+      <Timeline data={timeline} />
 
       <section>
         <h2>Evidence-backed experience</h2>

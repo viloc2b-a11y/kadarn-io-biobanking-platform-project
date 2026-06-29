@@ -849,3 +849,247 @@ export async function computeOpportunityReadiness(
 
   return { readyFor, needs, readinessScore }
 }
+
+// --------------------------------------------------------------------------
+// Sprint 5 — Continuity Intelligence
+// --------------------------------------------------------------------------
+
+/**
+ * Build an institutional growth timeline from claims data.
+ * Extracts key milestones: founding, first sponsor, first phase III,
+ * certifications, verification events, etc.
+ */
+export async function buildGrowthTimeline(
+  db: ContinuityDbClient,
+  profileId: string,
+) {
+  const { data: claims } = await db
+    .from('continuity_experience_claims')
+    .select('*, continuity_evidence_items(id), continuity_references(id, status)')
+    .eq('site_continuity_profile_id', profileId)
+    .order('start_date', { ascending: true })
+
+  const list = claims ?? []
+  const milestones: Array<{ year: number; label: string; type: string; description: string }> = []
+
+  // Track first occurrences
+  let firstStudyYear: number | null = null
+  let firstPhase3Year: number | null = null
+  let firstBiospecimenYear: number | null = null
+  let firstInfraYear: number | null = null
+  let firstRegulatoryYear: number | null = null
+  let firstIvdYear: number | null = null
+  let verifiedYear: number | null = null
+  let foundingYear: number | null = null
+
+  for (const c of list) {
+    if (!c.start_date) continue
+    const year = new Date(c.start_date).getFullYear()
+    if (isNaN(year)) continue
+
+    // Track earliest claim as founding year
+    if (!foundingYear || year < foundingYear) foundingYear = year
+
+    const ct = (c.claim_type ?? '').toLowerCase()
+    const cat = (c.category ?? '').toLowerCase()
+    const title = (c.title ?? '').toLowerCase()
+
+    if (!firstStudyYear && (ct === 'clinical_study' || cat === 'clinical_study' || title.includes('study') || title.includes('trial'))) {
+      firstStudyYear = year
+    }
+    if (!firstPhase3Year && (title.includes('phase iii') || title.includes('phase 3') || c.study_phase === 'Phase III')) {
+      firstPhase3Year = year
+    }
+    if (!firstBiospecimenYear && (ct === 'biospecimen' || cat === 'biospecimen' || c.biospecimen_type)) {
+      firstBiospecimenYear = year
+    }
+    if (!firstInfraYear && (ct === 'infrastructure' || cat === 'infrastructure')) {
+      firstInfraYear = year
+    }
+    if (!firstRegulatoryYear && (ct === 'regulatory' || cat === 'regulatory')) {
+      firstRegulatoryYear = year
+    }
+    if (!firstIvdYear && (title.includes('ivd') || ct.includes('ivd') || cat.includes('ivd'))) {
+      firstIvdYear = year
+    }
+    if (!verifiedYear && (c.badge_level === 'kadarn_verified' || c.verification_status === 'kadarn_verified')) {
+      verifiedYear = year
+    }
+
+    // Add significant events based on verification history
+    if (c.verification_history && Array.isArray(c.verification_history)) {
+      for (const entry of c.verification_history) {
+        const entryYear = new Date((entry as any).at).getFullYear()
+        if (!isNaN(entryYear) && (entry as any).to === 'verified') {
+          if (!verifiedYear || entryYear < verifiedYear) verifiedYear = entryYear
+        }
+      }
+    }
+  }
+
+  // Build ordered timeline
+  if (foundingYear) {
+    let foundingDesc = 'Site established'
+    if (firstStudyYear && firstStudyYear === foundingYear) foundingDesc = 'Founded and began clinical operations'
+    milestones.push({ year: foundingYear, label: String(foundingYear), type: 'founding', description: foundingDesc })
+  }
+
+  if (firstStudyYear && firstStudyYear !== foundingYear) {
+    milestones.push({ year: firstStudyYear, label: String(firstStudyYear), type: 'milestone', description: 'First clinical study / sponsor engagement' })
+  }
+  if (firstPhase3Year) {
+    milestones.push({ year: firstPhase3Year, label: String(firstPhase3Year), type: 'growth', description: 'First Phase III trial' })
+  }
+  if (firstBiospecimenYear) {
+    milestones.push({ year: firstBiospecimenYear, label: String(firstBiospecimenYear), type: 'capability', description: 'Biospecimen program initiated' })
+  }
+  if (firstInfraYear) {
+    milestones.push({ year: firstInfraYear, label: String(firstInfraYear), type: 'infrastructure', description: 'Infrastructure / lab expansion' })
+  }
+  if (firstRegulatoryYear) {
+    milestones.push({ year: firstRegulatoryYear, label: String(firstRegulatoryYear), type: 'regulatory', description: 'Regulatory certification achieved' })
+  }
+  if (firstIvdYear) {
+    milestones.push({ year: firstIvdYear, label: String(firstIvdYear), type: 'ivd', description: 'IVD validation capability established' })
+  }
+  if (verifiedYear) {
+    milestones.push({ year: verifiedYear, label: String(verifiedYear), type: 'verified', description: 'Kadarn Verified' })
+  }
+
+  // Add future projection
+  const lastYear = milestones.length > 0 ? milestones[milestones.length - 1].year : new Date().getFullYear()
+  milestones.push({ year: lastYear + 1, label: String(lastYear + 1), type: 'future', description: 'International Programs — projected growth' })
+
+  // Sort by year
+  milestones.sort((a, b) => a.year - b.year)
+
+  return { milestones }
+}
+
+/**
+ * Match a sponsor opportunity against all available site profiles.
+ * Scores each site on therapeutic area match, population, specimen type, verification level.
+ */
+export async function matchOpportunity(
+  db: ContinuityDbClient,
+  criteria: {
+    therapeuticArea?: string
+    population?: string
+    location?: string
+    specimenType?: string
+    minConfidence?: number
+    limit?: number
+  },
+) {
+  const limit = Math.min(criteria.limit ?? 10, 50)
+
+  // Get all public profiles with claims
+  const { data: profiles } = await db
+    .from('site_continuity_profiles')
+    .select('id, organization_id, headline, public_slug, passport_visibility')
+    .in('passport_visibility', ['public', 'shared_link'])
+    .limit(50)
+
+  const profileList = profiles ?? []
+  const results: Array<{
+    siteName: string
+    slug: string
+    matchPercent: number
+    opportunityScore: number
+    reasoning: string[]
+    badges: string[]
+  }> = []
+
+  for (const profile of profileList) {
+    const { data: claims } = await db
+      .from('continuity_experience_claims')
+      .select('*, continuity_evidence_items(id), continuity_references(id, status)')
+      .eq('site_continuity_profile_id', profile.id)
+      .neq('verification_status', 'rejected')
+
+    const claimList = claims ?? []
+    if (claimList.length === 0) continue
+
+    let score = 0
+    const maxScore = 100
+    const reasoning: string[] = []
+    const badges = new Set<string>()
+    let matchedAreas = 0
+    let totalAreas = 0
+
+    for (const c of claimList) {
+      // Track badges
+      if (c.badge_level) badges.add(c.badge_level)
+      else if (c.verification_status === 'kadarn_verified') badges.add('kadarn_verified')
+
+      // Therapeutic area match (highest weight)
+      if (criteria.therapeuticArea) {
+        totalAreas++
+        const ta = (c.therapeutic_area ?? '').toLowerCase()
+        const target = criteria.therapeuticArea.toLowerCase()
+        if (ta === target || ta.includes(target) || target.includes(ta)) {
+          score += 30
+          matchedAreas++
+        }
+      }
+
+      // Specimen type match
+      if (criteria.specimenType) {
+        const bst = (c.biospecimen_type ?? '').toLowerCase()
+        const targetSpec = criteria.specimenType.toLowerCase()
+        if (bst === targetSpec || bst.includes(targetSpec) || targetSpec.includes(bst)) {
+          score += 15
+          if (!reasoning.includes('Matched specimen type')) reasoning.push('Matched specimen type: ' + criteria.specimenType)
+        }
+      }
+
+      // Population match (via claim type / therapeutic area context)
+      if (criteria.population) {
+        const pop = criteria.population.toLowerCase()
+        if ((c.description ?? '').toLowerCase().includes(pop) || (c.title ?? '').toLowerCase().includes(pop)) {
+          score += 10
+          if (!reasoning.includes('Population match')) reasoning.push('Relevant ' + criteria.population + ' experience')
+        }
+      }
+
+      // Verification bonus
+      if (c.badge_level === 'kadarn_verified' || c.verification_status === 'kadarn_verified') {
+        score += 15
+      }
+
+      // Evidence bonus
+      const evCount = (c.continuity_evidence_items ?? []).length
+      if (evCount > 0) score += Math.min(10, evCount * 2)
+
+      // Reference bonus
+      const refCount = (c.continuity_references ?? []).filter((r: { status: string }) => r.status === 'confirmed').length
+      if (refCount > 0) score += Math.min(10, refCount * 3)
+    }
+
+    if (matchedAreas > 0 && criteria.therapeuticArea) {
+      reasoning.push(String(matchedAreas) + ' verified ' + criteria.therapeuticArea + ' programs')
+    }
+
+    // Normalize score
+    const matchPercent = Math.min(100, Math.round(score))
+    const opportunityScore = Math.min(100, Math.round(
+      matchPercent * 0.6 +
+      (badges.has('kadarn_verified') ? 25 : 0) +
+      Math.min(15, claimList.length * 2)
+    ))
+
+    results.push({
+      siteName: profile.headline ?? 'Unnamed Site',
+      slug: profile.public_slug,
+      matchPercent,
+      opportunityScore,
+      reasoning: reasoning.slice(0, 4),
+      badges: Array.from(badges),
+    })
+  }
+
+  // Sort by match percent descending
+  results.sort((a, b) => b.matchPercent - a.matchPercent || b.opportunityScore - a.opportunityScore)
+
+  return { results: results.slice(0, limit), total: results.length }
+}
