@@ -41,10 +41,8 @@ describe('1. Write generates audit event', () => {
 
     expect(orgError).toBeNull();
     expect(orgData).toBeDefined();
-    expect(orgData!.length).toBeGreaterThanOrEqual(1);
-    const orgId = orgData![0].id;
-
     const orgId = orgData!.id;
+    expect(orgId).toBeDefined();
 
     // Verify the audit event was created
     // audit_events tracking is via triggers — for programs, not orgs directly.

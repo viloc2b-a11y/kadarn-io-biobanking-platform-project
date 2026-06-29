@@ -38,6 +38,9 @@ export interface DomainEvent<T = Record<string, unknown>> {
   /** Program context (UUID or null if not program-scoped) */
   programId: string | null;
 
+  /** Correlation ID to link events across engines (policy, workflow, provenance) */
+  correlationId: string | null;
+
   /** Event-specific payload */
   payload: T;
 }
@@ -133,6 +136,102 @@ export interface ProgramParticipantRoleChangedPayload {
 }
 
 // --------------------------------------------------------------------------
+// Feasibility events
+// --------------------------------------------------------------------------
+export interface FeasibilityAssessmentCompletedPayload {
+  assessmentId: string;
+  organizationId: string;
+  programName: string;
+  score: number;
+  completedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Exchange deal events
+// --------------------------------------------------------------------------
+export interface ExchangeDealCreatedPayload {
+  dealId: string;
+  requestId: string;
+  sponsorOrgId: string;
+  providerOrgId: string;
+  title: string;
+  totalValue: number | null;
+  createdBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Collection events
+// --------------------------------------------------------------------------
+export interface CollectionCreatedPayload {
+  collectionId: string;
+  organizationId: string;
+  name: string;
+  createdBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Shipment events
+// --------------------------------------------------------------------------
+export interface ShipmentCreatedPayload {
+  shipmentId: string;
+  organizationId: string;
+  programId: string;
+  carrier: string;
+  createdBy: string;
+}
+
+export interface ShipmentStatusChangedPayload {
+  shipmentId: string;
+  organizationId: string;
+  fromStatus: string;
+  toStatus: string;
+  changedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// QC events
+// --------------------------------------------------------------------------
+export interface QcCompletedPayload {
+  aliquotId: string;
+  sampleId: string;
+  qcStatus: string;
+  organizationId: string;
+  completedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Settlement events
+// --------------------------------------------------------------------------
+export interface SettlementStatusChangedPayload {
+  settlementId: string;
+  dealId: string;
+  fromStatus: string;
+  toStatus: string;
+  amount: number;
+  organizationId: string | null;
+  changedBy: string;
+  reason: string | null;
+}
+
+export interface SettlementInitiatedPayload {
+  dealId: string;
+  organizationId: string;
+  amount: number | null;
+  initiatedBy: string;
+}
+
+// --------------------------------------------------------------------------
+// Supply item events
+// --------------------------------------------------------------------------
+export interface SupplyItemCreatedPayload {
+  supplyItemId: string;
+  organizationId: string;
+  type: string;
+  title: string;
+  createdBy: string;
+}
+
+// --------------------------------------------------------------------------
 // Access events
 // --------------------------------------------------------------------------
 export interface AccessRequestSubmittedPayload {
@@ -184,6 +283,15 @@ export interface KadarnEventMap {
   ProgramParticipantAdded: ProgramParticipantAddedPayload;
   ProgramParticipantRemoved: ProgramParticipantRemovedPayload;
   ProgramParticipantRoleChanged: ProgramParticipantRoleChangedPayload;
+  FeasibilityAssessmentCompleted: FeasibilityAssessmentCompletedPayload;
+  CollectionCreated: CollectionCreatedPayload;
+  ShipmentCreated: ShipmentCreatedPayload;
+  ShipmentStatusChanged: ShipmentStatusChangedPayload;
+  QcCompleted: QcCompletedPayload;
+  SettlementInitiated: SettlementInitiatedPayload;
+  SettlementStatusChanged: SettlementStatusChangedPayload;
+  SupplyItemCreated: SupplyItemCreatedPayload;
+  ExchangeDealCreated: ExchangeDealCreatedPayload;
   AccessRequestSubmitted: AccessRequestSubmittedPayload;
   AccessRequestApproved: AccessRequestApprovedPayload;
   AccessRequestRejected: AccessRequestRejectedPayload;

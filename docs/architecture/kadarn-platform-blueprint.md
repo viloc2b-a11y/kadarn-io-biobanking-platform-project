@@ -826,7 +826,9 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 
 ## 19. Sprint Roadmap
 
-### Sprint 0 — Foundation (Current)
+> **Versioning policy:** v0.1.x Foundation · v0.2.x Platform Services · v0.3.x Discovery · v0.4.x Feasibility · v0.5.x Programs · v0.6.x Exchange · v0.7.x Processing · v0.8.x Regulatory · v0.9.x Analytics · v1.0.0 Public Beta
+
+### Sprint 0 — Foundation ✅ (v0.1.x)
 
 | Sprint | Migration | Tables | Status |
 |--------|-----------|--------|--------|
@@ -835,69 +837,131 @@ AI is a **layer**, not a separate product. Every AI feature sits within an engin
 | 0C | Audit + Programs | audit_events, programs, program_participants, program_access_policies | ✅ Committed |
 | 0D | Seeds + Smoke Tests | Seed data, RLS isolation tests, multi-tenant verification | ✅ Committed |
 
-### Sprint 1 — Domain Model
+### Sprint 1A — Trust & Security Foundation ✅ (v0.1.0)
 
-| Migration | Tables |
-|-----------|--------|
-| Supply Domain | supply_items (adapted from prototype), supply_item_categories |
-| Collections | collections (refactored, multi-tenant, program-aware) |
-| Biospecimens | donors, samples, sample_events (refactored, Multi-PID) |
-| Ontologies | ICD-10, SNOMED, UBERON, DUO reference data |
+| Suite | Tests | Status |
+|-------|-------|--------|
+| Identity | JWT login, memberships, multi-org | ✅ 19/19 |
+| Authorization | RLS isolation, program access, roles | ✅ 17/17 |
+| Audit | Triggers, immutability, tracking | ✅ 6/6 |
+| Threat | JWT tampering, spoofing, escalation | ✅ 13/13 |
+| Compliance | Timestamps, integrity, classification | ✅ 19/19 |
+| Concurrency | Unique constraints, idempotency | ✅ 14/14 |
+| Performance | Baseline metrics | ✅ 8/8 |
 
-### Sprint 2 — Discovery + Exchange
+### Sprint 1B — Core API ✅
 
-| Migration/Feature | Description |
-|-------------------|-------------|
-| Discovery API | search, filter, facet endpoints over supply_items |
-| Negotiator | access_requests, messaging, state machine (multi-tenant) |
-| Exchange Deals | deal creation, MTA tracking, escrow (multi-tenant) |
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Public health check |
+| `GET /me` | Current user profile + memberships |
+| `GET/POST /organizations` | List / create organizations |
+| `GET /organizations/:id` | Get organization by ID |
+| `GET/POST /programs` | List / create programs |
+| `GET /programs/:id` | Get program by ID |
+| `GET /audit-events` | List own audit events |
 
-### Sprint 3 — Chain + Fulfillment
+### Sprint 2 — Platform Services ⬜ (v0.2.x)
 
-| Migration/Feature | Description |
-|-------------------|-------------|
-| Chain Telemetry | Multi-tenant telemetry + breach detection |
-| Logistics Events | Chain of custody, shipment tracking |
-| Fulfillment Dashboard | Program-level fulfillment view |
+| Service | Description |
+|---------|-------------|
+| Notification Service | Email, in-app, and webhook notifications |
+| File Service | File upload, download, and management |
+| Object Storage | S3-compatible storage integration |
+| Document Service | Document generation and templates |
+| Search Service | Full-text search across entities |
+| Event Bus | Domain event publishing and subscription |
+| Background Jobs | Async job queue and processing |
+| Scheduler | Cron-based scheduling |
+| Webhooks | Outbound webhook delivery |
+| API Keys | External API key management |
+| Feature Flags | Toggle features per organization |
+| Observability | Structured logging and tracing |
+| Metrics | Operational metrics collection |
+| Rate Limiting | Per-organization rate limits |
+| Distributed Locking | Prevent concurrent resource conflicts |
+| Idempotency | Idempotent request handling |
+| Configuration Service | Centralized configuration |
 
-### Sprint 4 — Processing Engine
+### Sprint 3 — Discovery Engine ⬜ (v0.3.x)
 
-| Migration/Feature | Description |
-|-------------------|-------------|
+| Feature | Description |
+|---------|-------------|
+| Supply Item Search | Search across 7 supply item types |
+| Faceted Filtering | Filter by disease, sample type, geography |
+| Capability-Based Matching | Algorithmic org selection |
+| Discovery API | REST endpoints + pagination |
+
+### Sprint 4 — Feasibility Engine ⬜ (v0.4.x)
+
+| Feature | Description |
+|---------|-------------|
+| Feasibility Assessment | Multi-dimension program viability |
+| Capacity Intelligence | Network capacity analysis |
+| Timeline Estimation | Historical data-based timelines |
+
+### Sprint 5 — Program Engine ⬜ (v0.5.x)
+
+| Feature | Description |
+|---------|-------------|
+| Program Lifecycle | Full program state machine |
+| Participant Management | Org role management per program |
+| Access Policies | Data sharing rules within programs |
+| Program Dashboard | Program-level operational view |
+
+### Sprint 6 — Exchange Engine ⬜ (v0.6.x)
+
+| Feature | Description |
+|---------|-------------|
+| Access Requests | Submit and manage access requests |
+| Negotiation | Multi-party messaging and MTA workflow |
+| Deal Management | Deal creation, milestones, escrow |
+| Webhook State Machine | Automated deal lifecycle |
+
+### Sprint 7 — Processing Engine ⬜ (v0.7.x)
+
+| Feature | Description |
+|---------|-------------|
 | Sample Lifecycle | Sample state machine (collected → archived) |
 | Processing Workflows | Configurable workflows by sample type |
 | Aliquot Management | Sample → Aliquot hierarchy |
-| Quality Control | QC parameter tracking (yield, concentration, purity, RIN, etc.) |
-| Storage Management | Physical location model (facility → position) |
+| Quality Control | QC parameter tracking |
+| Storage Management | Physical location model |
 | Chain of Custody | Movement tracking with audit trail |
-| LIMS Integration Layer | Connectors for LabVantage, LabWare, STARLIMS, etc. |
+| LIMS Integration | Connectors for enterprise LIMS |
 
-### Sprint 5 — Regulatory + Payments
-
-| Migration/Feature | Description |
-|-------------------|-------------|
-| Protocol Library | Reusable protocol templates |
-| Submission Tracker | IRB submission tracking across sites |
-| Escrow Engine | Full escrow lifecycle |
-| Payment Milestones | Milestone definition and tracking |
-
-### Sprint 6 — Frontend v1
+### Sprint 8 — Logistics Engine ⬜ (v0.8.x)
 
 | Feature | Description |
 |---------|-------------|
-| Researcher Dashboard | Discovery, feasibility, program overview |
-| Site Dashboard | Commercial enablement, opportunity pipeline |
-| Admin Dashboard | Network management, analytics |
-| Organization Selector | Multi-org user experience |
+| Chain Telemetry | Multi-tenant temperature monitoring |
+| Logistics Events | Chain of custody, shipment tracking |
+| Carrier Integration | FedEx, DHL, World Courier APIs |
 
-### Sprint 7 — Analytics + AI
+### Sprint 9 — Regulatory Engine ⬜
 
 | Feature | Description |
 |---------|-------------|
-| Operational Dashboards | Network health, program performance, supplier quality |
-| Predictive Feasibility | ML-based timeline and cost estimation |
+| Protocol Library | Reusable master protocols |
+| ICF Templates | Informed consent form templates |
+| Submission Tracker | IRB submission tracking |
+| Document Exchange | Secure document sharing |
+
+### Sprint 10 — Analytics ⬜ (v0.9.x)
+
+| Feature | Description |
+|---------|-------------|
+| Operational Dashboards | Network health, performance, quality |
+| Predictive Feasibility | ML-based timeline estimation |
+| Supplier Quality | Network supplier performance metrics |
+
+### Sprint 11 — AI Layer ⬜ (v1.0.0)
+
+| Feature | Description |
+|---------|-------------|
 | Natural Language Search | AI-assisted supply item discovery |
 | Anomaly Detection | ML-based chain breach detection |
+| Capability Matching | AI-enhanced org selection |
 
 ---
 

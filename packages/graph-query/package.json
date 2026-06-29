@@ -1,0 +1,18 @@
+{
+  "name": "@kadarn/graph-query",
+  "version": "0.1.0",
+  "description": "Kadarn Graph-Native Query Layer — unified cross-graph queries across Network, Provenance, Knowledge, and Trust",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {}
+}

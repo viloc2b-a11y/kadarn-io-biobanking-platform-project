@@ -7,6 +7,53 @@ and Kadarn follows [Semantic Versioning](https://semver.org/) once it reaches a 
 
 ---
 
+## [v1.0.0-alpha.2] — 2026-06-28 — Pilot Readiness Validated
+
+### Added
+
+- **APF-01 Identity Bootstrap** — `scripts/seed-pilot-users.ts` creates 7 pilot users in Supabase Auth with profiles and memberships. Idempotent, no passwords committed, production safety guard.
+- **APF-02 Sample Lifecycle Schema Fix** — Migration 033: `ALTER TABLE collection_twins ALTER COLUMN id SET DEFAULT gen_random_uuid()`. Resolves pilot blocker where collection inserts failed without explicit UUID.
+- **APF-03 Twin UUID Hardening** — Migration 034: Added `DEFAULT gen_random_uuid()` to 4 twin tables (organization_twins, shipment_twins, specimen_twins, transaction_twins). Schema audit of 19 pilot-critical tables completed.
+- **APF-04 Pilot Re-run** — Full 10-step pilot flow executed successfully (0 errors, score 9/10).
+- **ALPHA-PILOT-01 Production Seed** — `scripts/seed-pilot.sql` with realistic pilot data (6 orgs, 2 programs, exchange flow, shipments, provenance).
+- **ALPHA-PILOT-02 Operational Runbook** — Complete 30-day pilot runbook with success/failure criteria, recovery/rollback procedures.
+- **ALPHA-PILOT-03 Pilot Execution** — First pilot run identified 8 issues (3 critical). Score: 4.3/10.
+- **SIT-01 Supabase Integration Gate** — 38 tests validating connection, migrations, RLS, provenance, RPCs, key tables.
+- **Audit coverage completion** — Centralized `emitAuditEvent()`. 23/25 state-changing routes verified.
+
+### Fixed
+
+- **collection_twins.id** now auto-generates UUID (Migration 033)
+- **4 twin tables** now auto-generate UUIDs (Migration 034)
+- **check-secrets.sh** exclusions updated for documentation files
+
+### Changed
+
+- `.env.example` — Created for all app directories with placeholders only
+- `scripts/check-secrets.sh` — Improved exclusion patterns
+- `docs/ops/SUPABASE-SECRETS-SETUP.md` — Secret classification and rotation procedures
+
+### Known Limitations
+
+- Real external biobank not yet onboarded
+- Production Supabase not yet validated
+- Stripe / payment gateway not integrated
+- OPA external adapter (KPE-03) deferred
+- Policy decision persistence (KPE-02) deferred
+- Temporal SDK not installed
+- FHIR adapter not implemented
+
+### Verification
+
+```
+npm test             415 passed (30 files)
+npx tsc --noEmit     0 errors
+npm run build        Build OK
+bash check-secrets   All clear
+```
+
+---
+
 ## [0.1.0] — 2026-06-26 — Foundation Validated
 
 ### Added

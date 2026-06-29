@@ -88,21 +88,21 @@ kadarn-platform/
 
 ## Roadmap
 
-| Sprint | Focus | Status |
-|--------|-------|--------|
-| 0 | Foundation | ✅ Committed |
-| 1A | Trust & Security Foundation | ✅ Passes (v0.1.0) |
-| 1B | Core API | ⬜ Next |
-| 2 | Platform Services | ⬜ |
-| 3 | Discovery Engine | ⬜ |
-| 4 | Feasibility Engine | ⬜ |
-| 5 | Program Engine | ⬜ |
-| 6 | Exchange Engine | ⬜ |
-| 7 | Fulfillment / Chain | ⬜ |
-| 8 | Regulatory | ⬜ |
-| 9 | Processing Marketplace | ⬜ |
-| 10 | Analytics | ⬜ |
-| 11 | AI Layer | ⬜ |
+| Sprint | Focus | Version | Status |
+|--------|-------|---------|--------|
+| 0 | Foundation | v0.1.x | ✅ Committed |
+| 1A | Trust & Security Foundation | v0.1.0 | ✅ 86/86 tests |
+| 1B | Core API | v0.1.x | ✅ 99/99 tests |
+| 2 | Platform Services | v0.2.x | ⬜ Next |
+| 3 | Discovery Engine | v0.3.x | ⬜ |
+| 4 | Feasibility Engine | v0.4.x | ⬜ |
+| 5 | Program Engine | v0.5.x | ⬜ |
+| 6 | Exchange Engine | v0.6.x | ⬜ |
+| 7 | Processing Engine | v0.7.x | ⬜ |
+| 8 | Logistics Engine | v0.8.x | ⬜ |
+| 9 | Regulatory Engine | ⬜ |
+| 10 | Analytics | v0.9.x | ⬜ |
+| 11 | AI Layer | v1.0.0 | ⬜ |
 
 Full details in Blueprint §19 (Sprint Roadmap).
 

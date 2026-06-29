@@ -1,0 +1,9 @@
+{
+  "name": "@kadarn/types",
+  "version": "0.1.0",
+  "description": "Shared TypeScript types for Kadarn platform",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": { "typecheck": "tsc --noEmit" }
+}

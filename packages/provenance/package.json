@@ -1,0 +1,18 @@
+{
+  "name": "@kadarn/provenance",
+  "version": "0.1.0",
+  "description": "Kadarn Provenance — W3C PROV semantic mapping layer. Interprets Kadarn provenance data using PROV concepts without moving data.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {}
+}
