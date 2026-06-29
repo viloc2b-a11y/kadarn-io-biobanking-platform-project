@@ -1,6 +1,8 @@
 # THE KADARN DOCTRINE
 
-## Building the Infrastructure That Life Sciences Forgot
+## The Institutional Continuity Infrastructure for Life Sciences
+
+### Starting with biospecimens.
 
 ---
 
@@ -304,6 +306,46 @@ Kadarn preserves it.
 - Science advances faster when institutional memory is preserved.
 
 ---
+
+## Our Category
+
+Kadarn is not a marketplace.
+
+Kadarn is not a CRO.
+
+Kadarn is not a biobank.
+
+Kadarn is not a software platform.
+
+**Kadarn is the Institutional Continuity Infrastructure for Life Sciences.**
+
+A new category.
+
+An infrastructure that transforms institutional history into trusted operational intelligence.
+
+Starting with biospecimens.
+
+But built for Clinical Trials. IVD. Real World Evidence. Precision Medicine.
+
+The infrastructure does not change when the use case changes.
+
+Only the opportunity changes.
+
+The institutional capability remains.
+
+## Our Vocabulary
+
+Kadarn introduces a common language for institutional capability:
+
+- **Site Passport™** — Portable institutional identity
+- **Continuity Score™** — Quantified measure of accumulated capability
+- **Institutional Capability Index™ (ICI)** — Composite measure of institutional strength
+- **Opportunity Readiness™** — Readiness assessment for specific study types
+- **Evidence Coverage™** — Completeness metric
+- **Continuity Engine™** — The infrastructure that preserves and verifies capability
+- **Institutional Continuity Infrastructure™** — The category itself
+
+If, in the years ahead, other companies begin using these terms, it will be a sign that Kadarn helped define a new way of understanding the market.
 
 ## Our Long-Term Vision
 
