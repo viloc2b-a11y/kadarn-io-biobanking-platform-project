@@ -1,0 +1,21 @@
+# Optional OPA sidecar for Shadow Mode evaluations (Sprint 11)
+# Usage: docker compose -f integrations/opa/docker-compose.yml up -d
+# Set OPA_SERVER_URL=http://localhost:8181 in apps/api
+
+services:
+  opa:
+    image: openpolicyagent/opa:0.70.0
+    ports:
+      - '8181:8181'
+    command:
+      - run
+      - --server
+      - --addr=0.0.0.0:8181
+      - --log-level=info
+    volumes:
+      - ./policies:/policies:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8181/health']
+      interval: 10s
+      timeout: 3s
+      retries: 3

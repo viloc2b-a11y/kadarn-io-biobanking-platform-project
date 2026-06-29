@@ -18,9 +18,9 @@ export const GET = withAuth(async (_request, user) => {
     const evaluations = evaluationsRes.data ?? []
     const pendingChallenges = challengesRes.data ?? []
 
-    const violations = evaluations.filter(e => e.result === 'deny' || e.result === 'violation')
+    const violations = evaluations.filter(e => e.result === 'deny' || e.result === 'conditional')
     const approvals = evaluations.filter(e => e.result === 'allow')
-    const pendingDecisions = policies.filter(p => p.status === 'draft' || p.status === 'pending')
+    const pendingDecisions = policies.filter(p => p.status === 'draft' || p.status === 'inactive')
 
     return Response.json({
       data: {

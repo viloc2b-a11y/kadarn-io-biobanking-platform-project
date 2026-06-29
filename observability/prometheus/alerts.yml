@@ -1,0 +1,29 @@
+groups:
+  - name: kadarn-platform
+    rules:
+      - alert: KadarnNotReady
+        expr: kadarn_health_checks_total{probe="readiness",status="not_ready"} > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Kadarn API readiness probe failing
+          description: Readiness checks report not_ready for more than 2 minutes.
+
+      - alert: KadarnHighPipelineLatency
+        expr: histogram_quantile(0.95, sum(rate(kadarn_pipeline_stage_duration_ms_bucket[5m])) by (le, pipeline)) > 2000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High p95 pipeline stage latency
+          description: Pipeline stage p95 exceeds 2s for 5 minutes.
+
+      - alert: KadarnNoMetrics
+        expr: absent(kadarn_health_checks_total)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Kadarn metrics absent
+          description: Prometheus has not scraped kadarn metrics in 10 minutes.

@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useSession } from '@/components/providers/session-provider'
 import { resolveRole } from '@kadarn/auth'
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+
 const NAV = [
   {
     section: 'Network',
@@ -83,7 +85,7 @@ export function KocShell({ children }: { children: React.ReactNode }) {
   const notifRef = useRef<HTMLDivElement>(null)
 
   const fetchNotifs = useCallback(() => {
-    fetch('/api/v1/notifications', { credentials: 'include' })
+    fetch(`${API}/api/v1/notifications`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setNotifData(d.data))
       .catch(() => {})

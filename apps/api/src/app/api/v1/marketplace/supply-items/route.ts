@@ -2,6 +2,7 @@ import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/sup
 import { z } from 'zod'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import { createCorrelationId } from '@/lib/exchange-helper'
+import { publishIntegrationEvent } from '@/lib/event-runtime'
 
 const supplyItemTypeEnum = [
   'existing_collection',
@@ -91,15 +92,21 @@ export const POST = withAsyncTracing(
       if (error) throw new ApiError(500, 'Failed to create supply item', error.message)
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
-      console.log(JSON.stringify({
-        type: 'domain_event',
-        event: {
-          type: 'SupplyItemCreated',
-          payload: { supplyItemId: data.id, organizationId: orgId, type: parsed.data.type, title: parsed.data.title, createdBy: user.id },
-          actorId: user.id, organizationId: orgId, correlationId,
-        },
-        timestamp: new Date().toISOString(),
-      }))
+      publishIntegrationEvent('SupplyItemCreated', {
+        supplyItemId: data.id,
+        organizationId: orgId,
+        type: parsed.data.type,
+        title: parsed.data.title,
+        sampleTypes: parsed.data.sample_types,
+        diseaseLabel: parsed.data.disease_label ?? null,
+        diseaseIcd10: parsed.data.disease_icd10 ?? null,
+        createdBy: user.id,
+      }, {
+        actorId: user.id,
+        organizationId: orgId,
+        correlationId,
+        idempotencyKey: `SupplyItemCreated:${data.id}`,
+      })
 
       return Response.json({ data, error: null }, { status: 201 })
     } catch (err) {

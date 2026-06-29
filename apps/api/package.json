@@ -5,13 +5,22 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start -p 3001"
+    "start": "next start -p 3001",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@kadarn/policy-engine": "*",
     "@kadarn/telemetry": "*",
     "@kadarn/provenance": "*",
     "@kadarn/domain-events": "*",
+    "@kadarn/platform-services": "*",
+    "@kadarn/trust-engine": "*",
+    "@kadarn/financial-engine": "*",
+    "@kadarn/workflow-engine": "*",
+    "@kadarn/operational-twins": "*",
+    "@kadarn/matching-engine": "*",
+    "@kadarn/knowledge-engine": "*",
+    "@kadarn/graph-query": "*",
     "@supabase/ssr": "^0.6.0",
     "@supabase/supabase-js": "^2.49.0",
     "next": "^16.0.0",

@@ -9,34 +9,33 @@ import { describe, it, expect } from 'vitest'
 // All 25 state-changing routes with their audit status
 const ROUTE_AUDIT_STATUS: Array<{ route: string; pattern: string }> = [
   // Routes using centralized emitAuditEvent (added in KPR-04)
-  { route: 'api/organizations/[id]/capabilities/route.ts', pattern: 'console.log' },
-  { route: 'api/organizations/[id]/invite/route.ts', pattern: 'console.log' },
-  { route: 'api/programs/route.ts', pattern: 'console.log' },
-  { route: 'api/v1/account/erasure/route.ts', pattern: 'emitAuditEvent|console.log' },
-  { route: 'api/v1/financial/settlements/route.ts', pattern: 'console.log' },
-  { route: 'api/v1/financial/settlements/[id]/route.ts', pattern: 'console.log' },
-  { route: 'api/v1/processing/aliquots/[id]/qc/route.ts', pattern: 'console.log' },
+  { route: 'api/v1/organizations/[id]/capabilities/route.ts', pattern: 'publishIntegrationEvent|emitAuditEvent' },
+  { route: 'api/v1/organizations/[id]/invite/route.ts', pattern: 'publishIntegrationEvent|emitAuditEvent' },
+  { route: 'api/v1/programs/route.ts', pattern: 'publishIntegrationEvent|emitAuditEvent' },
+  { route: 'api/v1/account/erasure/route.ts', pattern: 'emitAuditEvent|publishIntegrationEvent' },
+  { route: 'api/v1/financial/settlements/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/financial/settlements/[id]/route.ts', pattern: 'runPipeline|publishIntegrationEvent|emitAuditEvent' },
+  { route: 'api/v1/processing/aliquots/[id]/qc/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
   { route: 'api/v1/workspace/active-org/route.ts', pattern: 'emitAuditEvent' },
 
   // Routes using helper functions (KPV sprints — emit via exchange-helper, logistics-helper, etc.)
-  { route: 'api/exchange/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/feasibility/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/organizations/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/v1/collections/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/v1/exchange/deals/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/v1/marketplace/requests/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/v1/marketplace/supply-items/route.ts', pattern: 'console.log' },
-  { route: 'api/v1/programs/[id]/participants/route.ts', pattern: 'console.log' },
-  { route: 'api/v1/shipments/route.ts', pattern: 'emit|provenance_record|domain_event' },
-  { route: 'api/v1/shipments/[id]/route.ts', pattern: 'emitShipmentStatusChanged' },
+  { route: 'api/v1/exchange/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/feasibility/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/organizations/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/collections/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/exchange/deals/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/marketplace/requests/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/marketplace/supply-items/route.ts', pattern: 'publishIntegrationEvent|emitAuditEvent' },
+  { route: 'api/v1/programs/[id]/participants/route.ts', pattern: 'publishIntegrationEvent|emitAuditEvent' },
+  { route: 'api/v1/shipments/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
+  { route: 'api/v1/shipments/[id]/route.ts', pattern: 'runPipeline|publishIntegrationEvent' },
 
-  // Remaining 7 routes — acknowledged as having minimal emission
-  // These are minor/supporting routes. Audit emission is via console.log or ApiError.
-  { route: 'api/programs/[id]/milestones/route.ts', pattern: 'console|ApiError' },
-  { route: 'api/v1/exchange/deals/[id]/route.ts', pattern: 'console|ApiError' },
-  { route: 'api/v1/marketplace/feasibility/route.ts', pattern: 'console|ApiError' },
+  // Remaining routes — minimal emission via event runtime or ApiError
+  { route: 'api/v1/programs/[id]/milestones/route.ts', pattern: 'console|ApiError|publishIntegrationEvent' },
+  { route: 'api/v1/exchange/deals/[id]/route.ts', pattern: 'runPipeline|ApiError' },
+  { route: 'api/v1/marketplace/feasibility/route.ts', pattern: 'runPipeline|ApiError' },
   { route: 'api/v1/operations/provenance/route.ts', pattern: 'console|ApiError' },
-  { route: 'api/v1/specimens/route.ts', pattern: 'console|ApiError' },
+  { route: 'api/v1/specimens/route.ts', pattern: 'runPipeline|ApiError' },
 ]
 
 describe('KPR-04: Audit Coverage', () => {

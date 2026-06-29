@@ -23,8 +23,8 @@ describe('KPR-01: QC Route', () => {
     expect(source).toContain('export const PATCH')
     expect(source).toContain('withAsyncTracing')
     expect(source).toContain('SPAN_API_REQUEST')
-    expect(source).toContain('domain_event')
-    expect(source).toContain('provenance_record')
+    expect(source).toContain('runPipeline')
+    expect(source).toContain("'qc'")
     expect(source).toContain('correlationId')
   })
 

@@ -22,7 +22,7 @@
 import type { OpaClient, PolicyDefinition } from './types';
 import type { PolicyEngineConfig } from './config';
 import { loadConfig } from './config';
-import { ShadowModeRunner, ConsoleDecisionRecorder, NullDecisionRecorder } from './shadow-mode';
+import { ShadowModeRunner, createDefaultShadowRecorder, NullDecisionRecorder } from './shadow-mode';
 
 export interface PolicyShadowOptions {
   config?: PolicyEngineConfig;
@@ -46,7 +46,7 @@ export function withPolicyShadow<
   const opaClient = options?.opaClient ?? null;
   const policies = options?.policies ?? [];
   const recorder = config.opaShadowMode
-    ? new ConsoleDecisionRecorder()
+    ? createDefaultShadowRecorder()
     : new NullDecisionRecorder();
 
   const runner = opaClient

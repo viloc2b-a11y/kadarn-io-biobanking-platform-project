@@ -14,7 +14,7 @@ import type {
   TaskStatus,
   WorkflowAdapter,
   PolicyEvaluator,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // startInstance — begin a new workflow

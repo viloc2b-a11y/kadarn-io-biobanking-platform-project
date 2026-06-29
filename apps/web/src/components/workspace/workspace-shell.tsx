@@ -36,11 +36,9 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
     if (sessionLoading) return
     if (!user) { router.push('/auth/login?next=/workspace'); return }
 
-    const token = (user as { access_token?: string }).access_token
-
     Promise.all([
-      fetch(`${API}/api/v1/workspace/profile`,    { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then(r => r.json()),
-      fetch(`${API}/api/v1/workspace/navigation`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then(r => r.json()),
+      fetch(`${API}/api/v1/workspace/profile`,    { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API}/api/v1/workspace/navigation`, { credentials: 'include' }).then(r => r.json()),
     ]).then(([profileRes, navRes]) => {
       if (profileRes.data) setProfile(profileRes.data)
       if (navRes.data?.sections) setNav(navRes.data.sections)

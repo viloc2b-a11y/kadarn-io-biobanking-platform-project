@@ -1,0 +1,39 @@
+---
+description: Kadarn v1.0 Hardening — audit findings require proof before code changes; sprints need verifiable closure
+alwaysApply: true
+---
+
+# Kadarn Hardening Governance (mandatory)
+
+Do **not** implement changes solely because an audit, sprint report, or prior chat suggested them.
+
+## Before modifying code for a finding
+
+1. **Prove it is real** — Reproduce from source, tests, build, migrations, or runtime. If unverified, mark `NOT VERIFIED` and investigate first; do not patch on assumption.
+2. **Measure impact on Kadarn** — Who is affected (tenant, engine, pilot step, security/compliance)? What breaks if ignored? Severity: critical / high / medium / low.
+3. **Propose ≥1 alternative** — e.g. fix root cause vs. workaround vs. defer with explicit risk acceptance.
+4. **Justify the chosen option** — Trade-offs, scope, alignment with BNOS architecture, and cost vs. hardening sprint goal.
+
+## Sprint completion gate
+
+A sprint is **not complete** until every relevant audit finding (Claude, Cursor, or human) has:
+
+- **Resolved** — with verifiable evidence: passing tests, `npm run verify` (or sprint-specific gate), and a short note in `docs/engineering/` or CHANGELOG; or
+- **Rejected** — with written technical rationale (why the finding is wrong, out of scope, or acceptable risk).
+
+No “fixed in commit message” or doc-only claims without matching repo evidence.
+
+## Program north star
+
+Work toward a **production-validated platform**, not a promising architecture:
+
+- Architecture and implementation stay aligned (no stub APIs marketed as engines).
+- Engines integrate as one system (events, provenance, policy, workflow — not `console.log` theater).
+- Observability, traceability, and security are core, not late add-ons.
+- Five pilots are **operational** validation before commercial deploy — not in-memory test narratives.
+
+## Default skepticism
+
+- Do not trust commit messages, sprint summaries, or docs over code/tests/migrations.
+- Prefer minimal, evidence-backed diffs over broad refactors driven by audit lists.
+- When the user shares an audit item, treat it as a **hypothesis** until you verify it in this repo.

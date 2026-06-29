@@ -20,6 +20,8 @@ export interface PolicyEngineConfig {
   opaEnforcement: boolean;
   /** When OPA errors, proceed (true) or deny (false) */
   opaFailOpen: boolean;
+  /** Optional OPA server base URL (HTTP shadow evaluations) */
+  opaServerUrl: string | null;
   /** Default policy version string */
   defaultPolicyVersion: string;
   /** Policy directory (for Rego file discovery) */
@@ -34,6 +36,7 @@ const DEFAULT_CONFIG: PolicyEngineConfig = {
   opaShadowMode: false,
   opaEnforcement: false,
   opaFailOpen: true,
+  opaServerUrl: null,
   defaultPolicyVersion: '0.1.0',
   policyDir: './policies',
 };
@@ -47,6 +50,7 @@ export function loadConfig(overrides?: Partial<PolicyEngineConfig>): PolicyEngin
     opaShadowMode: parseEnvBool(process.env.OPA_SHADOW_MODE, DEFAULT_CONFIG.opaShadowMode),
     opaEnforcement: parseEnvBool(process.env.OPA_ENFORCEMENT, DEFAULT_CONFIG.opaEnforcement),
     opaFailOpen: parseEnvBool(process.env.OPA_FAIL_OPEN, DEFAULT_CONFIG.opaFailOpen),
+    opaServerUrl: process.env.OPA_SERVER_URL ?? DEFAULT_CONFIG.opaServerUrl,
     defaultPolicyVersion: process.env.OPA_POLICY_VERSION ?? DEFAULT_CONFIG.defaultPolicyVersion,
     policyDir: process.env.OPA_POLICY_DIR ?? DEFAULT_CONFIG.policyDir,
   };

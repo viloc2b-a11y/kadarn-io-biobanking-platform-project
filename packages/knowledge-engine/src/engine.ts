@@ -8,10 +8,14 @@
 import type {
   OntologyTerm,
   OntologySynonym,
+  OntologyMapping,
   NormalizationResult,
   ExpansionResult,
   VocabularySet,
-} from './types.js';
+  CodingSystem,
+} from './types';
+
+import { ALL_VOCABULARIES } from './types';
 
 // --------------------------------------------------------------------------
 // normalizeTerm — find canonical form for a term
@@ -122,22 +126,53 @@ export function expandQuery(
   term: string,
   terms: OntologyTerm[],
   allSynonyms: OntologySynonym[],
+  vocabulary?: VocabularySet,
 ): ExpansionResult {
-  const matchedTerm = terms.find(
-    (t) => t.preferredLabel.toLowerCase() === term.toLowerCase(),
-  );
+  const matchedTerm = findTermForQuery(term, terms, allSynonyms, vocabulary);
 
   if (!matchedTerm) {
     return { original: term, expanded: [term], synonyms: [] };
   }
 
   const synonyms = getSynonyms(matchedTerm.id, allSynonyms);
+  const hierarchy = getHierarchy(matchedTerm.id, terms);
+  const childLabels = hierarchy?.children.map(child => child.preferredLabel) ?? [];
+  const expanded = [...new Set([matchedTerm.preferredLabel, ...synonyms, ...childLabels])];
 
   return {
     original: term,
-    expanded: [matchedTerm.preferredLabel, ...synonyms],
+    expanded,
     synonyms,
   };
+}
+
+export function mapToExternal(
+  termId: string,
+  mappings: OntologyMapping[],
+  codingSystem?: CodingSystem,
+): OntologyMapping[] {
+  const forTerm = mappings.filter(mapping => mapping.termId === termId);
+  if (!codingSystem) return forTerm;
+  return forTerm.filter(mapping => mapping.codingSystem === codingSystem);
+}
+
+function findTermForQuery(
+  term: string,
+  terms: OntologyTerm[],
+  allSynonyms: OntologySynonym[],
+  vocabulary?: VocabularySet,
+): OntologyTerm | undefined {
+  const vocabularies = vocabulary ? [vocabulary] : ALL_VOCABULARIES;
+
+  for (const vocab of vocabularies) {
+    const vocabTerms = terms.filter(item => item.vocabulary === vocab);
+    const result = normalizeTerm(vocab, term, vocabTerms, allSynonyms);
+    if (result.found) {
+      return vocabTerms.find(item => item.preferredLabel === result.normalized);
+    }
+  }
+
+  return undefined;
 }
 
 // --------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 // Supports faceted filtering via the discovery_search RPC function.
 // ==========================================================================
 
-import type { SearchService, SearchQuery, SearchResults, SearchableEntity } from '../types';
+import type { SearchService, SearchQuery, SearchResults, SearchableEntity } from './index';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export class PostgresSearchService implements SearchService {

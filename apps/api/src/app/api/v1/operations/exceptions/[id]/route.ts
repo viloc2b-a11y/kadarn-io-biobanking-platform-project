@@ -102,13 +102,18 @@ export const PATCH = withAuth(async (request, user) => {
 
     // Log audit event
     const auditAction = action === 'resolve' ? 'complete' : action === 'escalate' ? 'submit' : 'cancel'
-    await supabase.rpc('emit_audit_event', {
-      p_action: auditAction,
-      p_resource_type: sourceTable === 'trust_challenges' ? 'other' : 'other',
-      p_resource_id: id,
-      p_organization_id: orgId,
-      p_summary: `Exception ${action}d: ${note ?? 'No note'}`,
-    }).maybeSingle()
+        const resourceTypeMap: Record<string, string> = {
+          trust_challenges: 'trust_challenge',
+          logistics_shipments: 'shipment',
+          exchange_requests: 'exchange_request',
+        }
+        await supabase.rpc('emit_audit_event', {
+          p_action: auditAction,
+          p_resource_type: resourceTypeMap[sourceTable] ?? 'exception',
+          p_resource_id: id,
+          p_organization_id: orgId,
+          p_summary: `Exception ${action}d: ${note ?? 'No note'}`,
+        }).maybeSingle()
 
     return Response.json({
       data: {

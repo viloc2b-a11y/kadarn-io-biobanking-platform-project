@@ -7,7 +7,12 @@ export {
   getSynonyms,
   expandQuery,
   getHierarchy,
-} from './engine.js';
+  mapToExternal,
+} from './engine';
+
+export { KnowledgeService } from './service';
+export type { VocabularySnapshot } from './service';
+export { InMemoryKnowledgeAdapter } from './adapters/memory-adapter';
 
 export type {
   OntologyTerm,
@@ -18,5 +23,8 @@ export type {
   VocabularySet,
   CodingSystem,
   KnowledgeAdapter,
-  HierarchyResult,
-} from './types.js';
+} from './types';
+
+export { ALL_VOCABULARIES } from './types';
+
+export type { HierarchyResult } from './engine';

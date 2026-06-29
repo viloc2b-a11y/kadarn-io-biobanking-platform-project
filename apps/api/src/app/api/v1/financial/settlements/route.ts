@@ -14,6 +14,8 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { createCorrelationId } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -127,39 +129,21 @@ export const POST = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const orgId = user.user_metadata?.active_org_id as string | null
-      console.log(JSON.stringify({
-        type: 'domain_event',
-        event: {
-          type: 'SettlementInitiated',
-          payload: {
-            dealId: parsed.data.deal_id,
-            organizationId: orgId,
-            amount: parsed.data.total_amount,
-            initiatedBy: user.id,
-          },
+      runPipeline(
+        'settlement',
+        createPipelineContext({
+          correlationId,
           actorId: user.id,
           organizationId: orgId,
-          correlationId,
+        }),
+        {
+          settlementId: settlement.id,
+          dealId: parsed.data.deal_id,
+          amount: parsed.data.total_amount,
+          totalValue: parsed.data.total_amount,
+          route: 'financial.settlements',
         },
-        timestamp: new Date().toISOString(),
-      }))
-
-      console.log(JSON.stringify({
-        type: 'provenance_record',
-        data: {
-          node_type: 'settlement',
-          external_id: settlement.id,
-          label: `Settlement ${parsed.data.total_amount} ${parsed.data.currency} for deal ${parsed.data.deal_id}`,
-          properties: {
-            deal_id: parsed.data.deal_id,
-            total_amount: parsed.data.total_amount,
-            currency: parsed.data.currency,
-            correlationId,
-          },
-          organization_id: orgId,
-        },
-        timestamp: new Date().toISOString(),
-      }))
+      )
 
       return Response.json({
         data: {

@@ -12,6 +12,8 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { createCorrelationId } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 // ---------------------------------------------------------------------------
 // Valid QC transitions
@@ -95,43 +97,20 @@ export const PATCH = withAsyncTracing(
 
       // 1. Domain event
       const orgId = user.user_metadata?.active_org_id as string | null
-      console.log(JSON.stringify({
-        type: 'domain_event',
-        event: {
-          type: 'QcCompleted',
-          payload: {
-            aliquotId: id,
-            sampleId: aliquot.sample_id,
-            qcStatus: newStatus,
-            organizationId: orgId,
-            completedBy: user.id,
-          },
+      runPipeline(
+        'qc',
+        createPipelineContext({
+          correlationId,
           actorId: user.id,
           organizationId: orgId,
-          correlationId,
+        }),
+        {
+          aliquotId: id,
+          sampleId: aliquot.sample_id,
+          qcStatus: newStatus,
+          route: 'processing.qc',
         },
-        timestamp: now,
-      }))
-
-      // 2. Provenance record stub
-      console.log(JSON.stringify({
-        type: 'provenance_record',
-        data: {
-          node_type: 'qc_result',
-          external_id: `qc-${id}`,
-          label: `QC ${newStatus} for aliquot ${aliquot.aliquot_id}`,
-          properties: {
-            aliquot_id: id,
-            sample_id: aliquot.sample_id,
-            previous_status: previousStatus,
-            new_status: newStatus,
-            correlationId,
-            reviewed_by: parsed.data.reviewed_by ?? user.id,
-          },
-          organization_id: orgId,
-        },
-        timestamp: now,
-      }))
+      )
 
       return Response.json({
         data: {

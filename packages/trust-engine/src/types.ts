@@ -66,6 +66,8 @@ export interface TrustEvent {
   scoreBefore?: number;
   scoreAfter?: number;
   createdBy?: string;
+  /** ISO timestamp from persistence layer */
+  createdAt?: string;
 }
 
 // --------------------------------------------------------------------------

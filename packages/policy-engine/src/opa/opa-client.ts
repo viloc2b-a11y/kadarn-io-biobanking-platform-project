@@ -19,6 +19,8 @@ import type {
   PolicyDefinition,
 } from './types';
 import { evaluateLocalPolicy } from './local-evaluator';
+import { HttpOpaClient, ResilientOpaClient } from './http-opa-client';
+import { loadConfig } from './config';
 
 // --------------------------------------------------------------------------
 // LocalOpaClient — evaluates policies using the Kadarn engine
@@ -110,8 +112,17 @@ export class NullOpaClient implements OpaClient {
 // --------------------------------------------------------------------------
 
 export function createOpaClient(policies?: PolicyDefinition[]): OpaClient {
-  if (policies && policies.length > 0) {
-    return new LocalOpaClient(policies);
+  const local = policies && policies.length > 0
+    ? new LocalOpaClient(policies)
+    : new NullOpaClient();
+
+  const serverUrl = loadConfig().opaServerUrl ?? process.env.OPA_SERVER_URL;
+  if (serverUrl) {
+    return new ResilientOpaClient(
+      new HttpOpaClient({ baseUrl: serverUrl }),
+      local,
+    );
   }
-  return new NullOpaClient();
+
+  return local;
 }

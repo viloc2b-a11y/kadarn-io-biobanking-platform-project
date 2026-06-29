@@ -1,11 +1,27 @@
 // @ts-check
-import { env } from 'process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const nextConfig = {
-  experimental: {
-    // Enable if using React 19 with Next.js 16
+  transpilePackages: [
+    '@kadarn/domain-events',
+    '@kadarn/financial-engine',
+    '@kadarn/knowledge-engine',
+    '@kadarn/matching-engine',
+    '@kadarn/operational-twins',
+    '@kadarn/platform-services',
+    '@kadarn/policy-engine',
+    '@kadarn/provenance',
+    '@kadarn/telemetry',
+    '@kadarn/trust-engine',
+    '@kadarn/types',
+    '@kadarn/workflow-engine',
+  ],
+  turbopack: {
+    root: monorepoRoot,
   },
-  // API-only — no pages
   pageExtensions: ['ts', 'tsx'],
 };
 

@@ -1,6 +1,10 @@
 {
   "name": "kadarn-platform",
+  "version": "1.0.0-hardening.11",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -9,10 +13,17 @@
   "scripts": {
     "dev": "npm run dev -w apps/web",
     "dev:api": "npm run dev -w apps/api",
-    "build": "npm run build -w apps/web",
-    "lint": "npm run lint -w apps/web",
+    "build": "npm run build -w apps/web && npm run build -w apps/api",
+    "build:web": "npm run build -w apps/web",
+    "build:api": "npm run build -w apps/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test -w tests",
-    "typecheck": "node apps/api/node_modules/typescript/bin/tsc -p packages/types/tsconfig.json --noEmit",
-    "check:secrets": "bash scripts/check-secrets.sh"
+    "test:integration": "npm run test:integration -w tests",
+    "test:all": "npm run test:all -w tests",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "verify": "npm run typecheck && npm run build && npm run test && npm run check:secrets"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

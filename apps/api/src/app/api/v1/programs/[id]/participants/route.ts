@@ -2,6 +2,7 @@ import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/sup
 import { uuidParamSchema } from '@/lib/validation'
 import { z } from 'zod'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { publishIntegrationEvent } from '@/lib/event-runtime'
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -142,17 +143,18 @@ export const POST = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const _corrId = crypto.randomUUID()
-      console.log(JSON.stringify({
-        type: 'domain_event',
-        event: {
-          type: 'ProgramParticipantAdded',
-          payload: { participantId: inserted.id, programId, organizationId: organization_id, role },
-          actorId: user.id,
-          organizationId: organization_id,
-          correlationId: _corrId,
-        },
-        timestamp: new Date().toISOString(),
-      }))
+      publishIntegrationEvent('ProgramParticipantAdded', {
+        participantId: inserted.id,
+        programId,
+        organizationId: organization_id,
+        role,
+      }, {
+        actorId: user.id,
+        organizationId: organization_id,
+        correlationId: _corrId,
+        programId,
+        idempotencyKey: `ProgramParticipantAdded:${inserted.id}`,
+      })
 
       return Response.json({ data: inserted, error: null }, { status: 201 })
     } catch (err) {

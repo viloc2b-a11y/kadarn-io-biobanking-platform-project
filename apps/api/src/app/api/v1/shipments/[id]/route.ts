@@ -1,6 +1,7 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
-import { emitShipmentStatusChanged, createCorrelationId } from '@/lib/logistics-helper'
+import { createCorrelationId } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 const VALID_STATUSES = [
   'pending', 'picked_up', 'in_transit', 'customs_hold',
@@ -83,7 +84,21 @@ export const PATCH = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       if (body.status && body.status !== existing.status) {
-        emitShipmentStatusChanged(id, existing.organization_id, existing.status, body.status as string, user.id, correlationId)
+        runPipeline(
+          'shipment-status',
+          createPipelineContext({
+            correlationId,
+            actorId: user.id,
+            organizationId: existing.organization_id,
+          }),
+          {
+            shipmentId: id,
+            fromStatus: existing.status,
+            toStatus: body.status,
+            providerOrgId: existing.organization_id,
+            route: 'shipments.id',
+          },
+        )
       }
 
       return Response.json({ data: { id, status: updates.status ?? existing.status }, error: null })

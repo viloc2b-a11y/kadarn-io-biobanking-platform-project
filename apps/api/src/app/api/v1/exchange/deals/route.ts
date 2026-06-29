@@ -2,10 +2,9 @@ import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/sup
 import { createExchangeDealSchema, paginationSchema } from '@/lib/validation'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import {
-  emitExchangeDealCreated,
-  recordDealProvenance,
   createCorrelationId,
 } from '@/lib/exchange-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 /**
  * GET /api/v1/exchange/deals — List exchange deals with pagination.
@@ -164,13 +163,25 @@ export const POST = withAsyncTracing(
       }
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
-      recordDealProvenance(deal.id, dealFields.sponsor_org_id, deal.title, correlationId)
-        .catch((err: unknown) => console.error('[DEAL] Provenance failed:', err))
-      emitExchangeDealCreated(
-        deal.id, dealFields.request_id, dealFields.sponsor_org_id,
-        dealFields.provider_org_id, deal.title, total_value ?? null,
-        user.id, correlationId,
-      )
+      runPipeline(
+        'exchange-deal',
+        createPipelineContext({
+          correlationId,
+          actorId: user.id,
+          organizationId: dealFields.sponsor_org_id,
+          programId: dealFields.program_id,
+        }),
+        {
+          dealId: deal.id,
+          requestId: dealFields.request_id,
+          sponsorOrgId: dealFields.sponsor_org_id,
+          providerOrgId: dealFields.provider_org_id,
+          title: deal.title,
+          totalValue: total_value,
+          targetOrgId: dealFields.provider_org_id,
+          route: 'exchange.deals',
+        },
+      );
 
       return Response.json({
         data: {

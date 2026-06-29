@@ -1,6 +1,15 @@
 import { defineConfig } from 'vitest/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.join(repoRoot, 'apps/api/src'),
+    },
+  },
   test: {
     globals: true,
     environment: 'node',

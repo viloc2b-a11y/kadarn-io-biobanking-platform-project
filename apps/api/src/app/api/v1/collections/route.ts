@@ -1,7 +1,8 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { paginationSchema } from '@/lib/validation'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
-import { emitCollectionCreated, recordCollectionProvenance, createCorrelationId } from '@/lib/logistics-helper'
+import { createCorrelationId } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 type JsonObject = Record<string, unknown>
 
@@ -69,9 +70,19 @@ export const POST = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const orgId = body.organization_id as string
-      recordCollectionProvenance(data.id, orgId, body.name as string, correlationId)
-        .catch((err: unknown) => console.error('[COLLECTION] Provenance failed:', err))
-      emitCollectionCreated(data.id, orgId, body.name as string, user.id, correlationId)
+      runPipeline(
+        'collection-twin',
+        createPipelineContext({
+          correlationId,
+          actorId: user.id,
+          organizationId: orgId,
+        }),
+        {
+          collectionId: data.id,
+          name: body.name,
+          route: 'collections',
+        },
+      )
 
       return Response.json({ data }, { status: 201 })
     } catch (err) {

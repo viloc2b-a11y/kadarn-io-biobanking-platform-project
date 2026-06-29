@@ -13,6 +13,15 @@ export type VocabularySet =
   | 'regulatory_doc_type'
   | 'diagnosis';
 
+export const ALL_VOCABULARIES: VocabularySet[] = [
+  'specimen_type',
+  'processing_method',
+  'storage_condition',
+  'container_type',
+  'regulatory_doc_type',
+  'diagnosis',
+];
+
 export type CodingSystem = 'icd10' | 'icd11' | 'snomed_ct' | 'loinc' | 'ncit' | 'mondo' | 'fhir';
 
 // --------------------------------------------------------------------------
@@ -87,6 +96,9 @@ export interface ExpansionResult {
 // --------------------------------------------------------------------------
 
 export interface KnowledgeAdapter {
+  getTermsByVocabulary(vocabulary: VocabularySet): Promise<OntologyTerm[]>;
+  getSynonymsForTerms(termIds: string[]): Promise<OntologySynonym[]>;
+  getMappingsForTerms(termIds: string[]): Promise<OntologyMapping[]>;
   getTermByPreferredLabel(vocabulary: VocabularySet, label: string): Promise<OntologyTerm | null>;
   getSynonyms(termId: string): Promise<OntologySynonym[]>;
   getChildren(termId: string): Promise<OntologyTerm[]>;

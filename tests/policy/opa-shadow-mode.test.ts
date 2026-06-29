@@ -15,7 +15,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { evaluate, compose } from '../../packages/policy-engine/src/engine.js';
 import { loadConfig } from '../../packages/policy-engine/src/opa/config.js';
 import { LocalOpaClient, NullOpaClient } from '../../packages/policy-engine/src/opa/opa-client.js';
-import { ShadowModeRunner, ConsoleDecisionRecorder, NullDecisionRecorder } from '../../packages/policy-engine/src/opa/shadow-mode.js';
+import { ShadowModeRunner, InMemoryDecisionRecorder, NullDecisionRecorder } from '../../packages/policy-engine/src/opa/shadow-mode.js';
 import { evaluateLocalPolicy } from '../../packages/policy-engine/src/opa/local-evaluator.js';
 import {
   organizationMembershipPolicy,
@@ -181,8 +181,8 @@ describe('ShadowModeRunner', () => {
   function makeRunner(configOverrides = {}) {
     const config = loadConfig({ opaShadowMode: true, ...configOverrides });
     const client = new LocalOpaClient(DEFAULT_POLICIES);
-    const recorder = new ConsoleDecisionRecorder();
-    return new ShadowModeRunner(client, recorder, config, DEFAULT_POLICIES);
+    const recorder = new InMemoryDecisionRecorder();
+    return { runner: new ShadowModeRunner(client, recorder, config, DEFAULT_POLICIES), recorder };
   }
 
   it('should return null when shadow mode is disabled', async () => {
@@ -203,7 +203,7 @@ describe('ShadowModeRunner', () => {
   });
 
   it('should produce a decision when shadow mode is enabled', async () => {
-    const runner = makeRunner();
+    const { runner } = makeRunner();
     const result = await runner.evaluate({
       actor: { id: 'u1', role: 'org_member' },
       organization: { id: 'org-1', membership_status: 'active' } as unknown as OpaEvaluationInput['organization'],
@@ -224,7 +224,7 @@ describe('ShadowModeRunner', () => {
     // This is the critical Shadow Mode invariant:
     // Even when OPA denies, the Kadarn decision remains 'allow'
     // and the request is NOT blocked.
-    const runner = makeRunner();
+    const { runner } = makeRunner();
     const result = await runner.evaluate({
       actor: { id: 'u1', role: 'org_member' },
       organization: { id: 'org-1', membership_status: 'inactive' } as unknown as OpaEvaluationInput['organization'],
@@ -243,7 +243,7 @@ describe('ShadowModeRunner', () => {
   });
 
   it('should record structured decision with all required fields', async () => {
-    const runner = makeRunner();
+    const { runner } = makeRunner();
     const result = await runner.evaluate({
       actor: { id: 'u1', role: 'org_admin' },
       organization: { id: 'org-abc', membership_status: 'active' } as unknown as OpaEvaluationInput['organization'],
@@ -268,7 +268,7 @@ describe('ShadowModeRunner', () => {
   it('should skip policies that do not match the resource type', async () => {
     // Program.visibility has resourceTypes: ['program']
     // An 'exchange.deal' resource should not trigger it
-    const runner = makeRunner();
+    const { runner } = makeRunner();
     const result = await runner.evaluate({
       actor: { id: 'u1', role: 'org_admin' },
       organization: { id: 'org-1', membership_status: 'active' } as unknown as OpaEvaluationInput['organization'],
@@ -440,10 +440,9 @@ describe('Shadow Mode — feature flag guard', () => {
   it('should not evaluate when OPA_SHADOW_MODE is false', async () => {
     const config = loadConfig({ opaShadowMode: false });
     const client = new LocalOpaClient(DEFAULT_POLICIES);
-    const recorder = new ConsoleDecisionRecorder();
+    const recorder = new InMemoryDecisionRecorder();
     const runner = new ShadowModeRunner(client, recorder, config, DEFAULT_POLICIES);
 
-    const spy = vi.spyOn(console, 'log');
     const result = await runner.evaluate({
       actor: { id: 'u1', role: 'org_member' },
       organization: { id: 'org-1', membership_status: 'active' } as unknown as OpaEvaluationInput['organization'],
@@ -453,17 +452,15 @@ describe('Shadow Mode — feature flag guard', () => {
     });
 
     expect(result).toBeNull();
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
+    expect(recorder.decisions).toHaveLength(0);
   });
 
   it('should record decisions when OPA_SHADOW_MODE is true', async () => {
     const config = loadConfig({ opaShadowMode: true });
     const client = new LocalOpaClient(DEFAULT_POLICIES);
-    const recorder = new ConsoleDecisionRecorder();
+    const recorder = new InMemoryDecisionRecorder();
     const runner = new ShadowModeRunner(client, recorder, config, DEFAULT_POLICIES);
 
-    const spy = vi.spyOn(console, 'log');
     const result = await runner.evaluate({
       actor: { id: 'u1', role: 'org_member' },
       organization: { id: 'org-1', membership_status: 'active' } as unknown as OpaEvaluationInput['organization'],
@@ -473,8 +470,8 @@ describe('Shadow Mode — feature flag guard', () => {
     });
 
     expect(result).not.toBeNull();
-    expect(spy).toHaveBeenCalled();
-    spy.mockRestore();
+    expect(recorder.decisions).toHaveLength(1);
+    expect(recorder.decisions[0].decisionId).toBe(result!.decisionId);
   });
 });
 

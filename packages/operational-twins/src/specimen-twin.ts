@@ -10,7 +10,7 @@ import type {
   SpecimenTwinState,
   TwinEvent,
   RecordEventInput,
-} from './types.js';
+} from './types';
 
 import {
   createInitialState,
@@ -19,7 +19,7 @@ import {
   reconstructStateAt,
   getStatusForEvent,
   isValidTransition,
-} from './engine.js';
+} from './engine';
 
 export class SpecimenTwinService {
   constructor(private readonly adapter: TwinAdapter) {}

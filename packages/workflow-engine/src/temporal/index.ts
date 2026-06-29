@@ -7,7 +7,7 @@
 // No Temporal SDK dependency — pure TypeScript interfaces for unit testing.
 // ==========================================================================
 
-export { EXCHANGE_REQUEST_WORKFLOW_DEFINITION } from './exchange-request-workflow.js';
+export { EXCHANGE_REQUEST_WORKFLOW_DEFINITION } from './exchange-request-workflow';
 
 export {
   createExchangeRequestWorkflow,
@@ -17,17 +17,17 @@ export {
   EXCHANGE_REQUEST_WORKFLOW_STEPS,
   REVIEW_TIMEOUT_MS,
   NEGOTIATION_TIMEOUT_MS,
-} from './exchange-request-workflow.js';
+} from './exchange-request-workflow';
 
-export type { ExchangeRequestState, ExchangeRequestStep } from './exchange-request-workflow.js';
+export type { ExchangeRequestState, ExchangeRequestStep } from './exchange-request-workflow';
 
 export {
   registerActivity,
   executeActivity,
   getActivityHandler,
-} from './activities.js';
+} from './activities';
 
-export type { ActivityType } from './activities.js';
+export type { ActivityType } from './activities';
 
 export type {
   TemporalWorkflow,
@@ -40,4 +40,4 @@ export type {
   WorkflowContext,
   WorkflowDefinition,
   TemporalEngine,
-} from './types.js';
+} from './types';

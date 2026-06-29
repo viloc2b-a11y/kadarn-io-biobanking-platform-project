@@ -24,7 +24,7 @@ describe('KPR-03: GDPR Erasure Strategy', () => {
     expect(source).toContain('executeErasure')
     expect(source).toContain('withAsyncTracing')
     expect(source).toContain('SPAN_API_REQUEST')
-    expect(source).toContain('UserErasureCompleted')
+    expect(source).toContain('DataErasureRequested')
     expect(source).toContain('GDPR Art.17(3)(e)')
   })
 
@@ -110,14 +110,14 @@ describe('KPR-03: GDPR Erasure Strategy', () => {
   // Audit trail
   // -----------------------------------------------------------------------
 
-  it('erasure route emits UserErasureCompleted domain event', async () => {
+  it('erasure route emits DataErasureRequested domain event', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const root = path.resolve(import.meta.dirname, '..', '..')
     const routePath = path.join(root, 'apps/api/src/app/api/v1/account/erasure/route.ts')
     const source = fs.readFileSync(routePath, 'utf-8')
 
-    expect(source).toContain('UserErasureCompleted')
+    expect(source).toContain('DataErasureRequested')
     expect(source).toContain('profilesAnonymized')
     expect(source).toContain('provenancePreserved')
   })

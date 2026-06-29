@@ -95,6 +95,10 @@ export interface Tracer {
 export interface TraceContext {
   /** Whether this context is active (no-op returns false) */
   isActive: boolean;
+  /** W3C trace id when recording */
+  traceId?: string;
+  /** Current span id when recording */
+  spanId?: string;
   /** Free-form metadata attached to the context */
   attributes: SpanAttributes;
 }

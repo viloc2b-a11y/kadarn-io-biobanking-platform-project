@@ -14,15 +14,12 @@
 // Non-matching policies are skipped (they don't apply).
 // ==========================================================================
 
-import { compose } from '../engine';
-import type { PolicyEvaluation } from '../types';
 import type {
   OpaClient,
   PolicyDecision,
   OpaEvaluationInput,
   PolicyDefinition,
 } from './types';
-import { evaluateLocalPolicy } from './local-evaluator';
 import type { PolicyEngineConfig } from './config';
 
 // --------------------------------------------------------------------------
@@ -33,22 +30,42 @@ export interface DecisionRecorder {
   record(decision: PolicyDecision): void;
 }
 
+let policyShadowDecisionSink: ((decision: PolicyDecision) => void) | null = null;
+
+/** Wire shadow decisions to the domain event runtime (API bootstrap). */
+export function setPolicyShadowDecisionSink(
+  sink: ((decision: PolicyDecision) => void) | null,
+): void {
+  policyShadowDecisionSink = sink;
+}
+
+export function getPolicyShadowDecisionSink(): ((decision: PolicyDecision) => void) | null {
+  return policyShadowDecisionSink;
+}
+
 /**
- * Console decision recorder — writes structured decisions to stdout.
- * In production, this would write to the policy_evaluations table or
- * forward to the audit engine.
+ * Callback decision recorder — forwards to an injected sink (event bus, tests).
  */
-export class ConsoleDecisionRecorder implements DecisionRecorder {
+export class CallbackDecisionRecorder implements DecisionRecorder {
+  constructor(private readonly onRecord: (decision: PolicyDecision) => void) {}
+
   record(decision: PolicyDecision): void {
-    const prefix = decision.match ? '[OPA-SHADOW] MATCH' : '[OPA-SHADOW] DIVERGE';
-    console.log(
-      JSON.stringify({
-        type: 'opa_shadow_decision',
-        prefix,
-        decision,
-        timestamp: new Date().toISOString(),
-      }),
-    );
+    this.onRecord(decision);
+  }
+}
+
+/**
+ * In-memory decision recorder — collects decisions for tests and diagnostics.
+ */
+export class InMemoryDecisionRecorder implements DecisionRecorder {
+  readonly decisions: PolicyDecision[] = [];
+
+  record(decision: PolicyDecision): void {
+    this.decisions.push(decision);
+  }
+
+  clear(): void {
+    this.decisions.length = 0;
   }
 }
 
@@ -59,6 +76,14 @@ export class NullDecisionRecorder implements DecisionRecorder {
   record(_decision: PolicyDecision): void {
     // no-op
   }
+}
+
+export function createDefaultShadowRecorder(): DecisionRecorder {
+  const sink = policyShadowDecisionSink;
+  if (sink) {
+    return new CallbackDecisionRecorder(sink);
+  }
+  return new NullDecisionRecorder();
 }
 
 // --------------------------------------------------------------------------

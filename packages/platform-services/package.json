@@ -10,7 +10,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@kadarn/domain-events": "../../packages/domain-events"
+    "@kadarn/domain-events": "*"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",

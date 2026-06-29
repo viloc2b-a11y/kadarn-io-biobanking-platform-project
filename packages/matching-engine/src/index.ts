@@ -1,2 +1,2 @@
-export { match } from './engine.js';
-export type { MatchRequest, MatchResult, MatchingAdapter } from './types.js';
+export { match } from './engine';
+export type { MatchRequest, MatchResult, MatchingAdapter } from './types';

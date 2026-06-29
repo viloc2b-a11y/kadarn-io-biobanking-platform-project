@@ -1,9 +1,6 @@
 // ==========================================================================
 // Kadarn Telemetry — Public API
 // ==========================================================================
-// Minimal tracing abstraction. No-op by default.
-// Replace setTracer() with a real OpenTelemetry tracer when ready.
-// ==========================================================================
 
 export {
   getTracer,
@@ -14,6 +11,36 @@ export {
   getTraceContext,
   createChildContext,
 } from './tracer';
+
+export {
+  log,
+  logDebug,
+  logInfo,
+  logWarn,
+  logError,
+} from './logger';
+
+export type { LogLevel, LogFields } from './logger';
+
+export {
+  incrementCounter,
+  observeHistogram,
+  renderPrometheusText,
+  getMetricsSnapshot,
+  resetMetrics,
+} from './metrics';
+
+export type { MetricLabels, MetricsSnapshot } from './metrics';
+
+export {
+  initObservability,
+  getObservabilityStatus,
+  resetObservability,
+} from './observability';
+
+export type { ObservabilityStatus } from './observability';
+
+export { RecordingTracer, isTracingEnabled, getActiveTraceContext } from './recording-tracer';
 
 export type {
   Span,
@@ -26,10 +53,6 @@ export type {
   TraceContext,
   TraceableFunction,
 } from './types';
-
-// --------------------------------------------------------------------------
-// Predefined span names for the 4 KPE-08 trace points
-// --------------------------------------------------------------------------
 
 /** Trace an API request handler. */
 export const SPAN_API_REQUEST = 'kadarn.api.request' as const;
@@ -45,3 +68,16 @@ export const SPAN_INTEGRITY_RESOLUTION = 'kadarn.provenance.integrity' as const;
 
 /** Trace a workflow activity execution. */
 export const SPAN_WORKFLOW_ACTIVITY = 'kadarn.workflow.activity' as const;
+
+/** Trace an engine pipeline stage. */
+export const SPAN_PIPELINE_STAGE = 'kadarn.pipeline.stage' as const;
+
+/** Trace health/readiness checks. */
+export const SPAN_HEALTH_CHECK = 'kadarn.health.check' as const;
+
+/** Standard metric names */
+export const METRIC_HTTP_REQUESTS = 'kadarn_http_requests_total' as const;
+export const METRIC_PIPELINE_RUNS = 'kadarn_pipeline_runs_total' as const;
+export const METRIC_PIPELINE_STAGE_DURATION = 'kadarn_pipeline_stage_duration_ms' as const;
+export const METRIC_DOMAIN_EVENTS = 'kadarn_domain_events_published_total' as const;
+export const METRIC_HEALTH_CHECKS = 'kadarn_health_checks_total' as const;

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSupabaseRealtime } from '@/hooks/use-supabase-realtime'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -28,15 +29,20 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  const fetchNotifications = () => {
+  const fetchNotifications = useCallback(() => {
     setLoading(true)
     fetch(`${API}/api/v1/notifications`, { credentials: 'include' })
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(d => { setNotifications(d.data ?? []); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
-  }
+  }, [])
 
-  useEffect(() => { fetchNotifications() }, [])
+  useEffect(() => { fetchNotifications() }, [fetchNotifications])
+
+  useSupabaseRealtime({
+    table: 'audit_events',
+    onChange: fetchNotifications,
+  })
 
   const markRead = async (id: string) => {
     try {

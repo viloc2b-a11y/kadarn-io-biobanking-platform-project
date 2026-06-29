@@ -16,6 +16,9 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { publishIntegrationEvent } from '@/lib/event-runtime'
+import { createCorrelationId } from '@/lib/logistics-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 // ---------------------------------------------------------------------------
 // Valid transition map
@@ -117,44 +120,41 @@ export const PATCH = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const orgId = user.user_metadata?.active_org_id as string | null
-      console.log(JSON.stringify({
-        type: 'domain_event',
-        event: {
-          type: 'SettlementStatusChanged',
-          payload: {
-            settlementId: id,
-            dealId: settlement.deal_id,
-            fromStatus: currentStatus,
-            toStatus: newStatus,
-            amount: parsed.data.amount ?? settlement.total_amount,
-            organizationId: orgId,
-            changedBy: user.id,
-            reason: parsed.data.reason ?? null,
-          },
+      publishIntegrationEvent('SettlementStatusChanged', {
+        settlementId: id,
+        dealId: settlement.deal_id,
+        fromStatus: currentStatus,
+        toStatus: newStatus,
+        amount: parsed.data.amount ?? settlement.total_amount,
+        organizationId: orgId,
+        changedBy: user.id,
+        reason: parsed.data.reason ?? null,
+      }, {
+        actorId: user.id,
+        organizationId: orgId,
+        correlationId,
+        idempotencyKey: `SettlementStatusChanged:${id}:${newStatus}`,
+      })
+
+      runPipeline(
+        'settlement-update',
+        createPipelineContext({
+          correlationId,
           actorId: user.id,
           organizationId: orgId,
-          correlationId,
+        }),
+        {
+          settlementId: id,
+          dealId: settlement.deal_id,
+          amount: parsed.data.amount ?? settlement.total_amount,
+          totalValue: settlement.total_amount,
+          statusChange: newStatus,
+          fromStatus: currentStatus,
+          releasedAmount: (updates.released_amount as number) ?? settlement.released_amount,
+          refundedAmount: (updates.refunded_amount as number) ?? settlement.refunded_amount,
+          route: 'financial.settlements.id',
         },
-        timestamp: new Date().toISOString(),
-      }))
-
-      console.log(JSON.stringify({
-        type: 'provenance_record',
-        data: {
-          node_type: 'settlement',
-          external_id: `settlement-${id}-${newStatus}`,
-          label: `Settlement ${currentStatus} → ${newStatus}`,
-          properties: {
-            settlement_id: id,
-            deal_id: settlement.deal_id,
-            from_status: currentStatus,
-            to_status: newStatus,
-            correlationId,
-          },
-          organization_id: orgId,
-        },
-        timestamp: new Date().toISOString(),
-      }))
+      )
 
       return Response.json({
         data: {

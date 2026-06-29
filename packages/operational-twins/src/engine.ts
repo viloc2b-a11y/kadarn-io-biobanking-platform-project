@@ -22,7 +22,7 @@ import type {
   TransactionEventType,
   ShipmentTwinState,
   ShipmentEventType,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // createInitialState — create the initial state for a new specimen twin

@@ -29,8 +29,8 @@ import type {
   WorkflowStatus,
   TemporalSignal,
   ActivityResult,
-} from './types.js';
-import { executeActivity } from './activities.js';
+} from './types';
+import { executeActivity } from './activities';
 
 // --------------------------------------------------------------------------
 // Workflow steps (matching Temporal step definitions)

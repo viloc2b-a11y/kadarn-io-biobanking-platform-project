@@ -1,4 +1,6 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
+import { getObservabilityStatus } from '@/lib/observability'
+import { getMetricsSnapshot } from '@kadarn/telemetry'
 
 /**
  * GET /api/v1/koc/platform-health
@@ -28,6 +30,8 @@ export const GET = withAuth(async (_request, user) => {
         total_shipments: shipmentsRes.count ?? 0,
         total_exchanges: exchangesRes.count ?? 0,
         error_events: (recentEvents.data ?? []).filter(e => e.action === 'error' || e.action === 'delete').length,
+        observability: getObservabilityStatus(),
+        metrics_snapshot: getMetricsSnapshot(),
         timestamp: now.toISOString(),
       },
       error: null,

@@ -13,11 +13,13 @@ export {
   computeScoreFromEvents,
   buildTrajectory,
   daysBetween,
-} from './engine.js';
+} from './engine';
 
-export { TrustEngineService } from './service.js';
+export { TrustEngineService } from './service';
 
-export type { TrustEngineAdapter } from './service.js';
+export type { TrustEngineAdapter } from './service';
+
+export { InMemoryTrustAdapter } from './adapters/memory-adapter';
 
 export type {
   OrganizationTrust,
@@ -31,11 +33,11 @@ export type {
   DecayConfig,
   TrajectoryPoint,
   ImpactConfig,
-} from './types.js';
+} from './types';
 
 export {
   ALL_DIMENSIONS,
   SEVERITY_MULTIPLIERS,
   DEFAULT_DECAY_CONFIG,
   DEFAULT_IMPACT_SOURCES,
-} from './types.js';
+} from './types';

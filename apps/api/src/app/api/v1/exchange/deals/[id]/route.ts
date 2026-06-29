@@ -1,5 +1,7 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
+import { createCorrelationId } from '@/lib/exchange-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -39,6 +41,7 @@ const updateDealSchema = z.object({
 export const PATCH = withAuth(async (request, user, params) => {
   try {
     const supabase = await createRouteClient()
+    const correlationId = createCorrelationId()
 
     // Extract id from params or URL path
     const id = params?.id as string | undefined
@@ -167,6 +170,28 @@ export const PATCH = withAuth(async (request, user, params) => {
     if (!updatedDeal) {
       throw new ApiError(500, 'Failed to fetch updated deal')
     }
+
+    const orgId = updatedDeal.sponsor_org_id as string
+    const changes: string[] = []
+    if (dealUpdates.status !== undefined) changes.push(`status:${dealUpdates.status}`)
+    if (dealUpdates.mta_signed_by_sponsor !== undefined || dealUpdates.mta_signed_by_provider !== undefined) {
+      changes.push('mta_signed')
+    }
+    if (escrowUpdate?.status !== undefined) changes.push(`escrow:${escrowUpdate.status}`)
+    runPipeline(
+      'exchange-deal-update',
+      createPipelineContext({
+        correlationId,
+        actorId: user.id,
+        organizationId: orgId,
+      }),
+      {
+        dealId: id,
+        changes,
+        totalValue: updatedDeal.total_value,
+        route: 'exchange.deals.id',
+      },
+    );
 
     return Response.json({
       data: {

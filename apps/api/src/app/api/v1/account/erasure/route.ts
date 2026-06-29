@@ -18,6 +18,7 @@
 import { withAuth, handleApiError, ApiError } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import { executeErasure } from '@/lib/gdpr'
+import { publishIntegrationEvent } from '@/lib/event-runtime'
 
 /**
  * POST /api/v1/account/erasure
@@ -34,23 +35,20 @@ export const POST = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const orgId = user.user_metadata?.active_org_id as string | null
-      console.log(JSON.stringify({
-        type: 'domain_event',
-        event: {
-          type: 'UserErasureCompleted',
-          payload: {
-            userId: user.id,
-            organizationId: orgId,
-            profilesAnonymized: result.profiles_anonymized,
-            membershipsAnonymized: result.memberships_anonymized,
-            provenancePreserved: result.provenance_preserved,
-          },
-          actorId: user.id,
-          organizationId: orgId,
-          correlationId,
-        },
-        timestamp: new Date().toISOString(),
-      }))
+      publishIntegrationEvent('DataErasureRequested', {
+        userId: user.id,
+        organizationId: orgId,
+        requestedBy: user.id,
+        scope: 'account_erasure',
+        profilesAnonymized: result.profiles_anonymized,
+        membershipsAnonymized: result.memberships_anonymized,
+        provenancePreserved: result.provenance_preserved,
+      }, {
+        actorId: user.id,
+        organizationId: orgId,
+        correlationId,
+        idempotencyKey: `DataErasureRequested:${user.id}`,
+      })
 
       return Response.json({
         data: {

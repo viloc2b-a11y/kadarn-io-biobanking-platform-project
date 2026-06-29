@@ -1,10 +1,9 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import {
-  emitAccessRequestSubmitted,
-  recordExchangeRequestProvenance,
   createCorrelationId,
 } from '@/lib/exchange-helper'
+import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
 /**
  * GET /api/v1/marketplace/requests
@@ -78,10 +77,24 @@ export const POST = withAsyncTracing(
       if (error) throw new ApiError(500, 'Failed to create request', error.message)
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
-      recordExchangeRequestProvenance(data.id, orgId, title, correlationId)
-        .catch((err: unknown) => console.error('[MP-REQUESTS] Provenance failed:', err))
-      emitAccessRequestSubmitted(data.id, data.program_id, user.id,
-        { title, sampleCount: data.requested_sample_count }, orgId, user.id, correlationId)
+      runPipeline(
+        'exchange-request',
+        createPipelineContext({
+          correlationId,
+          actorId: user.id,
+          organizationId: orgId,
+          programId: data.program_id,
+        }),
+        {
+          requestId: data.id,
+          title,
+          programId: data.program_id,
+          sampleCount: data.requested_sample_count,
+          providerOrgId: (data.target_org_ids as string[] | undefined)?.[0] ?? 'unknown',
+          requesterName: user.email ?? user.id,
+          route: 'marketplace.requests',
+        },
+      )
 
       return Response.json({ data, error: null }, { status: 201 })
     } catch (err) {
@@ -113,7 +126,7 @@ export const PATCH = withAsyncTracing(
       // Verify the request exists
       const { data: existing } = await supabase
         .from('exchange_requests')
-        .select('id, status, organization_id, title, target_org_ids')
+        .select('id, status, organization_id, title, target_org_ids, program_id')
         .eq('id', requestId)
         .single()
 
@@ -131,16 +144,22 @@ export const PATCH = withAsyncTracing(
       if (updateError) throw new ApiError(500, 'Failed to update request', updateError.message)
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
-      console.log(JSON.stringify({
-        type: 'approval_action',
-        action,
-        requestId,
-        newStatus,
-        correlationId,
-        actorId: user.id,
-        reason,
-        timestamp: new Date().toISOString(),
-      }))
+      runPipeline(
+        'exchange-request-decision',
+        createPipelineContext({
+          correlationId,
+          actorId: user.id,
+          organizationId: (user.user_metadata?.active_org_id as string) ?? existing.organization_id,
+          programId: existing.program_id,
+        }),
+        {
+          requestId,
+          action: action === 'approve' ? 'approve' : 'reject',
+          programId: existing.program_id ?? '',
+          reason,
+          route: 'marketplace.requests',
+        },
+      )
 
       return Response.json({
         data: { id: requestId, status: newStatus, action, correlationId },

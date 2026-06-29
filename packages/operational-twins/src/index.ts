@@ -2,7 +2,7 @@
 // Kadarn Operational Twins — Public API
 // ==========================================================================
 
-export { SpecimenTwinService } from './specimen-twin.js';
+export { SpecimenTwinService } from './specimen-twin';
 
 export {
   createInitialState,
@@ -16,7 +16,7 @@ export {
   applyTransactionEvent,
   createInitialShipmentState,
   applyShipmentEvent,
-} from './engine.js';
+} from './engine';
 
 export type {
   OperationalTwin,
@@ -50,4 +50,4 @@ export type {
   ShipmentScheduledPayload,
   TemperatureReadingPayload,
   TemperatureBreachPayload,
-} from './types.js';
+} from './types';

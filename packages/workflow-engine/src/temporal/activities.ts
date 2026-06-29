@@ -19,7 +19,7 @@ import type {
   TemporalActivity,
   ActivityResult,
   ActivityHandler,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // Activity registry

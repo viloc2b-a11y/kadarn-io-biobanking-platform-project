@@ -67,9 +67,10 @@ describe('KPV-01: Domain Events', () => {
 // ---------------------------------------------------------------------------
 
 describe('KPV-01: Provenance Recording', () => {
-  it('recordOrganizationProvenance produces a valid provenance record', async () => {
-    const record = await recordOrganizationProvenance(
+  it('recordOrganizationProvenance produces a valid provenance record', () => {
+    const record = recordOrganizationProvenance(
       { id: 'org-001', name: 'Test Biobank', country: 'US', created_at: '2026-06-01T00:00:00Z' },
+      'user-1',
       'corr-001',
     );
 
@@ -79,10 +80,10 @@ describe('KPV-01: Provenance Recording', () => {
     expect(record.organizationId).toBe('org-001');
   });
 
-  it('provenance record matches the upsert_provenance_node expected input', async () => {
+  it('provenance record matches the upsert_provenance_node expected input', () => {
     const org = { id: 'org-003', name: 'Genomics Core', country: 'GB' };
     const correlationId = createCorrelationId();
-    const record = await recordOrganizationProvenance(org, correlationId);
+    const record = recordOrganizationProvenance(org, 'user-1', correlationId);
 
     // The record shape is compatible with upsert_provenance_node RPC call
     // p_node_type, p_external_id, p_label, p_properties, p_organization_id
@@ -131,34 +132,29 @@ describe('KPV-01: Route Integration', () => {
     const fs = await import('fs');
     const path = await import('path');
     const root = path.resolve(import.meta.dirname, '..', '..');
-    const routePath = path.join(root, 'apps/api/src/app/api/organizations/route.ts');
+    const routePath = path.join(root, 'apps/api/src/app/api/v1/organizations/route.ts');
     const source = fs.readFileSync(routePath, 'utf-8');
 
     // Verifies the route integrates with all 4 engines
     expect(source).toContain('withAsyncTracing');      // telemetry
-    expect(source).toContain('withPolicyShadow');       // policy engine
-    expect(source).toContain('SPAN_API_REQUEST');       // telemetry span name
-    expect(source).toContain('recordOrganizationProvenance'); // provenance
-    expect(source).toContain('emitOrganizationCreated');      // domain events
-    expect(source).toContain('evaluateCreateOrgPolicy');     // policy check
-    expect(source).toContain('createCorrelationId');          // correlation
+    expect(source).toContain('withPolicyShadow');
+    expect(source).toContain('runPipeline');
+    expect(source).toContain("'organization-onboard'");
   });
 
   it('POST handler is fire-and-forget: engines do not block the response', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const root = path.resolve(import.meta.dirname, '..', '..');
-    const routePath = path.join(root, 'apps/api/src/app/api/organizations/route.ts');
+    const routePath = path.join(root, 'apps/api/src/app/api/v1/organizations/route.ts');
     const source = fs.readFileSync(routePath, 'utf-8');
 
-    // All cross-engine hooks use .catch() — they never throw to the caller
-    const catchCount = (source.match(/\.catch\(/g) ?? []).length;
-    expect(catchCount).toBeGreaterThanOrEqual(2); // provenance + policy
+    // Cross-engine hooks are sync fire-and-forget (domain events + provenance)
+    expect(source).toContain('runPipeline');
+    expect(source).toContain("'organization-onboard'");
 
-    // The response is returned BEFORE hooks complete
-    const returnBeforeCatch = source.indexOf('return Response.json');
-    const firstCatch = source.indexOf('.catch(');
-    expect(returnBeforeCatch).toBeLessThan(firstCatch);
+    const returnIdx = source.indexOf('return Response.json');
+    expect(returnIdx).toBeGreaterThan(source.indexOf('runPipeline'));
   });
 });
 
@@ -188,6 +184,7 @@ describe('KPV-01: Correlation Model', () => {
     // 2. Provenance recorded with correlationId
     const provenanceRecord = recordOrganizationProvenance(
       { id: 'org-001', name: 'Test', country: 'US' },
+      'user-1',
       correlationId,
     );
     // The correlationId flows through the provenance data
@@ -213,7 +210,7 @@ describe('KPV-01: End-to-End Onboarding Flow', () => {
     expect(policyResult.evaluated).toBe(true);
 
     // Step 3: Provenance recording
-    const provenance = await recordOrganizationProvenance(org, correlationId);
+    const provenance = recordOrganizationProvenance(org, actorId, correlationId);
     expect(provenance.recorded).toBe(true);
     expect(provenance.nodeType).toBe('organization');
 

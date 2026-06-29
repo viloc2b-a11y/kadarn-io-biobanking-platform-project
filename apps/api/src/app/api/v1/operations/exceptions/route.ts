@@ -20,11 +20,11 @@ export const GET = withAuth(async (_request, user) => {
       supabase
         .from('trust_challenges')
         .select(`
-          id, challenge_type, severity, description, status,
+          id, dimension, reason, status,
           organization_id, created_at,
           organizations ( name )
         `)
-        .in('status', ['open', 'under_review'])
+        .in('status', ['filed', 'under_review', 'escalated'])
         .order('created_at', { ascending: false })
         .limit(20),
 
@@ -49,9 +49,9 @@ export const GET = withAuth(async (_request, user) => {
       ...(challengesRes.data ?? []).map(c => ({
         id:         c.id,
         source:     'trust',
-        severity:   c.severity as string,
-        type:       c.challenge_type as string,
-        summary:    c.description,
+        severity:   c.status === 'escalated' ? 'critical' : 'warning',
+        type:       c.dimension as string,
+        summary:    c.reason,
         org_name:   getOrganizationName(c.organizations),
         org_id:     c.organization_id,
         status:     c.status as string,

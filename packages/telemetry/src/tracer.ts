@@ -15,7 +15,9 @@ import type {
   Tracer,
   TraceContext,
   TraceableFunction,
-} from './types.js';
+} from './types';
+
+import { getActiveTraceContext } from './recording-tracer';
 
 // --------------------------------------------------------------------------
 // NoopSpan
@@ -84,16 +86,7 @@ class NoopTracer implements Tracer {
 const NOOP_TRACER = new NoopTracer();
 
 // --------------------------------------------------------------------------
-// Default trace context
-// --------------------------------------------------------------------------
-
-const DEFAULT_CONTEXT: TraceContext = {
-  isActive: false,
-  attributes: {},
-};
-
-// --------------------------------------------------------------------------
-// Tracer factory
+// Default trace context (unused — getTraceContext delegates to recording tracer)
 // --------------------------------------------------------------------------
 
 let activeTracer: Tracer = NOOP_TRACER;
@@ -233,7 +226,7 @@ export function withAsyncTracing<T extends (...args: any[]) => any>(
  * In real OTel mode, returns the active trace context from the current span.
  */
 export function getTraceContext(): TraceContext {
-  return DEFAULT_CONTEXT;
+  return getActiveTraceContext();
 }
 
 /**
@@ -241,6 +234,14 @@ export function getTraceContext(): TraceContext {
  * In no-op mode, returns the default context.
  * In real OTel mode, creates a child context for async fan-out.
  */
-export function createChildContext(_parent?: TraceContext): TraceContext {
-  return DEFAULT_CONTEXT;
+export function createChildContext(parent?: TraceContext): TraceContext {
+  if (parent?.isActive) {
+    return {
+      isActive: true,
+      traceId: parent.traceId,
+      spanId: parent.spanId,
+      attributes: { ...parent.attributes },
+    };
+  }
+  return getActiveTraceContext();
 }

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from '@/components/providers/session-provider'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
-export default function FeasibilityPage() {
+function FeasibilityForm() {
   const searchParams = useSearchParams()
   const targetId = searchParams.get('target') ?? ''
   const router = useRouter()
@@ -245,4 +245,12 @@ const inputStyle: React.CSSProperties = {
   padding: '9px 12px', borderRadius: 8,
   border: '1px solid var(--border)', background: 'var(--navy2)',
   color: 'var(--tx)', fontSize: 13, outline: 'none',
+}
+
+export default function FeasibilityPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, color: 'var(--txd)' }}>Loading…</div>}>
+      <FeasibilityForm />
+    </Suspense>
+  )
 }

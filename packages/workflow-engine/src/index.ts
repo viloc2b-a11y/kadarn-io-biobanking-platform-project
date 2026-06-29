@@ -10,7 +10,19 @@ export {
   cancelInstance,
   getNextStep,
   validateDefinition,
-} from './engine.js';
+} from './engine';
+
+export {
+  dispatchWorkflowSignal,
+  registerWorkflowHandler,
+  listRegisteredWorkflowTypes,
+  EXCHANGE_REQUEST_DEFINITION,
+} from './runtime';
+
+export type {
+  WorkflowSignalCommand,
+  WorkflowDispatchResult,
+} from './runtime';
 
 export type {
   WorkflowDefinition,
@@ -23,4 +35,4 @@ export type {
   WorkflowAdapter,
   PolicyEvaluator,
   PolicyResult,
-} from './types.js';
+} from './types';

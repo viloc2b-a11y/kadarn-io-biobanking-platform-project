@@ -24,8 +24,8 @@ describe('KPR-02: Financial Engine MVP', () => {
     expect(source).toContain('export const POST')
     expect(source).toContain('withAsyncTracing')
     expect(source).toContain('SPAN_API_REQUEST')
-    expect(source).toContain('SettlementInitiated')
-    expect(source).toContain('provenance_record')
+    expect(source).toContain('runPipeline')
+    expect(source).toContain("'settlement'")
   })
 
   it('detail route exports PATCH handler', async () => {
@@ -37,8 +37,8 @@ describe('KPR-02: Financial Engine MVP', () => {
 
     expect(source).toContain('export const PATCH')
     expect(source).toContain('withAsyncTracing')
-    expect(source).toContain('SettlementStatusChanged')
-    expect(source).toContain('provenance_record')
+    expect(source).toContain('runPipeline')
+    expect(source).toContain("'settlement-update'")
   })
 
   // -----------------------------------------------------------------------

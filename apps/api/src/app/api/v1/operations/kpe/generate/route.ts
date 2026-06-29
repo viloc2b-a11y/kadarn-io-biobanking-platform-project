@@ -1,26 +1,33 @@
-import { NextResponse } from 'next/server';
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const programId = searchParams.get('programId') ?? 'prog-001';
+import { withAuth, handleApiError, ApiError } from '@/lib/supabase-server'
+import { withRateLimit } from '@/lib/rate-limit'
+import { z } from 'zod'
 
-  const report = {
-    programId, programName: 'Oncology Biomarker Validation 2024-05',
-    organizations: [
-      { id: 'org-1', name: 'PharmaCorp', role: 'Sponsor' },
-      { id: 'org-2', name: 'National Biobank', role: 'Biobank' },
-      { id: 'org-3', name: 'Advanced Path Lab', role: 'Processing Lab' },
-      { id: 'org-4', name: 'Global Cold Chain', role: 'Logistics' },
-    ],
-    specimens: { total: 450, collected: 320, qcPassed: 310, qcFailed: 10, consumed: 45 },
-    shipments: { total: 23, completed: 19, breached: 1, disputed: 1 },
-    transactions: { total: 15, completed: 11, disputed: 1 },
-    exceptions: { total: 3, critical: 1, warnings: 2, items: ['Temperature breach -45°C on shipment GCC-2025-0620-01', 'Export permit missing for ALD cohort', 'QC failure — tissue fragmentation exceeds threshold'] },
-    policies: { applied: 12, allowed: 11, denied: 0, conditionals: 1 },
-    evidence: { documents: 8, qcReports: 45, logs: 23, agreements: 3 },
-    trust: { avgOrgTrust: 0.89, minTrust: 0.78, maxTrust: 0.95 },
-    timeline: { start: '2024-06-01', end: '2026-12-31', duration: '31 months' },
-    compliance: { status: 'Compliant', gaps: [], readyForAudit: true },
-  };
+const querySchema = z.object({
+  programId: z.string().uuid('programId query param must be a valid UUID'),
+})
 
-  return NextResponse.json({ success: true, data: { report } });
-}
+/**
+ * Deprecated alias — redirects to canonical KPE report:
+ * GET /api/v1/programs/:programId/kpe
+ */
+export const GET = withRateLimit(
+  withAuth(async (request, user) => {
+    try {
+      if (user.user_metadata?.kadarn_role !== 'kadarn_internal') {
+        throw new ApiError(403, 'KOC access required')
+      }
+
+      const url = new URL(request.url)
+      const { programId } = querySchema.parse({
+        programId: url.searchParams.get('programId'),
+      })
+
+      url.pathname = `/api/v1/programs/${programId}/kpe`
+      url.search = ''
+
+      return Response.redirect(url.toString(), 308)
+    } catch (err) {
+      return handleApiError(err)
+    }
+  }),
+)

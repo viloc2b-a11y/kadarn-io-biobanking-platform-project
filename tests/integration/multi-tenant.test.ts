@@ -137,11 +137,11 @@ describe('Multi-Tenant: routes scope queries by organization', () => {
     expect(source).toContain('active_org_id')
   })
 
-  it('POST /api/organizations creates org and auto-assigns membership scoped to creator', async () => {
+  it('POST /api/v1/organizations creates org and auto-assigns membership scoped to creator', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const root = path.resolve(import.meta.dirname, '..', '..')
-    const routePath = path.join(root, 'apps/api/src/app/api/organizations/route.ts')
+    const routePath = path.join(root, 'apps/api/src/app/api/v1/organizations/route.ts')
     const source = fs.readFileSync(routePath, 'utf-8')
 
     // Membership is created with the authenticated user's id

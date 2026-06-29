@@ -142,9 +142,10 @@ describe('expandQuery()', () => {
     expect(result.synonyms).toHaveLength(3);
   });
 
-  it('should return only the original term if no synonyms', () => {
+  it('should include hierarchy children when expanding a term', () => {
     const result = expandQuery('plasma', specimenTerms, specimenSynonyms);
-    expect(result.expanded).toEqual(['plasma']);
+    expect(result.expanded).toContain('plasma');
+    expect(result.expanded).toContain('serum');
     expect(result.synonyms).toHaveLength(0);
   });
 

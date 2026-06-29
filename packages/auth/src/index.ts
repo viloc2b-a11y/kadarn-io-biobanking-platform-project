@@ -2,9 +2,16 @@ import { createServerClient, createBrowserClient, type CookieOptions } from '@su
 import type { KadarnRole, Experience, UserProfile, OrganizationMembership } from '@kadarn/types'
 
 // ─── Environment ─────────────────────────────────────────────────────────────
+// Use dot notation for each var so Turbopack/webpack can statically inline them.
+// Dynamic process.env[key] bracket lookup is NOT replaced at build time.
 
-function env(key: string): string {
-  const value = process.env[key]
+const _PUBLIC_ENV = {
+  NEXT_PUBLIC_SUPABASE_URL:      process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+}
+
+function env(key: keyof typeof _PUBLIC_ENV): string {
+  const value = _PUBLIC_ENV[key]
   if (!value) throw new Error(`Missing env var: ${key}`)
   return value
 }

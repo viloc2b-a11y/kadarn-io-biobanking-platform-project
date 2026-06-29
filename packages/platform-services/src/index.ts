@@ -9,6 +9,8 @@ export * from './types';
 
 // Event Bus
 export { InMemoryEventBus } from './event-bus';
+export { InMemoryEventStore } from './event-bus/in-memory-event-store';
+export { OutboxEventBus } from './event-bus/outbox-event-bus';
 export type { EventBus, EventHandler, PublishOptions } from './event-bus';
 
 // Configuration

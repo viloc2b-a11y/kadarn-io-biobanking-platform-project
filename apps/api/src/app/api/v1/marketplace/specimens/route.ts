@@ -1,13 +1,11 @@
 import { withErrorHandling, createRouteClient } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
-import { createCorrelationId } from '@/lib/exchange-helper'
 
 const RESEARCH_TYPES = ['existing_collection', 'prospective_collection', 'data_resource'] as const
 
 export const GET = withAsyncTracing(
   withErrorHandling(async (request) => {
     const { searchParams } = new URL(request.url)
-    const correlationId = createCorrelationId()
 
     const q        = searchParams.get('q') ?? undefined
     const disease  = searchParams.get('disease') ?? undefined
@@ -33,17 +31,6 @@ export const GET = withAsyncTracing(
     if (error) {
       return Response.json({ error: { code: 500, message: error.message } }, { status: 500 })
     }
-
-    // ── Cross-engine hooks (fire-and-forget) ────────────────────────────
-    console.log(JSON.stringify({
-      type: 'catalog_search',
-      correlationId,
-      query: q ?? '',
-      disease: disease ?? '',
-      country: country ?? '',
-      resultCount: (data ?? []).length,
-      timestamp: new Date().toISOString(),
-    }))
 
     return Response.json({
       data: (data ?? []).map((r: Record<string, unknown>) => ({

@@ -23,8 +23,17 @@ export type {
 // ─── OPA Shadow Mode ──────────────────────────────────────────────────────
 
 export { LocalOpaClient, NullOpaClient, createOpaClient } from './opa/opa-client';
+export { HttpOpaClient, ResilientOpaClient } from './opa/http-opa-client';
 
-export { ShadowModeRunner, ConsoleDecisionRecorder, NullDecisionRecorder } from './opa/shadow-mode';
+export {
+  ShadowModeRunner,
+  CallbackDecisionRecorder,
+  InMemoryDecisionRecorder,
+  NullDecisionRecorder,
+  createDefaultShadowRecorder,
+  setPolicyShadowDecisionSink,
+  getPolicyShadowDecisionSink,
+} from './opa/shadow-mode';
 export type { DecisionRecorder } from './opa/shadow-mode';
 
 export { loadConfig } from './opa/config';
