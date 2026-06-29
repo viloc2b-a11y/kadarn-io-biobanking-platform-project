@@ -23,6 +23,23 @@ const inputStyle = {
   color: 'var(--tx)',
 } as const
 
+function badgeStyle(level: string | undefined): Record<string, string> {
+  const colors: Record<string, string> = {
+    self_reported: '#6b7280',
+    evidence_backed: '#f59e0b',
+    reference_confirmed: '#3b82f6',
+    kadarn_verified: '#10b981',
+  }
+  return {
+    background: (colors[level ?? 'self_reported'] ?? '#6b7280') + '22',
+    color: colors[level ?? 'self_reported'] ?? '#6b7280',
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontSize: 12,
+    fontWeight: 600,
+  }
+}
+
 const cardStyle = {
   border: '1px solid rgba(148,163,184,.2)',
   borderRadius: 16,

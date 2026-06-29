@@ -432,3 +432,191 @@ export async function listPublicClaimsForPassport(
     claim.site_continuity_profile_id === profileIdOrSlug,
   )
 }
+// --------------------------------------------------------------------------
+// Verification Workflow (Sprint 6)
+// --------------------------------------------------------------------------
+
+/**
+ * Compute badge level based on evidence and confirmed references.
+ * - self_reported: no evidence, no confirmed references
+ * - evidence_backed: >=1 evidence item
+ * - reference_confirmed: >=1 confirmed reference
+ * - kadarn_verified: explicitly verified by Kadarn admin
+ */
+export function computeBadgeLevel(
+  evidenceCount: number,
+  confirmedReferenceCount: number,
+  isVerifiedByAdmin: boolean,
+): string {
+  if (isVerifiedByAdmin) return 'kadarn_verified'
+  if (confirmedReferenceCount >= 1) return 'reference_confirmed'
+  if (evidenceCount >= 1) return 'evidence_backed'
+  return 'self_reported'
+}
+
+/**
+ * Submit a claim for admin review.
+ * Transitions status from any state to 'under_review'.
+ */
+export async function submitForReview(
+  db: ContinuityDbClient,
+  context: ActorContext,
+  claimId: string,
+) {
+  const { data: claim, error: fetchErr } = await db
+    .from('continuity_experience_claims')
+    .select('status, badge_level')
+    .eq('id', claimId)
+    .single()
+
+  if (fetchErr) throw fetchErr
+  if (!claim) throw new Error('Claim not found')
+  if (claim.status === 'verified' || claim.status === 'rejected') {
+    throw new Error('Cannot submit a ' + claim.status + ' claim for review')
+  }
+
+  const { error } = await db
+    .from('continuity_experience_claims')
+    .update({
+      status: 'under_review',
+      submitted_for_review_at: new Date().toISOString(),
+    })
+    .eq('id', claimId)
+    .eq('organization_id', context.organizationId)
+
+  if (error) throw error
+
+  await publishContinuityEvent(db, 'ContinuityClaimSubmitted', context, claimId, {
+    previousStatus: claim.status,
+    badgeLevel: claim.badge_level,
+  })
+
+  return { claimId, status: 'under_review' }
+}
+
+/**
+ * Admin review action: verify or reject a claim.
+ * Sets reviewer info, computes badge, logs to verification_history.
+ */
+export async function reviewClaim(
+  db: ContinuityDbClient,
+  context: ActorContext,
+  claimId: string,
+  action: 'verify' | 'reject',
+  reviewerNotes?: string,
+) {
+  // Fetch claim with evidence/reference counts
+  const { data: claim, error: fetchErr } = await db
+    .from('continuity_experience_claims')
+    .select('*, continuity_evidence_items(id), continuity_references(id, status)')
+    .eq('id', claimId)
+    .single()
+
+  if (fetchErr) throw fetchErr
+  if (!claim) throw new Error('Claim not found')
+
+  const evidenceCount = (claim.continuity_evidence_items ?? []).length
+  const confirmedRefs = (claim.continuity_references ?? []).filter(
+    (r: { status: string }) => r.status === 'confirmed',
+  ).length
+  const isVerifyAction = action === 'verify'
+  const badgeLevel = computeBadgeLevel(evidenceCount, confirmedRefs, isVerifyAction)
+
+  const newStatus = isVerifyAction ? 'verified' : 'rejected'
+
+  const { error } = await db
+    .from('continuity_experience_claims')
+    .update({
+      status: newStatus,
+      badge_level: badgeLevel,
+      reviewer_id: context.actorId,
+      reviewed_at: new Date().toISOString(),
+      reviewer_notes: reviewerNotes ?? null,
+    })
+    .eq('id', claimId)
+
+  if (error) throw error
+
+  const eventType = isVerifyAction ? 'ContinuityClaimVerified' : 'ContinuityClaimRejected'
+  await publishContinuityEvent(db, eventType, context, claimId, {
+    verificationStatus: newStatus,
+    badgeLevel,
+    confidenceScore: isVerifyAction ? 0.85 : 0,
+    reason: reviewerNotes ?? '',
+  })
+
+  return { claimId, status: newStatus, badgeLevel }
+}
+
+/**
+ * Get the admin verification queue.
+ * Returns claims ordered by submission date.
+ */
+export async function getVerificationQueue(
+  db: ContinuityDbClient,
+  options?: {
+    status?: string
+    badgeLevel?: string
+    limit?: number
+    offset?: number
+  },
+) {
+  let query = db
+    .from('continuity_experience_claims')
+    .select('*, continuity_evidence_items(id), continuity_references(id, status)', { count: 'exact' })
+    .not('status', 'eq', 'draft')
+    .order('submitted_for_review_at', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false })
+
+  if (options?.status) {
+    query = query.eq('status', options.status)
+  }
+  if (options?.badgeLevel) {
+    query = query.eq('badge_level', options.badgeLevel)
+  }
+
+  const limit = Math.min(options?.limit ?? 50, 200)
+  const offset = options?.offset ?? 0
+  query = query.range(offset, offset + limit - 1)
+
+  const { data, error, count } = await query
+  if (error) throw error
+
+  return {
+    claims: data ?? [],
+    total: count ?? 0,
+    limit,
+    offset,
+  }
+}
+
+/**
+ * Promote a verified claim to the durable ledger.
+ * Calls the RPC promote_claim_to_ledger and emits an event.
+ */
+export async function promoteToLedger(
+  db: ContinuityDbClient,
+  context: ActorContext,
+  claimId: string,
+) {
+  const { data: ledgerId, error } = await db.rpc('promote_claim_to_ledger', {
+    p_claim_id: claimId,
+  })
+
+  if (error) throw new Error('Failed to promote claim to ledger: ' + error.message)
+
+  // Fetch the claim title for the event
+  const { data: claim } = await db
+    .from('continuity_experience_claims')
+    .select('title, badge_level')
+    .eq('id', claimId)
+    .single()
+
+  await publishContinuityEvent(db, 'ContinuityClaimPromotedToLedger', context, claimId, {
+    ledgerEntryId: ledgerId,
+    badgeLevel: claim?.badge_level ?? 'self_reported',
+    claimTitle: claim?.title ?? '',
+  })
+
+  return { ledgerId, claimId }
+}
