@@ -4,6 +4,8 @@
 
 ### Starting with biospecimens.
 
+> Kadarn exists to ensure that institutional capability is never lost, never hidden, and never disconnected from the opportunities it has earned.
+
 ---
 
 ## Introduction
