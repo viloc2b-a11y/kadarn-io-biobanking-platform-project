@@ -447,3 +447,98 @@ describe('Discovery Research Assets Enabled — Sprint 21A', () => {
       expect(withoutComments).not.toMatch(forbidden)
     })
 })
+
+describe('Discovery Engine Integration — Sprint 21B/21C', () => {
+  const forbidden = /\bcertified\b|\bverified\b|\bpromoted to evidence\b|\bclaim confidence\b|\btrust score\b/i
+
+  it('gaps-panel consumes gapIntelligence as preferred path', () => {
+    const panel = read(join(WEB, 'components', 'discovery', 'gaps-panel.tsx'))
+    expect(panel).toContain('gapIntelligence')
+    expect(panel).toContain('EngineDrivenGapsPanel')
+    expect(panel).toContain('EngineGapCard')
+  })
+
+  it('gaps-panel engine card shows blocking status', () => {
+    const panel = read(join(WEB, 'components', 'discovery', 'gaps-panel.tsx'))
+    expect(panel).toContain('gap.blocking')
+  })
+
+  it('gaps-panel engine card shows affected capabilities', () => {
+    const panel = read(join(WEB, 'components', 'discovery', 'gaps-panel.tsx'))
+    expect(panel).toContain('affected_capabilities')
+  })
+
+  it('gaps-panel engine card shows affected research assets', () => {
+    const panel = read(join(WEB, 'components', 'discovery', 'gaps-panel.tsx'))
+    expect(panel).toContain('affected_research_assets')
+  })
+
+  it('gaps-panel preserves agent-driven fallback', () => {
+    const panel = read(join(WEB, 'components', 'discovery', 'gaps-panel.tsx'))
+    expect(panel).toContain("data.agentOutputs['evidence_gap_detector']")
+  })
+
+  it('research-assets-panel consumes capabilityIntelligence and gapIntelligence', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('capabilityIntelligence')
+    expect(panel).toContain('gapIntelligence')
+    expect(panel).toContain('EngineDrivenPanel')
+  })
+
+  it('research-assets-panel shows blocking gaps from gap intelligence', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('Blocking gaps')
+  })
+
+  it('research-assets-panel preserves agent-driven fallback', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('AgentDrivenPanel')
+  })
+
+  it('sponsor-readiness consumes capabilityIntelligence and gapIntelligence', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'sponsor-readiness-summary.tsx'),
+    )
+    expect(panel).toContain('capabilityIntelligence')
+    expect(panel).toContain('gapIntelligence')
+    expect(panel).toContain('EngineDrivenReadiness')
+  })
+
+  it('sponsor-readiness preserves agent-driven fallback', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'sponsor-readiness-summary.tsx'),
+    )
+    expect(panel).toContain("data.agentOutputs['capability_detector']")
+  })
+
+  it('dashboard types include all three engine contracts', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    expect(types).toContain('CapabilityIntelligenceData')
+    expect(types).toContain('GapIntelligenceData')
+    expect(types).toContain('gapIntelligence')
+  })
+
+  it('engine integration does not use forbidden language', () => {
+    const files = [
+      'gaps-panel.tsx',
+      'research-assets-enabled-panel.tsx',
+      'sponsor-readiness-summary.tsx',
+      'types.ts',
+    ]
+    for (const file of files) {
+      const source = read(join(WEB, 'components', 'discovery', file))
+      // Only check the engine-specific sections, not comments describing the policy
+      const withoutComments = source
+        .split('\n')
+        .filter((line) => !line.includes('//') && !line.includes(' * '))
+        .join('\n')
+      expect(withoutComments).not.toMatch(forbidden)
+    }
+  })
+})

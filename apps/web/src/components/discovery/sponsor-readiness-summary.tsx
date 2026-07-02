@@ -1,4 +1,4 @@
-import type { DashboardData } from './types'
+import type { DashboardData, CapabilityIntelligenceData, GapIntelligenceData } from './types'
 import { DISCOVERY_COPY } from './discovery-copy'
 import { assessSponsorReadiness, type SponsorReadinessLabel } from './lib'
 import { Badge, EmptyPanel, PanelHeader, PanelSkeleton, cardStyle } from './panel-primitives'
@@ -49,6 +49,18 @@ export function SponsorReadinessSummary({ data, loading }: { data: DashboardData
   if (loading && !data) return <PanelSkeleton />
   if (!data) return <EmptyPanel message={DISCOVERY_COPY.sponsorReadinessInsufficientData} />
 
+  // Sprint 21B/21C: Prefer engine outputs
+  if (data.capabilityIntelligence) {
+    return (
+      <EngineDrivenReadiness
+        intelligence={data.capabilityIntelligence}
+        gapIntelligence={data.gapIntelligence}
+        data={data}
+      />
+    )
+  }
+
+  // Pre-21B fallback
   const capabilities = extractCapabilities(data)
   const claims = extractClaims(data)
   const gaps = extractGaps(data)
@@ -126,6 +138,101 @@ function nextStepFor(label: SponsorReadinessLabel): string {
     default:
       return DISCOVERY_COPY.needsReview
   }
+}
+
+
+
+/** Sprint 21B/21C: Sponsor readiness derived from engine outputs. */
+function EngineDrivenReadiness({
+  intelligence,
+  gapIntelligence,
+  data,
+}: {
+  intelligence: CapabilityIntelligenceData
+  gapIntelligence?: GapIntelligenceData
+  data: DashboardData
+}) {
+  const caps = intelligence.capabilities.filter((c) => c.status !== 'not_detected')
+  const totalCaps = caps.length
+  const totalClaims = caps.reduce((sum, c) => sum + c.supporting_claims.length, 0)
+  const blockingGaps = gapIntelligence?.gaps.filter((g) => g.blocking) ?? []
+  const totalGaps = gapIntelligence?.gaps.length ?? 0
+  const narrative = data.agentOutputs['narrative_engine']?.output
+  const hasCurationReview = (data.curationEvents?.length ?? 0) > 0
+
+  // Determine readiness from engine data
+  let label: SponsorReadinessLabel
+  if (totalCaps === 0) {
+    label = 'not_enough_evidence'
+  } else if (blockingGaps.length > 0) {
+    label = 'needs_additional_evidence'
+  } else if (!hasCurationReview) {
+    label = 'needs_human_review'
+  } else {
+    label = 'presentation_ready'
+  }
+
+  const copy = LABEL_COPY[label]
+
+  const strongest = caps
+    .filter((c) => c.status === 'supported')
+    .slice(0, 5)
+  const needingEvidence = caps
+    .filter((c) => c.status === 'needs_more_evidence' || c.status === 'needs_human_review')
+    .slice(0, 5)
+  const riskAreas = blockingGaps.slice(0, 5)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PanelHeader
+        title={DISCOVERY_COPY.sponsorReadinessTitle}
+        description={DISCOVERY_COPY.sponsorReadinessDescription}
+      />
+
+      <div style={cardStyle}>
+        <Badge label={copy.label} tone={copy.tone} />
+        <p style={{ fontSize: 13, color: 'var(--txd)', lineHeight: 1.6, margin: '10px 0 0' }}>
+          {copy.description}
+        </p>
+      </div>
+
+      {label === 'not_enough_evidence' ? null : (
+        <>
+          <SummarySection
+            title={DISCOVERY_COPY.sponsorReadinessStrongestCapabilities}
+            items={strongest.map((cap) => cap.name)}
+            emptyMessage={DISCOVERY_COPY.notAvailableYet}
+          />
+          <SummarySection
+            title={DISCOVERY_COPY.sponsorReadinessCapabilitiesNeedingEvidence}
+            items={needingEvidence.map((cap) => cap.name)}
+            emptyMessage={DISCOVERY_COPY.noEvidenceFoundYet}
+          />
+          <SummarySection
+            title={DISCOVERY_COPY.sponsorReadinessRiskAreas}
+            items={riskAreas.map((gap) => gap.title)}
+            emptyMessage={DISCOVERY_COPY.needsReview}
+          />
+          <div style={cardStyle}>
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--txdd)',
+                textTransform: 'uppercase',
+                letterSpacing: 0.8,
+                marginBottom: 8,
+              }}
+            >
+              {DISCOVERY_COPY.sponsorReadinessNextStep}
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--tx)', lineHeight: 1.6, margin: 0 }}>
+              {nextStepFor(label)}
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 function SummarySection({

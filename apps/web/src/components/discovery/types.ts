@@ -110,6 +110,10 @@ export interface DashboardData {
   validationNotes: ValidationNote[];
   artifacts: DiscoveryArtifact[];
   candidates: DiscoveryCandidate[];
+      /** Sprint 21B: Capability Intelligence Engine output (canonical capability model) */
+      capabilityIntelligence?: CapabilityIntelligenceData;
+      /** Sprint 21C: Evidence Gap Intelligence Engine output (canonical gap model) */
+      gapIntelligence?: GapIntelligenceData;
 }
 
 export type DashboardTab =

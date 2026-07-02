@@ -1,4 +1,4 @@
-import type { DashboardData, CapabilityIntelligenceData, CapabilityEntry } from './types'
+import type { DashboardData, CapabilityIntelligenceData, CapabilityEntry, GapIntelligenceData } from './types'
 import {
   mapCapabilitiesToResearchAssets,
   type ResearchAssetStatus,
@@ -31,21 +31,36 @@ export function ResearchAssetsEnabledPanel({
     return <EmptyPanel message="No discovery data available yet." />
   }
 
-  // ── Sprint 21B: Prefer Capability Intelligence Engine output ──
+  // ── Sprint 21B/21C: Prefer Capability Intelligence Engine output ──
   if (data.capabilityIntelligence) {
-    return <EngineDrivenPanel intelligence={data.capabilityIntelligence} />
+    return <EngineDrivenPanel intelligence={data.capabilityIntelligence} gapIntelligence={data.gapIntelligence} />
   }
 
   // ── Sprint 21A fallback: derive from agent outputs ──
   return <AgentDrivenPanel data={data} />
 }
 
-/** Sprint 21B: Render directly from CapabilityIntelligenceEngine output. */
+/** Sprint 21B/21C: Render directly from engine outputs. */
 function EngineDrivenPanel({
   intelligence,
+  gapIntelligence,
 }: {
   intelligence: CapabilityIntelligenceData
+  gapIntelligence?: GapIntelligenceData
 }) {
+  // Build a map of capability ID → blocking gaps
+  const blockingGapMap = new Map<string, string[]>()
+  if (gapIntelligence) {
+    for (const gap of gapIntelligence.gaps) {
+      if (gap.blocking) {
+        for (const capId of gap.affected_capabilities) {
+          const existing = blockingGapMap.get(capId) ?? []
+          existing.push(gap.title)
+          blockingGapMap.set(capId, existing)
+        }
+      }
+    }
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <PanelHeader
@@ -65,7 +80,12 @@ function EngineDrivenPanel({
               : [{ asset: cap.name, capability: cap }],
           )
           .map(({ asset, capability }) => (
-            <EngineAssetCard key={`${capability.id}-${asset}`} asset={asset} capability={capability} />
+            <EngineAssetCard
+              key={`${capability.id}-${asset}`}
+              asset={asset}
+              capability={capability}
+              blockingGaps={blockingGapMap.get(capability.id) ?? []}
+            />
           ))}
       </div>
     </div>
@@ -75,9 +95,11 @@ function EngineDrivenPanel({
 function EngineAssetCard({
   asset,
   capability,
+  blockingGaps,
 }: {
   asset: string
   capability: CapabilityEntry
+  blockingGaps: string[]
 }) {
   const tone = engineStatusTone(capability.status)
 
@@ -95,6 +117,14 @@ function EngineAssetCard({
       <div style={{ marginTop: 10, fontSize: 12, color: 'var(--txdd)' }}>
         {capability.summary}
       </div>
+
+      {/* Blocking gaps from gap intelligence */}
+      {blockingGaps.length > 0 && (
+        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red)' }}>
+          <span style={{ fontWeight: 600 }}>Blocking gaps: </span>
+          {blockingGaps.slice(0, 2).join('; ')}
+        </div>
+      )}
 
       {/* Supporting claims */}
       {capability.supporting_claims.length > 0 ? (

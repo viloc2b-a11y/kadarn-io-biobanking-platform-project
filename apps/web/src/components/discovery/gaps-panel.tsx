@@ -34,6 +34,12 @@ export function DiscoveryGapsPanel({
   onAddNote?: (targetType: string, targetId: string) => void
 }) {
   if (loading && !data) return <PanelSkeleton />
+  // Sprint 21C: Prefer Evidence Gap Intelligence Engine output
+  if (data.gapIntelligence) {
+    return <EngineDrivenGapsPanel intelligence={data.gapIntelligence} onAddNote={onAddNote} />
+  }
+
+  // Pre-21C fallback: derive from agent outputs
   if (!data) return <EmptyPanel message="No evidence gap analysis available yet." />
 
   const gapOutput = data.agentOutputs['evidence_gap_detector']?.output ?? null
