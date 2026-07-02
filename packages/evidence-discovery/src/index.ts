@@ -90,6 +90,14 @@ export type {
   ResearchAssetSection,
   SponsorReadinessSection,
 } from './recognition-report/index.js';
+export { ContinuousMonitoringOrchestrator } from './continuous-monitoring/index.js';
+export type {
+  MonitoringSource,
+  MonitoringState,
+  RefreshResult,
+  RefreshStatus,
+  SourceChange,
+} from './continuous-monitoring/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
