@@ -9,6 +9,7 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server';
 import { requireValidatedActiveOrg } from '@/lib/workspace';
 import { buildDiscoveryMetrics } from '@/lib/discovery-metrics';
+import { buildAllEngineOutputs } from '@/lib/dashboard-engines';
 
 const RUN_SCOPED_AGENTS = [
   'evidence_snapshot',
