@@ -198,6 +198,17 @@ export type {
   CapabilityQuery,
   InstitutionRecord,
 } from './capability-graph/index.js';
+
+// ==========================================================================
+// Discovery Workspace (Sprint 24C — Phase 5)
+// ==========================================================================
+export { DiscoveryWorkspaceEngine } from './discovery-workspace/index.js';
+export type {
+  CompatibilitySummary,
+  DiscoveryWorkspace,
+  WorkspaceInput,
+  WorkspaceStatus,
+} from './discovery-workspace/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
