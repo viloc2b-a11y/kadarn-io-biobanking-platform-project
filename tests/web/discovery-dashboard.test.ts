@@ -620,3 +620,69 @@ describe('Executive Institution Profile — Sprint 22B', () => {
     expect(withoutComments).not.toMatch(/\bverified\b|\bcertified\b|\bgold\b|\bsilver\b|\bbronze\b/i)
   })
 })
+
+describe('Sponsor Capability Search — Sprint 22C', () => {
+  it('search component file exists', () => {
+    expect(existsSync(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))).toBe(true)
+  })
+
+  it('search exports SponsorCapabilitySearch', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('export function SponsorCapabilitySearch')
+  })
+
+  it('search includes capability and research asset filters', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('Capabilities')
+    expect(search).toContain('Research Assets')
+  })
+
+  it('search has readiness filter', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('Any readiness')
+  })
+
+  it('search has empty state', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('No institutions match')
+  })
+
+  it('result card displays all required fields', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('Matched capabilities')
+    expect(search).toContain('Research assets:')
+    expect(search).toContain('Strengths:')
+    expect(search).toContain('Areas for improvement:')
+  })
+
+  it('result card has quick actions', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('Open Executive Profile')
+    expect(search).toContain('Generate Report')
+  })
+
+  it('search types include SponsorSearchResult and SponsorSearchFilters', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    expect(types).toContain('SponsorSearchResult')
+    expect(types).toContain('SponsorSearchFilters')
+    expect(types).toContain('SponsorSearchResponse')
+  })
+
+  it('search uses deterministic ordering — no AI ranking', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    expect(search).toContain('Presentation Ready')
+    expect(search).not.toContain('score')
+    expect(search).not.toContain('ranking')
+    expect(search).not.toContain('weight')
+  })
+
+  it('search uses no forbidden terminology', () => {
+    const search = read(join(WEB, 'components', 'discovery', 'sponsor-search.tsx'))
+    const withoutComments = search
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*'))
+      .join('\n')
+    expect(withoutComments).not.toMatch(/\bverified\b|\bcertified\b|\bgold\b|\bsilver\b|\bbronze\b/i)
+    expect(withoutComments).not.toContain('confidence')
+  })
+})

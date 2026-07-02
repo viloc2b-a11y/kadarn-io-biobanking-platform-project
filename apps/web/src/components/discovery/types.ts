@@ -528,3 +528,44 @@ export interface InstitutionRecognitionReportData {
   appendix: { source_trace: string[]; provenance: string }
   generated_at: string
 }
+
+// ==================================================================
+// Sponsor Capability Search contract (Sprint 22C)
+// ==================================================================
+
+export interface SponsorSearchFilters {
+  capabilities?: string[]
+  research_assets?: string[]
+  readiness_label?: string
+  categories?: string[]
+  institution_type?: string
+  country?: string
+}
+
+export interface SponsorSearchResult {
+  institution_id: string
+  institution_name: string
+  location?: string
+  executive_profile_summary: string
+  matched_capabilities: string[]
+  matched_research_assets: string[]
+  sponsor_readiness: {
+    label: string
+    summary: string
+    strengths: string[]
+    concerns: string[]
+  } | null
+  recommendations: Array<{
+    priority: string
+    title: string
+    action: string
+  }>
+  last_updated: string | null
+}
+
+export interface SponsorSearchResponse {
+  results: SponsorSearchResult[]
+  total_matches: number
+  filters_applied: SponsorSearchFilters
+  generated_at: string
+}
