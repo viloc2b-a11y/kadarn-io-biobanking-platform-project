@@ -50,3 +50,6 @@ supabase/.temp/
 supabase/.branches/
 # Local Pi runtime state
 .atl/
+
+# Third-party vendored repos (contain nested .git)
+vendor/
