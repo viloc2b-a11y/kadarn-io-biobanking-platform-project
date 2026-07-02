@@ -98,6 +98,13 @@ export type {
   RefreshStatus,
   SourceChange,
 } from './continuous-monitoring/index.js';
+export { NotificationCenter } from './notification-center/index.js';
+export type {
+  Notification,
+  NotificationCategory,
+  NotificationFeed,
+  NotificationStatus,
+} from './notification-center/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
