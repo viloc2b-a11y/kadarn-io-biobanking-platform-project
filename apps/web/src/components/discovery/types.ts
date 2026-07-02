@@ -128,7 +128,8 @@ export type DashboardTab =
   | 'curation'
   | 'notes'
   | 'provenance'
-  | 'sponsor_readiness';
+  | 'sponsor_readiness'
+  | 'research_assets';
 
 export type ProvenanceTargetType = 'ENTITY' | 'RELATIONSHIP' | 'CAPABILITY' | 'CLAIM_CANDIDATE';
 
@@ -245,6 +246,7 @@ export const DASHBOARD_TABS: { id: DashboardTab; label: string }[] = [
   { id: 'notes', label: 'Validation Notes' },
   { id: 'provenance', label: 'Source Trace' },
   { id: 'sponsor_readiness', label: 'Sponsor Readiness' },
+  { id: 'research_assets', label: 'Research Assets Enabled' },
 ];
 
 // Role-specific default tab ordering (Task 6). DASHBOARD_TABS above remains
@@ -253,6 +255,7 @@ export const SITE_DIRECTOR_TAB_ORDER: DashboardTab[] = [
   'overview',
   'narrative',
   'sponsor_readiness',
+  'research_assets',
   'gaps',
   'capabilities',
   'claims',
@@ -267,6 +270,7 @@ export const SITE_DIRECTOR_TAB_ORDER: DashboardTab[] = [
 export const KADARN_REVIEWER_TAB_ORDER: DashboardTab[] = [
   'overview',
   'gaps',
+  'research_assets',
   'curation',
   'notes',
   'narrative',

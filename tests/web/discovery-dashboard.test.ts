@@ -344,3 +344,106 @@ describe('Discovery Pipeline Status', () => {
     expect(api).not.toMatch(/evidence_core|\/api\/v1\/evidence/i)
   })
 })
+
+describe('Discovery Research Assets Enabled — Sprint 21A', () => {
+  const forbidden = /\bcertified\b|\bverified\b|\bpromoted to evidence\b|\bclaim confidence\b|\btrust score\b/i
+
+  it('tab is defined in types and DASHBOARD_TABS', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    expect(types).toContain("'research_assets'")
+    expect(types).toContain('Research Assets Enabled')
+  })
+
+  it('tab is included in site director tab order', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    expect(types).toContain('SITE_DIRECTOR_TAB_ORDER')
+    const idx = types.indexOf('SITE_DIRECTOR_TAB_ORDER')
+    const block = types.slice(idx, idx + 300)
+    expect(block).toContain("'research_assets'")
+  })
+
+  it('tab is included in kadarn reviewer tab order', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    const idx = types.indexOf('KADARN_REVIEWER_TAB_ORDER')
+    const block = types.slice(idx, idx + 300)
+    expect(block).toContain("'research_assets'")
+  })
+
+  it('tab is wired in dashboard shell', () => {
+    const dashboard = read(join(WEB, 'components', 'discovery', 'dashboard.tsx'))
+    expect(dashboard).toContain('ResearchAssetsEnabledPanel')
+    expect(dashboard).toContain("case 'research_assets'")
+  })
+
+  it('panel component file exists', () => {
+    expect(
+      existsSync(join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx')),
+    ).toBe(true)
+  })
+
+  it('panel imports mapping functions from lib', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('mapCapabilitiesToResearchAssets')
+  })
+
+  it('panel resolves agent output keys for capabilities, claims, and gaps', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain("'capability_detector'")
+    expect(panel).toContain("'claim_candidate_detector'")
+    expect(panel).toContain("'evidence_gap_detector'")
+  })
+
+  it('panel provides empty, loading, and skeleton states', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('PanelSkeleton')
+    expect(panel).toContain('EmptyPanel')
+  })
+
+  it('panel renders a grid of asset cards with badges', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('ResearchAssetCard')
+    expect(panel).toContain('Badge')
+    expect(panel).toContain('gridTemplateColumns')
+  })
+
+  it('panel shows recommended next step per asset', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).toContain('Recommended next step')
+    expect(panel).toContain('nextStep')
+  })
+
+  it('panel does not use forbidden certification or promotion language', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).not.toMatch(forbidden)
+  })
+
+  it('does not call Evidence Core or write to any backend', () => {
+    const panel = read(
+      join(WEB, 'components', 'discovery', 'research-assets-enabled-panel.tsx'),
+    )
+    expect(panel).not.toMatch(/evidence_core|EvidenceCore|\.insert\(|\.update\(|fetch\(/i)
+  })
+
+    it('lib mapping never uses verified or certification terms', () => {
+      const lib = read(join(WEB, 'components', 'discovery', 'lib.ts'))
+      const researchSection = lib.slice(lib.indexOf('Research Assets Enabled'))
+      // Strip comments that self-describe the policy
+      const withoutComments = researchSection
+        .split('\n')
+        .filter((line: string) => !line.includes('no "verified" language'))
+        .join('\n')
+      expect(withoutComments).not.toMatch(forbidden)
+    })
+})

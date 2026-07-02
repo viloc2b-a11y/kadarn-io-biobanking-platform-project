@@ -34,6 +34,7 @@ import { DiscoveryMetricsStrip, EMPTY_DISCOVERY_METRICS } from './discovery-metr
 import { DiscoveryPipelinePanel } from './pipeline-panel'
 import { RecognitionOverviewPanel } from './recognition-overview-panel'
 import { SponsorReadinessSummary } from './sponsor-readiness-summary'
+import { ResearchAssetsEnabledPanel } from './research-assets-enabled-panel'
 import { ReportGenerationCta } from './report-generation-cta'
 import { ErrorPanel, PanelSkeleton } from './panel-primitives'
 import type { ProvenanceSelection, ProvenanceTargetType } from './types'
@@ -351,6 +352,8 @@ function DiscoveryTabPanel({
       )
     case 'sponsor_readiness':
       return <SponsorReadinessSummary data={data} loading={loading} />
+        case 'research_assets':
+          return <ResearchAssetsEnabledPanel data={data} loading={loading} />
     case 'pipeline':
       return (
         <DiscoveryPipelinePanel

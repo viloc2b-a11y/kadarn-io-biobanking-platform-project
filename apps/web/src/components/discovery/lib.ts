@@ -107,3 +107,223 @@ export function assessSponsorReadiness(input: SponsorReadinessInput): SponsorRea
 
   return { label: 'presentation_ready' }
 }
+
+// ==========================================================================
+// Research Assets Enabled — deterministic capability-to-asset mapping (Sprint 21A)
+//
+// These are derived dashboard views, not Evidence Core entities.
+// Do not create a Research Asset Graph or Engine from this mapping.
+// Confidence display is passthrough only — never computed here.
+// ==========================================================================
+
+/** Allowed research asset labels as defined by Sprint 21A specification. */
+export const RESEARCH_ASSET_LABELS = [
+  'Plasma',
+  'Serum',
+  'Whole Blood',
+  'PBMC',
+  'FFPE Tissue',
+  'Frozen Tissue',
+  'Digital Slides',
+  'Whole Slide Images',
+  'Clinical Dataset',
+  'Longitudinal Dataset',
+  'Imaging Dataset',
+  'Pathology Dataset',
+  'Omics-ready Dataset',
+  'AI-ready Dataset',
+] as const
+
+export type ResearchAssetLabel = (typeof RESEARCH_ASSET_LABELS)[number]
+
+export type ResearchAssetStatus =
+  | 'Enabled by current evidence'
+  | 'Needs additional evidence'
+  | 'Needs human review'
+  | 'Not enough evidence yet'
+
+export interface ResearchAssetEntry {
+  asset: ResearchAssetLabel
+  status: ResearchAssetStatus
+  supportingCapabilities: string[]
+  supportingClaims: string[]
+  missingRequirements: string[]
+  nextStep: string
+}
+
+/**
+ * Deterministic capability-name → asset-label mapping.
+ * Each key is a lowercase substring matched against capability names.
+ * First match wins; order matters for overlapping terms.
+ */
+const CAPABILITY_TO_ASSET: ReadonlyArray<{ match: string; asset: ResearchAssetLabel }> = [
+  { match: 'pbmc', asset: 'PBMC' },
+  { match: 'ffpe', asset: 'FFPE Tissue' },
+  { match: 'whole blood', asset: 'Whole Blood' },
+  { match: 'whole_blood', asset: 'Whole Blood' },
+  { match: 'serum', asset: 'Serum' },
+  { match: 'plasma', asset: 'Plasma' },
+  { match: 'frozen tissue', asset: 'Frozen Tissue' },
+  { match: 'frozen_tissue', asset: 'Frozen Tissue' },
+  { match: 'cryopreserved', asset: 'Frozen Tissue' },
+  { match: 'whole slide', asset: 'Whole Slide Images' },
+  { match: 'whole_slide', asset: 'Whole Slide Images' },
+  { match: 'digital pathology', asset: 'Whole Slide Images' },
+  { match: 'digital_pathology', asset: 'Whole Slide Images' },
+  { match: 'scanner', asset: 'Whole Slide Images' },
+  { match: 'digital slide', asset: 'Digital Slides' },
+  { match: 'digital_slide', asset: 'Digital Slides' },
+  { match: 'microscopy', asset: 'Digital Slides' },
+  { match: 'longitudinal', asset: 'Longitudinal Dataset' },
+  { match: 'follow-up', asset: 'Longitudinal Dataset' },
+  { match: 'follow_up', asset: 'Longitudinal Dataset' },
+  { match: 'edc', asset: 'Clinical Dataset' },
+  { match: 'clinical data', asset: 'Clinical Dataset' },
+  { match: 'clinical_data', asset: 'Clinical Dataset' },
+  { match: 'clinical dataset', asset: 'Clinical Dataset' },
+  { match: 'imaging', asset: 'Imaging Dataset' },
+  { match: 'radiology', asset: 'Imaging Dataset' },
+  { match: 'ai-ready', asset: 'AI-ready Dataset' },
+  { match: 'ai_ready', asset: 'AI-ready Dataset' },
+  { match: 'ai ready', asset: 'AI-ready Dataset' },
+  { match: 'annotation', asset: 'AI-ready Dataset' },
+  { match: 'metadata', asset: 'AI-ready Dataset' },
+  { match: 'governance', asset: 'AI-ready Dataset' },
+  { match: 'omics', asset: 'Omics-ready Dataset' },
+  { match: 'sequencing', asset: 'Omics-ready Dataset' },
+  { match: 'molecular', asset: 'Omics-ready Dataset' },
+  { match: 'genomic', asset: 'Omics-ready Dataset' },
+  { match: 'pathology', asset: 'Pathology Dataset' },
+  { match: 'histology', asset: 'Pathology Dataset' },
+]
+
+/**
+ * Map discovered capabilities to research asset labels using substring matching.
+ * Returns one entry per asset label.
+ */
+export function mapCapabilitiesToResearchAssets(
+  capabilities: Array<Record<string, unknown>>,
+  claims: Array<Record<string, unknown>>,
+  gaps: Array<Record<string, unknown>>,
+): ResearchAssetEntry[] {
+  const capabilityNames = capabilities.map((c) =>
+    String(c.name ?? c.label ?? c.capabilityId ?? '').toLowerCase(),
+  )
+  const claimTexts = claims.map((c) =>
+    String(c.content ?? c.text ?? c.summary ?? '').toLowerCase(),
+  )
+  const gapCategories = gaps.map((g) =>
+    String(g.category ?? '').toLowerCase(),
+  )
+  const gapDescriptions = gaps.map((g) =>
+    String(g.description ?? '').toLowerCase(),
+  )
+
+  // Build a map: asset → array of matched capability names
+  const assetCapMap = new Map<ResearchAssetLabel, string[]>()
+  for (const entry of CAPABILITY_TO_ASSET) {
+    for (const capName of capabilityNames) {
+      if (capName.includes(entry.match)) {
+        const existing = assetCapMap.get(entry.asset) ?? []
+        if (!existing.includes(capName)) {
+          existing.push(capName)
+        }
+        assetCapMap.set(entry.asset, existing)
+      }
+    }
+  }
+
+  const results: ResearchAssetEntry[] = []
+  for (const asset of RESEARCH_ASSET_LABELS) {
+    const supportingCapabilities = assetCapMap.get(asset) ?? []
+    const status = getResearchAssetStatus(
+      asset,
+      supportingCapabilities,
+      claimTexts,
+      gapCategories,
+      gapDescriptions,
+    )
+    const supportingClaims = claimTexts.filter((t) =>
+      t.includes(asset.toLowerCase()),
+    )
+    const missingRequirements = getMissingRequirements(asset, supportingCapabilities, gapDescriptions)
+    const nextStep = getResearchAssetNextStep(status)
+
+    results.push({
+      asset,
+      status,
+      supportingCapabilities,
+      supportingClaims: supportingClaims.length > 0 ? [asset] : [],
+      missingRequirements,
+      nextStep,
+    })
+  }
+
+  return results
+}
+
+/**
+ * Determine the status of a research asset based on capability presence,
+ * supporting claims, and gaps. Pure presence/absence logic — no confidence
+ * arithmetic, no "verified" language.
+ */
+export function getResearchAssetStatus(
+  asset: ResearchAssetLabel,
+  supportingCapabilities: string[],
+  claimTexts: string[],
+  gapCategories: string[],
+  gapDescriptions: string[],
+): ResearchAssetStatus {
+  const hasCapability = supportingCapabilities.length > 0
+
+  if (!hasCapability) {
+    return 'Not enough evidence yet'
+  }
+
+  const assetLower = asset.toLowerCase()
+  const hasSupportingClaim = claimTexts.some((t) => t.includes(assetLower))
+  const hasRelevantGap =
+    gapCategories.some((c) => c.includes(assetLower)) ||
+    gapDescriptions.some((d) => d.includes(assetLower))
+
+  if (!hasSupportingClaim && hasRelevantGap) {
+    return 'Needs additional evidence'
+  }
+
+  if (!hasSupportingClaim && !hasRelevantGap) {
+    return 'Needs human review'
+  }
+
+  return 'Enabled by current evidence'
+}
+
+/** Missing requirements derived from gaps that mention the asset. */
+function getMissingRequirements(
+  asset: ResearchAssetLabel,
+  _supportingCapabilities: string[],
+  gapDescriptions: string[],
+): string[] {
+  const assetLower = asset.toLowerCase()
+  return gapDescriptions
+    .filter((d) => d.includes(assetLower))
+    .slice(0, 3)
+}
+
+/**
+ * Recommended next step for an asset based on its status.
+ * No promotion language — actionable, neutral guidance.
+ */
+export function getResearchAssetNextStep(status: ResearchAssetStatus): string {
+  switch (status) {
+    case 'Enabled by current evidence':
+      return 'Review supporting evidence and consider adding to sponsor-facing summary.'
+    case 'Needs additional evidence':
+      return 'Upload or link evidence documents that address the identified gaps.'
+    case 'Needs human review':
+      return 'A reviewer should assess whether existing evidence supports this asset type.'
+    case 'Not enough evidence yet':
+      return 'Expand discovery scope or upload evidence demonstrating this asset type.'
+    default:
+      return 'Review the evidence profile for this asset type.'
+  }
+}
