@@ -118,6 +118,8 @@ export interface DashboardData {
       assessmentIntelligence?: AssessmentIntelligenceData;
       /** Sprint 21E: Sponsor Readiness Engine output */
       sponsorReadiness?: SponsorReadinessData;
+      /** Sprint 21F: Recommendation Engine output */
+      recommendations?: RecommendationEngineData;
 }
 
 export type DashboardTab =
@@ -454,4 +456,31 @@ export interface SponsorReadinessData {
   capability_highlights: string[]
   assessment_references: string[]
   last_updated: string
+}
+
+export type RecommendationPriority = 'critical' | 'high' | 'medium' | 'low'
+
+export interface RecommendationEntry {
+  id: string
+  title: string
+  description: string
+  category: string
+  priority: RecommendationPriority
+  status: string
+  reason: string
+  affected_capabilities: string[]
+  affected_research_assets: string[]
+  affected_readiness: string
+  blocking: boolean
+  recommended_action: string
+  source_engine: string
+  references: string[]
+  dashboard_section: string
+  last_updated: string
+}
+
+export interface RecommendationEngineData {
+  recommendations: RecommendationEntry[]
+  summary: { critical: number; high: number; medium: number; low: number; blocking: number; completed: number; pending: number }
+  generated_at: string
 }

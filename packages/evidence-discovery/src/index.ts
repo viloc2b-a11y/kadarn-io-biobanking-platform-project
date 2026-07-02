@@ -66,6 +66,17 @@ export type {
   SponsorReadinessInput,
   SponsorReadinessLabel,
 } from './sponsor-readiness/index.js';
+export { RecommendationEngine } from './recommendation-engine/index.js';
+export type {
+  Recommendation,
+  RecommendationCategory,
+  RecommendationEngineOutput,
+  RecommendationInput,
+  RecommendationPriority,
+  RecommendationStatus,
+  RecommendationSummary,
+  SourceEngine,
+} from './recommendation-engine/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
