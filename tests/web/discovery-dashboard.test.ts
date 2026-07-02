@@ -562,3 +562,61 @@ describe('Discovery Assessment Engine — Sprint 21D', () => {
     expect(types).toContain('future_sponsor_relevance')
   })
 })
+
+describe('Executive Institution Profile — Sprint 22B', () => {
+  it('profile component file exists', () => {
+    expect(existsSync(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))).toBe(true)
+  })
+
+  it('profile exports ExecutiveInstitutionProfile', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))
+    expect(profile).toContain('export function ExecutiveInstitutionProfile')
+  })
+
+  it('profile consumes engine outputs from DashboardData', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))
+    expect(profile).toContain('capabilityIntelligence')
+    expect(profile).toContain('gapIntelligence')
+    expect(profile).toContain('assessmentIntelligence')
+    expect(profile).toContain('sponsorReadiness')
+    expect(profile).toContain('recommendations')
+  })
+
+  it('profile has all required sections', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))
+    expect(profile).toContain('ProfileHero')
+    expect(profile).toContain('ExecutiveSummaryCard')
+    expect(profile).toContain('SponsorReadinessCard')
+    expect(profile).toContain('CapabilitiesCard')
+    expect(profile).toContain('ResearchAssetsCard')
+    expect(profile).toContain('RecommendationsCard')
+    expect(profile).toContain('HighlightsCard')
+    expect(profile).toContain('GapsCard')
+    expect(profile).toContain('QuickActionsCard')
+  })
+
+  it('profile uses business language — no internal engine names', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))
+    expect(profile).not.toContain('Evidence Core')
+    expect(profile).not.toContain('Claim Graph')
+    expect(profile).not.toContain('Capability Engine')
+    expect(profile).not.toContain('Intelligence Pipeline')
+    expect(profile).not.toContain('confidence calculation')
+  })
+
+  it('profile has loading and empty states', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))
+    expect(profile).toContain('ProfileSkeleton')
+    expect(profile).toContain('EmptyProfile')
+  })
+
+  it('profile uses no forbidden terminology', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'executive-profile.tsx'))
+    // Strip comments
+    const withoutComments = profile
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*'))
+      .join('\n')
+    expect(withoutComments).not.toMatch(/\bverified\b|\bcertified\b|\bgold\b|\bsilver\b|\bbronze\b/i)
+  })
+})
