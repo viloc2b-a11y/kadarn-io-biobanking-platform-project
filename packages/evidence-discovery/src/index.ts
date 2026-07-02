@@ -233,6 +233,19 @@ export type {
   ConsentScope,
   InstitutionalConsent,
 } from './institutional-consent/index.js';
+
+// ==========================================================================
+// Feasibility Passport (Sprint 24F — Phase 5)
+// ==========================================================================
+export { FeasibilityPassportEngine } from './feasibility-passport/index.js';
+export type {
+  CollaborationWorkspace,
+  FeasibilityPassport,
+  MutualReveal,
+  PassportCapability,
+  RevealStatus,
+  WorkspaceSection,
+} from './feasibility-passport/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
