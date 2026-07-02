@@ -152,6 +152,18 @@ export type {
   FirewallValidationResult,
   ValidationRule,
 } from './evidence-firewall/index.js';
+
+// ==========================================================================
+// Governance & Explainability (Sprint 23D)
+// ==========================================================================
+export { GovernanceExplainabilityService } from './governance/index.js';
+export type {
+  EngineId,
+  EngineVersion,
+  ExplainabilityRecord,
+  GovernanceDomain,
+  GovernanceVersion,
+} from './governance/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
