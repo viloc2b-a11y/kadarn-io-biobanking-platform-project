@@ -119,6 +119,24 @@ export type {
   ConnectorResponse,
   ProviderId,
 } from './connectors/index.js';
+
+// ==========================================================================
+// Identity Resolution Engine (Sprint 23B)
+// ==========================================================================
+export { IdentityResolutionEngine } from './identity-resolution/index.js';
+export type {
+  AffiliationEntry,
+  CanonicalIdentity,
+  EntityType,
+  ExternalIdSource,
+  ExternalIdentifier,
+  IdentityAlias,
+  IdentityMatch,
+  IdentityState,
+  IdentityTimelineEvent,
+  ResolutionInput,
+  ReviewItem,
+} from './identity-resolution/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
