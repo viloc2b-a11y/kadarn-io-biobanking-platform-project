@@ -77,6 +77,19 @@ export type {
   RecommendationSummary,
   SourceEngine,
 } from './recommendation-engine/index.js';
+export { InstitutionRecognitionReportGenerator } from './recognition-report/index.js';
+export type {
+  CapabilitySection,
+  EvidenceGapSection,
+  EvidenceHighlight,
+  InstitutionOverview,
+  InstitutionRecognitionReport,
+  RecommendationSection,
+  ReportAppendix,
+  ReportInput,
+  ResearchAssetSection,
+  SponsorReadinessSection,
+} from './recognition-report/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,

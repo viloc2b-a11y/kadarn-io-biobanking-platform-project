@@ -120,6 +120,8 @@ export interface DashboardData {
       sponsorReadiness?: SponsorReadinessData;
       /** Sprint 21F: Recommendation Engine output */
       recommendations?: RecommendationEngineData;
+      /** Sprint 22A: Institution Recognition Report */
+      recognitionReport?: InstitutionRecognitionReportData;
 }
 
 export type DashboardTab =
@@ -482,5 +484,47 @@ export interface RecommendationEntry {
 export interface RecommendationEngineData {
   recommendations: RecommendationEntry[]
   summary: { critical: number; high: number; medium: number; low: number; blocking: number; completed: number; pending: number }
+  generated_at: string
+}
+
+// ==================================================================
+// Institution Recognition Report (Sprint 22A)
+// ==================================================================
+
+export interface ReportInstitutionOverview {
+  institution_name: string
+  discovery_sessions: number
+  artifacts_processed: number
+  capabilities_detected: number
+  research_assets_enabled: number
+}
+
+export interface InstitutionRecognitionReportData {
+  executive_summary: string
+  institution_overview: ReportInstitutionOverview
+  institution_story: string
+  capabilities: Array<{
+    name: string; category: string; assessment: string; maturity: string
+    supporting_evidence_count: number; supporting_claims: string[]
+    research_assets: string[]
+  }>
+  research_assets: Array<{
+    asset: string; enabled_by: string[]; assessment: string; gaps_affecting: number
+  }>
+  evidence_highlights: Array<{
+    title: string; description: string; capability: string; source: string
+  }>
+  evidence_gaps: Array<{
+    title: string; severity: string; blocking: boolean
+    affected_capabilities: string[]; affected_assets: string[]
+    recommendation: string
+  }>
+  sponsor_readiness: {
+    label: string; summary: string; strengths: string[]; concerns: string[]
+  } | null
+  recommendations: Array<{
+    priority: string; title: string; reason: string; action: string
+  }>
+  appendix: { source_trace: string[]; provenance: string }
   generated_at: string
 }
