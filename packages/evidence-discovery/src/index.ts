@@ -187,6 +187,17 @@ export type {
   VisibilityPolicy,
   VisibilityResolution,
 } from './visibility-policy/index.js';
+
+// ==========================================================================
+// Capability Graph (Sprint 24B — Phase 5)
+// ==========================================================================
+export { CapabilityGraphEngine } from './capability-graph/index.js';
+export type {
+  AnonymousInstitutionResult,
+  CapabilityGraphResult,
+  CapabilityQuery,
+  InstitutionRecord,
+} from './capability-graph/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
