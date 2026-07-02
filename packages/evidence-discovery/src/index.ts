@@ -38,6 +38,16 @@ export type {
   CapabilityCategory as IntelligenceCapabilityCategory,
   ResearchAssetLabel as IntelligenceResearchAssetLabel,
 } from './capability-intelligence/index.js';
+export { EvidenceGapIntelligenceEngine } from './evidence-gap-intelligence/index.js';
+export type {
+  EvidenceGapEntry,
+  EvidenceGapIntelligence,
+  GapCategory,
+  GapIntelligenceInput,
+  GapReviewStatus,
+  GapSeverity,
+  GapSummary,
+} from './evidence-gap-intelligence/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
