@@ -686,3 +686,62 @@ describe('Sponsor Capability Search â€” Sprint 22C', () => {
     expect(withoutComments).not.toContain('confidence')
   })
 })
+
+describe('Public Institution Profile — Sprint 22F', () => {
+  it('public profile component exists', () => {
+    expect(existsSync(join(WEB, 'components', 'discovery', 'public-profile.tsx'))).toBe(true)
+  })
+
+  it('public profile exports PublicInstitutionProfile', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'public-profile.tsx'))
+    expect(profile).toContain('export function PublicInstitutionProfile')
+  })
+
+  it('public profile uses business language only', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'public-profile.tsx'))
+    const clean = profile
+      .split(
+)
+      .filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.includes('//'))
+      .join(
+)
+      .replace(/\w*Engine\w*/g, '')
+    expect(clean).not.toMatch(/engine/i)
+    expect(clean).not.toContain('Evidence Core')
+    expect(clean).not.toContain('Claim Graph')
+  })
+
+  it('public profile has SEO structured data', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'public-profile.tsx'))
+    expect(profile).toContain('application/ld+json')
+    expect(profile).toContain('schema.org')
+  })
+
+  it('public profile has all required sections', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'public-profile.tsx'))
+    expect(profile).toContain('Sponsor Readiness')
+    expect(profile).toContain('Institutional Capabilities')
+    expect(profile).toContain('Research Assets Enabled')
+    expect(profile).toContain('Evidence Highlights')
+    expect(profile).toContain('Priority Improvements')
+    expect(profile).toContain('Institutional Timeline')
+  })
+
+  it('public profile is responsive', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'public-profile.tsx'))
+    expect(profile).toContain('maxWidth')
+    expect(profile).toContain('auto-fit')
+  })
+
+  it('public profile uses no forbidden terminology', () => {
+    const profile = read(join(WEB, 'components', 'discovery', 'public-profile.tsx'))
+    const clean = profile
+      .split(
+)
+      .filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.includes('//'))
+      .join(
+)
+    expect(clean).not.toMatch(/verified|certified|gold|silver|bronze/i)
+    expect(clean).not.toContain('confidence')
+  })
+})
