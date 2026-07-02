@@ -1,0 +1,107 @@
+.discovery-shell {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.discovery-sidebar {
+  position: sticky;
+  top: 72px;
+}
+
+.discovery-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.discovery-tab-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.discovery-tab-bar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.discovery-tab-bar__tab {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--txdd);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.discovery-tab-bar__tab:hover {
+  color: var(--tx);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.discovery-tab-bar__tab:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.65);
+  outline-offset: 2px;
+}
+
+.discovery-tab-bar__tab--active {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.18);
+  color: var(--tx);
+  font-weight: 700;
+}
+
+.discovery-refresh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.discovery-provenance-dl {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 6px 12px;
+  font-size: 13px;
+  color: var(--txd);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .discovery-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-sidebar {
+    position: static;
+  }
+
+  .discovery-provenance-dl {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-provenance-dl dt {
+    font-weight: 600;
+    color: var(--txdd);
+  }
+}

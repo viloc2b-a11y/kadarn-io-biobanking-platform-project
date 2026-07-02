@@ -54,6 +54,7 @@ const BASE_NAV = [
 const ORG_NAV = [
   { id: 'profile',   label: 'Profile',   href: '/workspace/profile',   section: 'Organization' },
   { id: 'documents', label: 'Documents', href: '/workspace/documents', section: 'Organization' },
+  { id: 'evidence_discovery', label: 'Institutional Discovery', href: '/workspace/discovery', section: 'Organization' },
   { id: 'payments',  label: 'Payments',  href: '/workspace/payments',  section: 'Organization' },
 ]
 

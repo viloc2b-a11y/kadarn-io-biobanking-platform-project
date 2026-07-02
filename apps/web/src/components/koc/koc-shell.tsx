@@ -20,6 +20,7 @@ const NAV = [
     section: 'Evidence',
     items: [
       { id: 'kpe',         label: 'KPE',            href: '/koc/kpe',            icon: '◇' },
+      { id: 'discovery',   label: 'Institutional Discovery', href: '/koc/discovery',      icon: '◆' },
       { id: 'provenance',  label: 'Provenance',     href: '/koc/provenance',     icon: '▱' },
       { id: 'compliance',  label: 'Compliance',     href: '/koc/compliance',     icon: '○' },
     ],
