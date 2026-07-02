@@ -164,6 +164,18 @@ export type {
   GovernanceDomain,
   GovernanceVersion,
 } from './governance/index.js';
+
+// ==========================================================================
+// Private Evidence Layer (Sprint 23E)
+// ==========================================================================
+export { PrivateEvidenceService } from './private-evidence/index.js';
+export type {
+  AuthorizationState,
+  EvidenceVisibility,
+  PrivateEvidenceRecord,
+  ViewerRole,
+  VisibilitySummary,
+} from './private-evidence/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
