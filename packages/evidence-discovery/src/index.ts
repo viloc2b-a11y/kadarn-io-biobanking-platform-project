@@ -176,6 +176,17 @@ export type {
   ViewerRole,
   VisibilitySummary,
 } from './private-evidence/index.js';
+
+// ==========================================================================
+// Visibility Policy Engine (Sprint 24A — Phase 5)
+// ==========================================================================
+export { VisibilityPolicyEngine } from './visibility-policy/index.js';
+export type {
+  ActorType,
+  VisibilityLevel,
+  VisibilityPolicy,
+  VisibilityResolution,
+} from './visibility-policy/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
