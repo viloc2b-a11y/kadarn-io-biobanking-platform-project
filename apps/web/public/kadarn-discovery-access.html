@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kadarn Institutional Discovery</title>
+  <style>
+    :root {
+      --teal: #0CC5C1;
+      --blue: #4467F2;
+      --purple: #8B44FF;
+      --navy: #0B1628;
+      --navy2: #111E33;
+      --navy3: #162440;
+      --card: #152035;
+      --tx: #E8EEF8;
+      --txd: #7A8FAF;
+      --txdd: #4A5C78;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      color-scheme: dark;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(68, 103, 242, 0.18), transparent 55%),
+        linear-gradient(180deg, var(--navy) 0%, var(--navy2) 100%);
+      color: var(--tx);
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--txd);
+    }
+
+    .card {
+      background: rgba(21, 32, 53, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 1.875rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--txd);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(68, 103, 242, 0.35);
+      background: rgba(68, 103, 242, 0.12);
+      color: var(--tx);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .btn:hover {
+      background: rgba(68, 103, 242, 0.22);
+      border-color: rgba(68, 103, 242, 0.55);
+      transform: translateY(-1px);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .btn--reviewer {
+      border-color: rgba(139, 68, 255, 0.35);
+      background: rgba(139, 68, 255, 0.1);
+    }
+
+    .btn--reviewer:hover {
+      background: rgba(139, 68, 255, 0.2);
+      border-color: rgba(139, 68, 255, 0.5);
+    }
+
+    .btn-label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .btn-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .btn-path {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--txdd);
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+    }
+
+    .btn-arrow {
+      font-size: 18px;
+      color: var(--txd);
+      flex-shrink: 0;
+    }
+
+    .note {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--txdd);
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      background: rgba(11, 22, 40, 0.5);
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--txdd);
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 28px 20px;
+      }
+
+      .btn {
+        padding: 14px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">K</div>
+      <div class="brand-name">Kadarn Platform</div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Institutional Intelligence</p>
+      <h1>Kadarn Institutional Discovery</h1>
+      <p class="subtitle">Evidence Discovery Workbench</p>
+
+      <nav class="actions" aria-label="Discovery Workbench access">
+        <a class="btn" href="/workspace/discovery">
+          <span class="btn-label">
+            <span class="btn-title">Site Director Workspace</span>
+            <span class="btn-path">/workspace/discovery</span>
+          </span>
+          <span class="btn-arrow" aria-hidden="true">→</span>
+        </a>
+
+        <a class="btn btn--reviewer" href="/koc/discovery">
+          <span class="btn-label">
+            <span class="btn-title">Kadarn Reviewer Console</span>
+            <span class="btn-path">/koc/discovery</span>
+          </span>
+          <span class="btn-arrow" aria-hidden="true">→</span>
+        </a>
+      </nav>
+
+      <p class="note">
+        This workbench is for discovery review and validation. It does not promote evidence or write to the Evidence Core.
+      </p>
+    </div>
+
+    <p class="footer">Read-only reconstruction review · Provisional outputs · Human curation only</p>
+  </main>
+</body>
+</html>
