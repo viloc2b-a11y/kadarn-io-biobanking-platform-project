@@ -60,6 +60,12 @@ export type {
   RecommendedAction,
   SponsorRelevance,
 } from './institutional-capability-assessment/index.js';
+export { SponsorReadinessEngine } from './sponsor-readiness/index.js';
+export type {
+  SponsorReadiness,
+  SponsorReadinessInput,
+  SponsorReadinessLabel,
+} from './sponsor-readiness/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,

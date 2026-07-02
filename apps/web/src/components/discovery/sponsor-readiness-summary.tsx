@@ -1,4 +1,4 @@
-import type { DashboardData, CapabilityIntelligenceData, GapIntelligenceData } from './types'
+import type { DashboardData, CapabilityIntelligenceData, GapIntelligenceData, SponsorReadinessData, SponsorReadinessLabel } from './types'
 import { DISCOVERY_COPY } from './discovery-copy'
 import { assessSponsorReadiness, type SponsorReadinessLabel } from './lib'
 import { Badge, EmptyPanel, PanelHeader, PanelSkeleton, cardStyle } from './panel-primitives'
@@ -49,7 +49,12 @@ export function SponsorReadinessSummary({ data, loading }: { data: DashboardData
   if (loading && !data) return <PanelSkeleton />
   if (!data) return <EmptyPanel message={DISCOVERY_COPY.sponsorReadinessInsufficientData} />
 
-  // Sprint 21B/21C: Prefer engine outputs
+  // Sprint 21E: Prefer Sponsor Readiness Engine output (canonical)
+  if (data.sponsorReadiness) {
+    return <CanonicalSponsorReadiness readiness={data.sponsorReadiness} />
+  }
+
+  // Sprint 21B/21C: Prefer engine outputs (assessment-driven fallback)
   if (data.capabilityIntelligence) {
     return (
       <EngineDrivenReadiness
@@ -140,6 +145,96 @@ function nextStepFor(label: SponsorReadinessLabel): string {
   }
 }
 
+
+
+}
+
+/** Sprint 21E: Render directly from Sponsor Readiness Engine output. */
+function CanonicalSponsorReadiness({
+  readiness,
+}: {
+  readiness: SponsorReadinessData
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PanelHeader
+        title={DISCOVERY_COPY.sponsorReadinessTitle}
+        description={DISCOVERY_COPY.sponsorReadinessDescription}
+      />
+
+      <div style={cardStyle}>
+        <Badge label={readiness.readiness_label} tone={labelTone(readiness.readiness_label)} />
+        <p style={{ fontSize: 13, color: 'var(--txd)', lineHeight: 1.6, margin: '10px 0 0' }}>
+          {readiness.summary}
+        </p>
+      </div>
+
+      {readiness.strengths.length > 0 && (
+        <SummarySection
+          title="Sponsor Strengths"
+          items={readiness.strengths}
+          emptyMessage={DISCOVERY_COPY.notAvailableYet}
+        />
+      )}
+
+      {readiness.concerns.length > 0 && (
+        <SummarySection
+          title="Sponsor Concerns"
+          items={readiness.concerns}
+          emptyMessage={DISCOVERY_COPY.noEvidenceFoundYet}
+        />
+      )}
+
+      {readiness.blocking_items.length > 0 && (
+        <SummarySection
+          title="Blocking Items"
+          items={readiness.blocking_items}
+          emptyMessage={DISCOVERY_COPY.needsReview}
+        />
+      )}
+
+      {readiness.capability_highlights.length > 0 && (
+        <SummarySection
+          title={DISCOVERY_COPY.sponsorReadinessStrongestCapabilities}
+          items={readiness.capability_highlights}
+          emptyMessage={DISCOVERY_COPY.notAvailableYet}
+        />
+      )}
+
+      {readiness.recommended_preparation.length > 0 && (
+        <div style={cardStyle}>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--txdd)',
+              textTransform: 'uppercase',
+              letterSpacing: 0.8,
+              marginBottom: 8,
+            }}
+          >
+            {DISCOVERY_COPY.sponsorReadinessNextStep}
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {readiness.recommended_preparation.map((item, idx) => (
+              <li key={idx} style={{ fontSize: 13, color: 'var(--tx)' }}>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Map SponsorReadinessLabel to badge tone. */
+function labelTone(label: SponsorReadinessLabel): 'green' | 'amber' | 'red' | 'default' {
+  switch (label) {
+    case 'Presentation Ready': return 'green'
+    case 'Needs Additional Evidence': return 'amber'
+    case 'Needs Human Review': return 'amber'
+    default: return 'default'
+  }
 
 
 /** Sprint 21B/21C: Sponsor readiness derived from engine outputs. */

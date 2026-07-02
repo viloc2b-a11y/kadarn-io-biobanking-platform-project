@@ -116,6 +116,8 @@ export interface DashboardData {
       gapIntelligence?: GapIntelligenceData;
       /** Sprint 21D: Institutional Capability Assessment Engine output */
       assessmentIntelligence?: AssessmentIntelligenceData;
+      /** Sprint 21E: Sponsor Readiness Engine output */
+      sponsorReadiness?: SponsorReadinessData;
 }
 
 export type DashboardTab =
@@ -429,4 +431,27 @@ export interface AssessmentIntelligenceData {
   assessment: AssessmentEntry[]
   summary: AssessmentSummaryData
   generated_at: string
+}
+
+// ==================================================================
+// Sponsor Readiness Engine output contract (Sprint 21E)
+// ==================================================================
+
+export type SponsorReadinessLabel =
+  | 'Presentation Ready'
+  | 'Needs Additional Evidence'
+  | 'Needs Human Review'
+  | 'Not Enough Evidence Yet'
+
+export interface SponsorReadinessData {
+  readiness_label: SponsorReadinessLabel
+  summary: string
+  strengths: string[]
+  concerns: string[]
+  blocking_items: string[]
+  recommended_preparation: string[]
+  relevant_research_assets: string[]
+  capability_highlights: string[]
+  assessment_references: string[]
+  last_updated: string
 }
