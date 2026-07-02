@@ -105,6 +105,20 @@ export type {
   NotificationFeed,
   NotificationStatus,
 } from './notification-center/index.js';
+
+// ==========================================================================
+// Connector Layer (Sprint 23A)
+// ==========================================================================
+export { BaseConnectorAdapter, ConnectorRegistry, connectorRegistry } from './connectors/index.js';
+export type {
+  ConnectorAdapter,
+  ConnectorHealth,
+  ConnectorHealthStatus,
+  ConnectorMetadata,
+  ConnectorRegistryEntry,
+  ConnectorResponse,
+  ProviderId,
+} from './connectors/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
