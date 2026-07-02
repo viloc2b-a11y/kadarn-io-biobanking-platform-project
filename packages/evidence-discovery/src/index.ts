@@ -209,6 +209,18 @@ export type {
   WorkspaceInput,
   WorkspaceStatus,
 } from './discovery-workspace/index.js';
+
+// ==========================================================================
+// Opportunity Brief Engine (Sprint 24D — Phase 5)
+// ==========================================================================
+export { OpportunityBriefGenerator } from './opportunity-brief/index.js';
+export type {
+  BriefStatus,
+  OpportunityBrief,
+  SiteDecision,
+  SponsorDisplayMode,
+  VisibilityAccessRequest,
+} from './opportunity-brief/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
