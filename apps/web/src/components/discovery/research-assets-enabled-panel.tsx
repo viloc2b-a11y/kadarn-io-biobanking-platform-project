@@ -1,4 +1,4 @@
-import type { DashboardData } from './types'
+import type { DashboardData, CapabilityIntelligenceData, CapabilityEntry } from './types'
 import {
   mapCapabilitiesToResearchAssets,
   type ResearchAssetStatus,
@@ -8,6 +8,13 @@ import { Badge, EmptyPanel, PanelHeader, PanelSkeleton, cardStyle } from './pane
 function statusTone(status: ResearchAssetStatus): 'green' | 'amber' | 'default' {
   if (status === 'Enabled by current evidence') return 'green'
   if (status === 'Needs additional evidence' || status === 'Needs human review') return 'amber'
+  return 'default'
+}
+
+/** Sprint 21B: Map engine capability status to display tone. */
+function engineStatusTone(status: string): 'green' | 'amber' | 'default' {
+  if (status === 'supported') return 'green'
+  if (status === 'partially_supported' || status === 'needs_human_review') return 'amber'
   return 'default'
 }
 
@@ -24,6 +31,116 @@ export function ResearchAssetsEnabledPanel({
     return <EmptyPanel message="No discovery data available yet." />
   }
 
+  // ── Sprint 21B: Prefer Capability Intelligence Engine output ──
+  if (data.capabilityIntelligence) {
+    return <EngineDrivenPanel intelligence={data.capabilityIntelligence} />
+  }
+
+  // ── Sprint 21A fallback: derive from agent outputs ──
+  return <AgentDrivenPanel data={data} />
+}
+
+/** Sprint 21B: Render directly from CapabilityIntelligenceEngine output. */
+function EngineDrivenPanel({
+  intelligence,
+}: {
+  intelligence: CapabilityIntelligenceData
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PanelHeader
+        title="Research Assets Enabled"
+        description="What types of research assets this institution appears prepared to generate, based on the canonical Capability Intelligence Engine. This is a derived view — it does not represent actual inventory."
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+        {intelligence.capabilities
+          .filter((cap) => cap.research_assets_enabled.length > 0 || cap.status === 'not_detected')
+          .flatMap((cap) =>
+            cap.research_assets_enabled.length > 0
+              ? cap.research_assets_enabled.map((asset) => ({
+                  asset,
+                  capability: cap,
+                }))
+              : [{ asset: cap.name, capability: cap }],
+          )
+          .map(({ asset, capability }) => (
+            <EngineAssetCard key={`${capability.id}-${asset}`} asset={asset} capability={capability} />
+          ))}
+      </div>
+    </div>
+  )
+}
+
+function EngineAssetCard({
+  asset,
+  capability,
+}: {
+  asset: string
+  capability: CapabilityEntry
+}) {
+  const tone = engineStatusTone(capability.status)
+
+  return (
+    <div style={cardStyle}>
+      {/* Asset name */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx)', marginBottom: 6 }}>
+        {asset}
+      </div>
+
+      {/* Status badge */}
+      <Badge label={capability.status.replace(/_/g, ' ')} tone={tone} />
+
+      {/* Summary */}
+      <div style={{ marginTop: 10, fontSize: 12, color: 'var(--txdd)' }}>
+        {capability.summary}
+      </div>
+
+      {/* Supporting claims */}
+      {capability.supporting_claims.length > 0 ? (
+        <div style={{ marginTop: 6, fontSize: 12, color: 'var(--txdd)' }}>
+          <span style={{ fontWeight: 600, color: 'var(--txd)' }}>
+            Supporting claims:{' '}
+          </span>
+          {capability.supporting_claims.slice(0, 2).join('; ')}
+        </div>
+      ) : null}
+
+      {/* Missing requirements */}
+      {capability.missing_requirements.length > 0 ? (
+        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--amber)' }}>
+          <span style={{ fontWeight: 600 }}>Missing requirements: </span>
+          {capability.missing_requirements.map((req, i) => (
+            <span key={i}>
+              {i > 0 ? '; ' : ''}
+              {req}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Recommended next step */}
+      <div
+        style={{
+          marginTop: 10,
+          padding: '8px 10px',
+          borderRadius: 8,
+          background: 'rgba(59,130,246,.08)',
+          border: '1px solid rgba(59,130,246,.15)',
+          fontSize: 12,
+          color: 'var(--txd)',
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ fontWeight: 600, color: 'var(--tx)' }}>Recommended next step: </span>
+        {capability.recommended_next_step}
+      </div>
+    </div>
+  )
+}
+
+/** Sprint 21A fallback: Derive from agent outputs (deprecated path). */
+function AgentDrivenPanel({ data }: { data: DashboardData }) {
   const capabilityOutput = data.agentOutputs['capability_detector']?.output ?? null
   const capabilities =
     (capabilityOutput?.capabilities as Array<Record<string, unknown>> | undefined) ?? []

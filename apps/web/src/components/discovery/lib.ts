@@ -111,6 +111,14 @@ export function assessSponsorReadiness(input: SponsorReadinessInput): SponsorRea
 // ==========================================================================
 // Research Assets Enabled — deterministic capability-to-asset mapping (Sprint 21A)
 //
+// ⚠️  Sprint 21B: Canonical capability logic has moved to the
+// CapabilityIntelligenceEngine in @kadarn/evidence-discovery.
+//
+// These functions remain as dashboard-side fallback shims.
+// New consumers should use the CapabilityIntelligenceEngine output.
+// The dashboard panel now accepts a `capabilityIntelligence` prop
+// and uses the engine output when available.
+//
 // These are derived dashboard views, not Evidence Core entities.
 // Do not create a Research Asset Graph or Engine from this mapping.
 // Confidence display is passthrough only — never computed here.

@@ -28,6 +28,16 @@ export type { InstitutionalNarrative, NarrativeSection, NarrativeParagraph, Narr
 export { ProfileBuilder } from './profile/index.js';
 export type { InstitutionalProfile, ProfileSummary, ProfileStatus } from './profile/index.js';
 export { DiscoveryUXOrchestrator, DEFAULT_UX_CONFIG, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from './discovery-ux/index.js';
+export { CapabilityIntelligenceEngine } from './capability-intelligence/index.js';
+export type {
+  CapabilityEntry,
+  CapabilityIntelligence,
+  CapabilityIntelligenceInput,
+  CapabilityStatus as IntelligenceCapabilityStatus,
+  CapabilitySummary as IntelligenceCapabilitySummary,
+  CapabilityCategory as IntelligenceCapabilityCategory,
+  ResearchAssetLabel as IntelligenceResearchAssetLabel,
+} from './capability-intelligence/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
