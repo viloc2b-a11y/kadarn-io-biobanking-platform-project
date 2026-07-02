@@ -1,4 +1,5 @@
 import { ApiError, createRouteClient, handleApiError, withAuth } from '@/lib/supabase-server'
+import { requireValidatedActiveOrg } from '@/lib/workspace'
 import { type EvidenceInput, submitEvidence } from '@/lib/continuity-claim-service'
 
 export const POST = withAuth(async (request, user, params) => {
@@ -7,11 +8,11 @@ export const POST = withAuth(async (request, user, params) => {
     if (!claimId) throw new ApiError(400, 'claim id is required')
 
     const supabase = await createRouteClient()
-    const body = await request.json() as Omit<EvidenceInput, 'claimId'> & { organizationId?: string }
-    const organizationId = body.organizationId ?? user.user_metadata?.active_org_id
-    if (!organizationId || typeof organizationId !== 'string') {
-      throw new ApiError(400, 'organizationId is required')
-    }
+    const body = await request.json() as Omit<EvidenceInput, 'claimId'>
+
+    // Organization ownership ALWAYS comes from the authenticated session,
+    // never from the request body (prevents cross-org IDOR).
+    const organizationId = await requireValidatedActiveOrg(user)
 
     const evidence = await submitEvidence(
       supabase,

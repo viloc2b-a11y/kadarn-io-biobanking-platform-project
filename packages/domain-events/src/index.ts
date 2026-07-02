@@ -617,6 +617,31 @@ export interface ContinuityClaimVerifiedPayload {
   };
 }
 
+export interface ContinuityClaimSubmittedPayload {
+  eventId: string;
+  organizationId: string;
+  claimId: string;
+  actorId: string;
+  occurredAt: string;
+  payload: {
+    previousStatus: string;
+    badgeLevel: string;
+  };
+}
+
+export interface ContinuityClaimPromotedToLedgerPayload {
+  eventId: string;
+  organizationId: string;
+  claimId: string;
+  actorId: string;
+  occurredAt: string;
+  payload: {
+    ledgerEntryId: string;
+    badgeLevel: string;
+    claimTitle: string;
+  };
+}
+
 export interface ContinuityClaimRejectedPayload {
   eventId: string;
   organizationId: string;
@@ -702,6 +727,8 @@ export interface KadarnEventMap {
   ContinuityReferenceAdded: ContinuityReferenceAddedPayload;
   ContinuityReferenceConfirmed: ContinuityReferenceConfirmedPayload;
   ContinuityClaimVerified: ContinuityClaimVerifiedPayload;
+  ContinuityClaimSubmitted: ContinuityClaimSubmittedPayload;
+  ContinuityClaimPromotedToLedger: ContinuityClaimPromotedToLedgerPayload;
   ContinuityClaimRejected: ContinuityClaimRejectedPayload;
   ClaimConfidenceScoreUpdated: ClaimConfidenceScoreUpdatedPayload;
 }

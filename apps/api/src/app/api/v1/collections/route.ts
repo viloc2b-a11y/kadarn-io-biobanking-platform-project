@@ -1,6 +1,7 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { paginationSchema } from '@/lib/validation'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
+import { requireValidatedActiveOrg } from '@/lib/workspace'
 import { emitCollectionCreated, recordCollectionProvenance, createCorrelationId } from '@/lib/logistics-helper'
 
 type JsonObject = Record<string, unknown>
@@ -43,11 +44,12 @@ export const POST = withAsyncTracing(
       const body = (await request.json()) as JsonObject
       const correlationId = createCorrelationId()
 
-      if (!body.organization_id) throw new ApiError(400, 'organization_id is required')
       if (!body.name) throw new ApiError(400, 'name is required')
 
+      const organizationId = await requireValidatedActiveOrg(user)
+
       const payload: Record<string, unknown> = {
-        organization_id: body.organization_id,
+        organization_id: organizationId,
         status: body.status ?? 'active',
         target_enrollment: body.target_enrollment ?? null,
         actual_enrollment: body.actual_enrollment ?? 0,
@@ -68,10 +70,9 @@ export const POST = withAsyncTracing(
       if (error) throw new ApiError(500, 'Failed to create collection twin', error.message)
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
-      const orgId = body.organization_id as string
-      recordCollectionProvenance(data.id, orgId, body.name as string, correlationId)
-        .catch((err: unknown) => console.error('[COLLECTION] Provenance failed:', err))
-      emitCollectionCreated(data.id, orgId, body.name as string, user.id, correlationId)
+      recordCollectionProvenance(data.id, organizationId, body.name as string, user.id, correlationId)
+
+      emitCollectionCreated(data.id, organizationId, body.name as string, user.id, correlationId)
 
       return Response.json({ data }, { status: 201 })
     } catch (err) {

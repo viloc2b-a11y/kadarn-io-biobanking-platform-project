@@ -785,7 +785,7 @@ export async function generateRecommendations(
   }
 
   const refCovered = list.filter((c: { continuity_references?: Array<unknown> }) =>
-    (c.continuity_references ?? []).filter((r: { status: string }) => r.status === 'confirmed').length > 0).length
+    (c.continuity_references ?? []).filter((r: unknown) => (r as { status: string }).status === 'confirmed').length > 0).length
   if (list.length > 0 && refCovered / list.length < 0.3) {
     recommendations.push({ category: 'References', action: 'Confirm pending references to boost credibility', priority: 'medium', estimatedTrustIncrease: 6 })
   }
@@ -1062,7 +1062,7 @@ export async function matchOpportunity(
       if (evCount > 0) score += Math.min(10, evCount * 2)
 
       // Reference bonus
-      const refCount = (c.continuity_references ?? []).filter((r: { status: string }) => r.status === 'confirmed').length
+      const refCount = (c.continuity_references ?? []).filter((r: unknown) => (r as { status: string }).status === 'confirmed').length
       if (refCount > 0) score += Math.min(10, refCount * 3)
     }
 

@@ -1,4 +1,5 @@
 import { ApiError, createRouteClient, handleApiError, withAuth } from '@/lib/supabase-server'
+import { requireValidatedActiveOrg } from '@/lib/workspace'
 import {
   type ExperienceClaimInput,
   createExperienceClaim,
@@ -9,13 +10,13 @@ export const GET = withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
     const url = new URL(request.url)
-    const organizationId = url.searchParams.get('organization_id') ?? user.user_metadata?.active_org_id
     const profileId = url.searchParams.get('profile_id')
 
-    if (!organizationId || typeof organizationId !== 'string') {
-      throw new ApiError(400, 'organization_id is required')
-    }
     if (!profileId) throw new ApiError(400, 'profile_id is required')
+
+    // Organization ownership ALWAYS comes from the authenticated session,
+    // never from a client-supplied query param (prevents cross-org IDOR).
+    const organizationId = await requireValidatedActiveOrg(user)
 
     const claims = await listClaimsForSite(supabase, organizationId, profileId)
     return Response.json({ data: { claims }, error: null })
@@ -27,12 +28,11 @@ export const GET = withAuth(async (request, user) => {
 export const POST = withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
-    const body = await request.json() as ExperienceClaimInput & { organizationId?: string }
-    const organizationId = body.organizationId ?? user.user_metadata?.active_org_id
+    const body = await request.json() as ExperienceClaimInput
 
-    if (!organizationId || typeof organizationId !== 'string') {
-      throw new ApiError(400, 'organizationId is required')
-    }
+    // Organization ownership ALWAYS comes from the authenticated session,
+    // never from the request body (prevents cross-org IDOR).
+    const organizationId = await requireValidatedActiveOrg(user)
 
     const claim = await createExperienceClaim(
       supabase,

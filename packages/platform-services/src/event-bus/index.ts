@@ -65,6 +65,7 @@ export class InMemoryEventBus implements EventBus {
       actorId: context.userId,
       organizationId: context.organizationId ?? null,
       programId: context.programId ?? null,
+      correlationId: _options?.correlationId ?? null,
       payload,
     };
 

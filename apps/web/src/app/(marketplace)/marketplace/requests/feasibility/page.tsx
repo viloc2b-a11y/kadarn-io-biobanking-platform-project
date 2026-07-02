@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from '@/components/providers/session-provider'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 export default function FeasibilityPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <FeasibilityForm />
+    </Suspense>
+  )
+}
+
+function FeasibilityForm() {
   const searchParams = useSearchParams()
   const targetId = searchParams.get('target') ?? ''
   const router = useRouter()

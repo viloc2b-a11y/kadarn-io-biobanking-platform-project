@@ -2,6 +2,8 @@ import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/sup
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import {
   createCorrelationId,
+  emitShipmentCreated,
+  recordShipmentProvenance,
 } from '@/lib/logistics-helper'
 import { runPipeline, createPipelineContext } from '@/lib/engine-orchestrator'
 
@@ -130,6 +132,8 @@ export const POST = withAsyncTracing(
 
       // ── Cross-engine hooks (fire-and-forget) ──────────────────────────
       const orgId = body.organization_id as string
+      emitShipmentCreated(shipment.id, orgId, body.program_id as string, carrier, user.id, correlationId)
+      recordShipmentProvenance(shipment.id, orgId, carrier, user.id, correlationId)
       runPipeline(
         'shipment',
         createPipelineContext({

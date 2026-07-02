@@ -1,0 +1,20 @@
+{
+  "name": "@kadarn/evidence-core",
+  "version": "0.1.0",
+  "description": "Kadarn Evidence Core — canonical domain model. Stores, relates, preserves provenance, controls access, and manages process state. Does not compute Confidence.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

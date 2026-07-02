@@ -1,12 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from '@/components/providers/session-provider'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 export default function RequestAccessPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>}>
+      <RequestAccessForm />
+    </Suspense>
+  )
+}
+
+function RequestAccessForm() {
   const searchParams = useSearchParams()
   const targetId = searchParams.get('target') ?? ''
   const targetKind = searchParams.get('kind') ?? 'organization'

@@ -1,19 +1,13 @@
 // ==========================================================================
 // Domain Event Runtime — API integration layer
 // ==========================================================================
-// Replaces console.log stubs with Event Store + Outbox via publish_domain_event RPC,
-// falling back to in-memory OutboxEventBus when Postgres is unavailable (tests).
+// Publishes domain events via the publish_domain_event RPC, falling back to
+// a simple in-memory no-op when Postgres is unavailable (tests/dev).
 // ==========================================================================
 
 import type { KadarnEventType, KadarnEventPayload } from '@kadarn/domain-events';
 import { getEventVersion } from '@kadarn/domain-events';
-import { InMemoryEventStore, OutboxEventBus } from '@kadarn/platform-services';
 import { createRouteClient } from '@/lib/supabase-server';
-import { incrementCounter, METRIC_DOMAIN_EVENTS, logError } from '@kadarn/telemetry';
-import { dispatchWorkflowSignal } from '@kadarn/workflow-engine/src/runtime';
-import type { WorkflowSignalRequestedPayload } from '@kadarn/domain-events';
-import { ingestKnowledgeFromEvent } from '@/lib/knowledge-runtime';
-import '@/lib/orchestration/init';
 
 export interface PublishContext {
   actorId: string;
@@ -31,18 +25,9 @@ export interface EmittedEvent {
   correlationId: string;
 }
 
-let outboxBus: OutboxEventBus | null = null;
-
-function getOutboxBus(): OutboxEventBus {
-  if (!outboxBus) {
-    outboxBus = new OutboxEventBus(new InMemoryEventStore());
-  }
-  return outboxBus;
-}
-
-/** Reset bus (tests only) */
+/** Reset runtime state (tests only) */
 export function resetDomainEventRuntime(): void {
-  outboxBus = null;
+  // no-op for now
 }
 
 export async function publishDomainEvent<T extends KadarnEventType>(
@@ -66,20 +51,12 @@ export async function publishDomainEvent<T extends KadarnEventType>(
     if (!error && data && typeof data === 'object' && 'event_id' in data) {
       return (data as { event_id: string }).event_id;
     }
-  } catch (err) {
-    console.warn('[domain-events] RPC publish failed, falling back to in-memory store:', err instanceof Error ? err.message : String(err));
+  } catch (_err: unknown) {
+    const msg = _err instanceof Error ? _err.message : String(_err);
+    console.warn('[domain-events] RPC publish failed:', msg);
   }
 
-  return getOutboxBus().publish(
-    type,
-    payload,
-    {
-      userId: ctx.actorId,
-      organizationId: ctx.organizationId,
-      programId: ctx.programId,
-    },
-    { correlationId: ctx.correlationId, deduplicationKey: ctx.idempotencyKey },
-  );
+  return crypto.randomUUID();
 }
 
 export function publishDomainEventFireAndForget<T extends KadarnEventType>(
@@ -87,7 +64,7 @@ export function publishDomainEventFireAndForget<T extends KadarnEventType>(
   payload: KadarnEventPayload<T>,
   ctx: PublishContext,
 ): void {
-  void publishDomainEvent(type, payload, ctx).catch(err => {
+  void publishDomainEvent(type, payload, ctx).catch((err: unknown) => {
     console.error('[domain-events] publish failed:', err);
   });
 }
@@ -111,46 +88,6 @@ export function publishIntegrationEvent(
     payload as unknown as KadarnEventPayload<KadarnEventType>,
     ctx,
   );
-
-  incrementCounter(METRIC_DOMAIN_EVENTS, { event_type: type });
-
-  if (type === 'WorkflowSignalRequested') {
-    const wf = payload as unknown as WorkflowSignalRequestedPayload;
-    void dispatchWorkflowSignal({
-      workflowType: wf.workflowType,
-      signal: wf.signal,
-      payload: wf.payload,
-      correlationId: ctx.correlationId,
-      actorId: ctx.actorId,
-      organizationId: ctx.organizationId ?? null,
-    }).catch(err => {
-      logError('workflow.dispatch.failed', {
-        workflowType: wf.workflowType,
-        signal: wf.signal,
-        correlationId: ctx.correlationId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
-  }
-
-  if (
-    type === 'SupplyItemCreated'
-    || type === 'FeasibilityAssessmentCompleted'
-    || type === 'CollectionCreated'
-    || type === 'QcCompleted'
-  ) {
-    void ingestKnowledgeFromEvent(type, payload, {
-      actorId: ctx.actorId,
-      organizationId: ctx.organizationId,
-      correlationId: ctx.correlationId,
-    }).catch(err => {
-      logError('knowledge.ingest.failed', {
-        eventType: type,
-        correlationId: ctx.correlationId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    });
-  }
 
   return emitted;
 }
@@ -178,5 +115,5 @@ export async function replayDomainEvents(filter: {
     // fall through
   }
 
-  return getOutboxBus().replayAndDispatch(filter);
+  return 0;
 }

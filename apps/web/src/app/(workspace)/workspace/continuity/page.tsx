@@ -23,7 +23,7 @@ const inputStyle = {
   color: 'var(--tx)',
 } as const
 
-function badgeStyle(level: string | undefined): Record<string, string> {
+function badgeStyle(level: string | undefined): React.CSSProperties {
   const colors: Record<string, string> = {
     self_reported: '#6b7280',
     evidence_backed: '#f59e0b',

@@ -48,3 +48,5 @@ nul
 supabase/.temp/
 *.bak
 supabase/.branches/
+# Local Pi runtime state
+.atl/
