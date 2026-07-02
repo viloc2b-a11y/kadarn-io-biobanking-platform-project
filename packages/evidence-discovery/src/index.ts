@@ -137,6 +137,21 @@ export type {
   ResolutionInput,
   ReviewItem,
 } from './identity-resolution/index.js';
+
+// ==========================================================================
+// Evidence Firewall (Sprint 23C)
+// ==========================================================================
+export { EvidenceFirewall } from './evidence-firewall/index.js';
+export type {
+  EvidencePayload,
+  EvidenceQuarantineEntry,
+  FirewallDecision,
+  FirewallDecisionOutput,
+  FirewallReviewItem,
+  FirewallStatus,
+  FirewallValidationResult,
+  ValidationRule,
+} from './evidence-firewall/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
