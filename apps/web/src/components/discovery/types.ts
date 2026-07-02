@@ -114,6 +114,8 @@ export interface DashboardData {
       capabilityIntelligence?: CapabilityIntelligenceData;
       /** Sprint 21C: Evidence Gap Intelligence Engine output (canonical gap model) */
       gapIntelligence?: GapIntelligenceData;
+      /** Sprint 21D: Institutional Capability Assessment Engine output */
+      assessmentIntelligence?: AssessmentIntelligenceData;
 }
 
 export type DashboardTab =
@@ -287,3 +289,144 @@ export const KADARN_REVIEWER_TAB_ORDER: DashboardTab[] = [
   'pipeline',
   'provenance',
 ];
+
+// ==================================================================
+// Engine output contracts (Sprints 21B, 21C, 21D)
+// ==================================================================
+
+export type CapabilityStatus =
+  | 'supported'
+  | 'partially_supported'
+  | 'needs_more_evidence'
+  | 'needs_human_review'
+  | 'not_detected'
+
+export interface CapabilityEntry {
+  id: string
+  name: string
+  category: string
+  status: CapabilityStatus
+  summary: string
+  supporting_claims: string[]
+  supporting_evidence: string[]
+  research_assets_enabled: string[]
+  missing_requirements: string[]
+  gaps: string[]
+  recommended_next_step: string
+  last_updated: string
+}
+
+export interface CapabilitySummary {
+  total: number
+  supported: number
+  partial: number
+  needs_evidence: number
+  needs_review: number
+  not_detected: number
+}
+
+export interface CapabilityIntelligenceData {
+  capabilities: CapabilityEntry[]
+  summary: CapabilitySummary
+  generated_at: string
+}
+
+export type GapCategory =
+  | 'missing_evidence'
+  | 'weak_evidence'
+  | 'expired_evidence'
+  | 'inconsistent_evidence'
+  | 'needs_external_confirmation'
+  | 'needs_human_review'
+  | 'insufficient_metadata'
+  | 'governance_gap'
+  | 'operational_gap'
+
+export type GapSeverity = 'low' | 'moderate' | 'high' | 'blocking'
+
+export type GapReviewStatus = 'open' | 'needs_review' | 'deferred' | 'resolved'
+
+export interface GapEntry {
+  id: string
+  title: string
+  category: GapCategory
+  severity: GapSeverity
+  blocking: boolean
+  affected_capabilities: string[]
+  affected_research_assets: string[]
+  evidence_needed: string[]
+  recommended_next_action: string
+  review_status: GapReviewStatus
+  source_refs: string[]
+  last_updated: string | null
+}
+
+export interface GapSummary {
+  total: number
+  blocking: number
+  high: number
+  needs_review: number
+  resolved: number
+}
+
+export interface GapIntelligenceData {
+  gaps: GapEntry[]
+  summary: GapSummary
+  generated_at: string
+}
+
+export type AssessmentStatus =
+  | 'healthy'
+  | 'attention_needed'
+  | 'limited'
+  | 'blocked'
+  | 'unknown'
+
+export type OperationalMaturity =
+  | 'emerging'
+  | 'developing'
+  | 'established'
+  | 'advanced'
+
+export type DashboardPriority =
+  | 'critical'
+  | 'high'
+  | 'normal'
+  | 'informational'
+
+export type SponsorRelevance =
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'unknown'
+
+export interface AssessmentEntry {
+  capability_id: string
+  capability_name: string
+  category: string
+  assessment_status: AssessmentStatus
+  operational_maturity: OperationalMaturity
+  assessment_summary: string
+  research_assets_enabled: string[]
+  blocking_gaps: string[]
+  non_blocking_gaps: string[]
+  missing_requirements: string[]
+  recommended_actions: string[]
+  dashboard_priority: DashboardPriority
+  future_sponsor_relevance: SponsorRelevance
+  last_updated: string
+}
+
+export interface AssessmentSummaryData {
+  healthy: number
+  attention_needed: number
+  limited: number
+  blocked: number
+  unknown: number
+}
+
+export interface AssessmentIntelligenceData {
+  assessment: AssessmentEntry[]
+  summary: AssessmentSummaryData
+  generated_at: string
+}

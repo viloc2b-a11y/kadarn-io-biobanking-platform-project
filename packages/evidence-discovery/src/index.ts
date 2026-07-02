@@ -48,6 +48,18 @@ export type {
   GapSeverity,
   GapSummary,
 } from './evidence-gap-intelligence/index.js';
+export { InstitutionalCapabilityAssessmentEngine } from './institutional-capability-assessment/index.js';
+export type {
+  AssessmentInput,
+  AssessmentStatus,
+  AssessmentSummary,
+  CapabilityAssessmentEntry,
+  DashboardPriority,
+  InstitutionCapabilityAssessment,
+  OperationalMaturity,
+  RecommendedAction,
+  SponsorRelevance,
+} from './institutional-capability-assessment/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,

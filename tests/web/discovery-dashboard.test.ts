@@ -542,3 +542,23 @@ describe('Discovery Engine Integration — Sprint 21B/21C', () => {
     }
   })
 })
+
+describe('Discovery Assessment Engine — Sprint 21D', () => {
+  it('dashboard types include assessment contract', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    expect(types).toContain('AssessmentIntelligenceData')
+    expect(types).toContain('assessmentIntelligence')
+    expect(types).toContain('AssessmentEntry')
+    expect(types).toContain('OperationalMaturity')
+    expect(types).toContain('DashboardPriority')
+  })
+
+  it('assessment contract has all required fields', () => {
+    const types = read(join(WEB, 'components', 'discovery', 'types.ts'))
+    expect(types).toContain('assessment_status')
+    expect(types).toContain('operational_maturity')
+    expect(types).toContain('assessment_summary')
+    expect(types).toContain('recommended_actions')
+    expect(types).toContain('future_sponsor_relevance')
+  })
+})
