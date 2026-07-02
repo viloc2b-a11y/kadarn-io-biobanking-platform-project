@@ -221,6 +221,18 @@ export type {
   SponsorDisplayMode,
   VisibilityAccessRequest,
 } from './opportunity-brief/index.js';
+
+// ==========================================================================
+// Institutional Consent Engine (Sprint 24E — Phase 5)
+// ==========================================================================
+export { InstitutionalConsentEngine } from './institutional-consent/index.js';
+export type {
+  AuditEvent,
+  AuthorizationState,
+  ConsentPurpose,
+  ConsentScope,
+  InstitutionalConsent,
+} from './institutional-consent/index.js';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
