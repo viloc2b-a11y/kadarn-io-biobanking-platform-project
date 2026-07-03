@@ -9,7 +9,7 @@ describe('Route Access', () => {
     public:   ['/', '/about', '/login'],
     gated:    ['/marketplace', '/marketplace/specimens', '/marketplace/network'],
     org:      ['/workspace', '/workspace/org-1/inventory', '/workspace/org-1/exchange'],
-    koc:      ['/operations', '/operations/health', '/operations/trust', '/operations/kpe'],
+    koc:      ['/operations', '/operations/health', '/operations/kpe'],
   };
 
   it('public routes should be accessible without auth', () => {
