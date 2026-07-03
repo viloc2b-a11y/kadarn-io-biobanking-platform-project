@@ -51,15 +51,33 @@ export interface DocumentSource {
 // --------------------------------------------------------------------------
 
 /** Supported document formats for intake. */
-export type IntakeDocumentFormat = 'pdf' | 'docx' | 'zip' | 'html' | 'txt'
+export type IntakeDocumentFormat =
+  | 'pdf'
+  | 'docx'
+  | 'xlsx'
+  | 'pptx'
+  | 'html'
+  | 'csv'
+  | 'json'
+  | 'xml'
+  | 'epub'
+  | 'zip'
+  | 'txt'
 
 /** MIME type to IntakeDocumentFormat mapping helper. */
 export const MIME_TO_FORMAT: Record<string, IntakeDocumentFormat> = {
   'application/pdf': 'pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'text/html': 'html',
+  'text/csv': 'csv',
+  'application/json': 'json',
+  'application/xml': 'xml',
+  'text/xml': 'xml',
+  'application/epub+zip': 'epub',
   'application/zip': 'zip',
   'application/x-zip-compressed': 'zip',
-  'text/html': 'html',
   'text/plain': 'txt',
 }
 

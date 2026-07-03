@@ -33,6 +33,13 @@ export type {
   IntakeProvider as DocumentIntakeProvider,
 } from './providers/index.js'
 
+export {
+  MarkItDownAdapter,
+  MarkItDownNotInstalledError,
+  MarkItDownTimeoutError,
+  MarkItDownExecutionError,
+} from './providers/index.js'
+
 // Adapters
 export {
   ConnectorIntakeAdapter,

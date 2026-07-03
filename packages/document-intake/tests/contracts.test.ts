@@ -68,7 +68,8 @@ describe('MIME_TO_FORMAT', () => {
 
   it('returns undefined for unsupported MIME types', () => {
     expect(MIME_TO_FORMAT['image/png']).toBeUndefined()
-    expect(MIME_TO_FORMAT['application/json']).toBeUndefined()
+    expect(MIME_TO_FORMAT['video/mp4']).toBeUndefined()
+    expect(MIME_TO_FORMAT['application/octet-stream']).toBeUndefined()
   })
 })
 
