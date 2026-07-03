@@ -23,10 +23,12 @@ export function DiscoveryCurationPanel({
   data,
   loading,
   onSubmitted,
+  onAddNote: _onAddNote,
 }: {
   data: DashboardData | null
   loading: boolean
   onSubmitted: () => void
+  onAddNote?: (targetType: string, targetId: string) => void
 }) {
   const [targetType, setTargetType] = useState<string>(CURATION_TARGET_TYPES[0])
   const [targetId, setTargetId] = useState('')

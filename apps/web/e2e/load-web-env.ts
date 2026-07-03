@@ -59,7 +59,7 @@ export function loadWebEnvForPlaywright(webDir: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
 
   loadEnvConfig(webDir, true, SILENT_LOG);
-  mergeEnv(env, process.env, true);
+  mergeEnv(env, process.env as Record<string, string>, true);
 
   const rootDir = path.resolve(webDir, '../..');
   for (const file of ['.env.local', '.env']) {

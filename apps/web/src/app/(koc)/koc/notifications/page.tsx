@@ -1,8 +1,7 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 
 import { useState, useEffect } from 'react'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 const TYPE_COLORS: Record<string, string> = {
   alert: 'var(--red)',
@@ -30,7 +29,7 @@ export default function NotificationsPage() {
 
   const fetchNotifications = () => {
     setLoading(true)
-    fetch(`${API}/api/v1/notifications`, { credentials: 'include' })
+    kocFetch(`/api/v1/notifications`)
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(d => { setNotifications(d.data ?? []); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
@@ -40,9 +39,8 @@ export default function NotificationsPage() {
 
   const markRead = async (id: string) => {
     try {
-      await fetch(`${API}/api/v1/notifications/${id}`, {
+      await kocFetch(`/api/v1/notifications/${id}`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ read: true }),
       })
