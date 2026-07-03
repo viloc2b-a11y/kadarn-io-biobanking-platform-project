@@ -1,5 +1,6 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic';
 export const GET = withAuth(async (_request, user) => {
   try {
     const supabase = await createRouteClient()

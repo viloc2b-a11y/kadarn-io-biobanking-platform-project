@@ -1,5 +1,6 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic';
 // Capability key → application ID mapping
 const CAPABILITY_APPLICATIONS: Record<string, string[]> = {
   biobank:              ['inventory', 'collections', 'qc', 'exchange', 'analytics'],

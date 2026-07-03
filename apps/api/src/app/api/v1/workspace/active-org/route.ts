@@ -2,6 +2,7 @@ import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/sup
 import { z } from 'zod'
 import { emitAuditEvent } from '@/lib/audit'
 
+export const dynamic = 'force-dynamic';
 const bodySchema = z.object({
   org_id: z.string().uuid(),
 })

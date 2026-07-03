@@ -1,5 +1,6 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic';
 type CapabilityKey = { key: string }
 
 // Capability key → nav items
