@@ -83,3 +83,13 @@ export type {
   StructuredExtraction,
   ExtractionContext,
 } from './extraction/index.js'
+
+// Provenance
+export { DocumentProvenanceEngine } from './provenance/index.js'
+export type {
+  ProvenanceLink,
+  ProvenanceStep,
+  ProvenanceRecord,
+  ProvenanceTrace,
+  ProvenanceForward,
+} from './provenance/index.js'
