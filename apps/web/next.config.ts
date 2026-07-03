@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import path from 'node:path'
 
 const SECURITY_HEADERS = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -13,7 +14,7 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   transpilePackages: ['@kadarn/ui', '@kadarn/types', '@kadarn/auth', '@kadarn/delivery-domain'],
   turbopack: {
-    root: __dirname,
+    root: path.resolve(__dirname, '..', '..'),
   },
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }]
