@@ -28,6 +28,25 @@ export {
   IntakeNormalizationError,
 } from './engine.js'
 
+// Gateway (canonical entry point)
+export {
+  DocumentIntakeGateway,
+  IntakeGatewayError,
+} from './gateway.js'
+export type {
+  IntakeGatewayResult,
+  GatewayConfig,
+} from './gateway.js'
+
+// Metrics
+export {
+  getIntakeMetrics,
+  resetIntakeMetrics,
+} from './metrics.js'
+export type {
+  IntakeMetrics,
+} from './metrics.js'
+
 // Providers
 export type {
   IntakeProvider as DocumentIntakeProvider,
