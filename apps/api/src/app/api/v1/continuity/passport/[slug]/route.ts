@@ -1,7 +1,7 @@
 import { createRouteClient, handleApiError } from '@/lib/supabase-server'
 
 function verificationLabel(status: string): string {
-  if (status === 'kadarn_verified') return 'Kadarn verified'
+  if (status === 'kadarn_verified') return 'Verified'
   if (status === 'reference_confirmed') return 'Reference confirmed'
   if (status === 'evidence_submitted') return 'Evidence submitted'
   return 'Self-reported'

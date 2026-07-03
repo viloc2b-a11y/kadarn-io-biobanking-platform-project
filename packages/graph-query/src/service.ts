@@ -59,7 +59,6 @@ export class GraphQueryService {
       if (suppliers.length >= maxResults) break;
 
 
-      }
 
       const reasons: string[] = [];
       if (expandedTypes) {

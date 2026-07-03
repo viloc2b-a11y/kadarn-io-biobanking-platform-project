@@ -164,11 +164,6 @@ function OrgCard({ org, expanded, onToggle }: { org: Org; expanded: boolean; onT
           </div>
         </div>
 
-        {/* Trust badge */}
-        <div style={{ flexShrink: 0 }}>
-        </div>
-
-        {/* CTAs */}
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
           <RequestCta type="feasibility" targetId={org.id} targetType="organization" />
           <RequestCta type="access" targetId={org.id} targetType="organization" />
@@ -178,14 +173,6 @@ function OrgCard({ org, expanded, onToggle }: { org: Org; expanded: boolean; onT
         </div>
       </div>
 
-      {/* Expanded trust details */}
-      {expanded && org.trust && (
-        <div style={{ padding: '0 20px 18px', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          <p style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--txdd)', marginBottom: 12, fontWeight: 700 }}>
-            Trust Score Breakdown
-          </p>
-        </div>
-      )}
     </div>
   )
 }

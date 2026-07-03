@@ -66,7 +66,7 @@ export interface KnowledgeInfo {
 export interface SupplierMatch {
   organizationId: string;
   name: string;
-  trustScore: number;
+  trustScore?: number;
   capabilities: string[];
   matchReasons: string[];
 }
