@@ -18,7 +18,7 @@ import type {
   NarrativeParagraph,
   NarrativeCitation,
   NarrativeSectionType,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // Narrative Engine

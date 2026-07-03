@@ -1,3 +1,13 @@
+> **Superseded Notice**
+>
+> This document contains pre-AF-2.0 terminology and is superseded by:
+> - KEMS-001 Confidence Graph Model
+> - KEMS-002 Trustworthy Evidence Architecture
+> - KEMS-003 Kadarn Product Constitution
+> - AF-2.0 / AF-2.1 Architecture Freeze
+>
+> Runtime implementations must not use retired Trust / Verified terminology.
+
 # KRM-RAO: Kadarn Reference Model for Research Asset Orchestration
 
 **Version:** 1.0  

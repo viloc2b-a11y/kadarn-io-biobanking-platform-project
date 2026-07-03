@@ -2,7 +2,7 @@
 // Feasibility Passport — Public API (Sprint 24F)
 // ==========================================================================
 
-export { FeasibilityPassportEngine } from './engine.js'
+export { FeasibilityPassportEngine } from './engine'
 
 export type {
   CollaborationWorkspace,
@@ -11,4 +11,4 @@ export type {
   PassportCapability,
   RevealStatus,
   WorkspaceSection,
-} from './engine.js'
+} from './engine'

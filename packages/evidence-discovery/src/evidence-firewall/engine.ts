@@ -14,7 +14,7 @@ import type {
   FirewallStatus,
   FirewallValidationResult,
   ValidationRule,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Supported providers (from Connector Layer)

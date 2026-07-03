@@ -4,7 +4,7 @@ project_id = "kadarn-platform"
 
 [api]
 enabled = true
-port = 54321
+port = 55421
 schemas = ["public"]
 extra_search_path = ["public"]
 max_rows = 1000
@@ -13,14 +13,14 @@ max_rows = 1000
 enabled = false
 
 [db]
-port = 54322
-shadow_port = 54320
+port = 55432
+shadow_port = 55420
 health_timeout = "2m"
 major_version = 17
 
 [db.pooler]
 enabled = false
-port = 54329
+port = 55429
 pool_mode = "transaction"
 default_pool_size = 20
 max_client_conn = 100
@@ -43,12 +43,12 @@ enabled = true
 
 [studio]
 enabled = true
-port = 54323
+port = 55423
 api_url = "http://127.0.0.1"
 
 [local_smtp]
 enabled = true
-port = 54324
+port = 55424
 
 [storage]
 enabled = true
@@ -162,7 +162,7 @@ deno_version = 2
 
 [analytics]
 enabled = true
-port = 54327
+port = 55427
 backend = "postgres"
 
 [experimental]

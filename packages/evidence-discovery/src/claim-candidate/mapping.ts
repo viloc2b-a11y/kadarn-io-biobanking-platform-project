@@ -8,7 +8,7 @@
 // No Claims. No Evidence Core writes. No promotion.
 // ==========================================================================
 
-import type { MissingEvidenceItem } from './types.js';
+import type { MissingEvidenceItem } from './types';
 
 // --------------------------------------------------------------------------
 // Types

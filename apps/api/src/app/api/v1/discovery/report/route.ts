@@ -1,20 +1,18 @@
 // ==========================================================================
-// Recognition Report API — Sprint 25D
+// Recognition Report API — Sprint 25D / Phase 8 28D convergence
 // ==========================================================================
 // GET /api/v1/discovery/report?sessionId=xxx
-// Generates an Institution Recognition Report from canonical engines.
+// All claim/capability/report outputs via Published View service (ADR-030).
 // ==========================================================================
 
-import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
+import { withAuth, handleApiError, createServiceClient } from '@/lib/supabase-server'
 import { requireValidatedActiveOrg } from '@/lib/workspace'
-import { buildAllEngineOutputs } from '@/lib/dashboard-engines'
-import { InstitutionRecognitionReportGenerator } from '@kadarn/evidence-discovery'
-import type { ReportInput } from '@kadarn/evidence-discovery'
+import { getPublishedViewService } from '@/lib/published-view-service'
 import { rateLimit, COMPUTE_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (request, user) => {
   try {
-    const supabase = await createRouteClient()
+    const supabase = createServiceClient()
     const organizationId = await requireValidatedActiveOrg(user)
     const url = new URL(request.url)
     const sessionId = url.searchParams.get('sessionId')
@@ -34,7 +32,6 @@ export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (request, user) 
       return Response.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    // Get agent outputs
     const { data: runs } = await supabase
       .from('discovery_runs')
       .select('*')
@@ -51,7 +48,7 @@ export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (request, user) 
         .select('id')
         .eq('run_id', latestRun.id)
 
-      const artifactIds = (artifacts ?? []).map((a) => a.id)
+      const artifactIds = (artifacts ?? []).map(a => a.id)
 
       if (artifactIds.length > 0) {
         const { data: outputs } = await supabase
@@ -73,10 +70,6 @@ export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (request, user) 
       }
     }
 
-    // Build engine outputs
-    const engines = buildAllEngineOutputs(agentOutputs)
-
-    // Count artifacts
     const { count: artifactCount } = latestRun
       ? await supabase
           .from('discovery_artifacts')
@@ -84,48 +77,15 @@ export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (request, user) 
           .eq('run_id', latestRun.id)
       : { count: 0 }
 
-    // Generate report
-    const generator = new InstitutionRecognitionReportGenerator()
-    const reportInput: ReportInput = {
+    const viewService = getPublishedViewService()
+    const report = viewService.getDiscoveryReport({
+      orgId: organizationId,
+      sessionId,
       institutionName: session.site_name ?? session.name ?? 'Institution',
-      capabilities: engines.assessmentIntelligence?.assessment.map((a) => ({
-        id: a.capability_id,
-        name: a.capability_name,
-        category: a.category,
-        assessment_status: a.assessment_status,
-        operational_maturity: a.operational_maturity,
-        supporting_claims: [],
-        supporting_evidence: [],
-        research_assets_enabled: a.research_assets_enabled,
-        assessment_summary: a.assessment_summary,
-      })) ?? [],
-      assessmentSummary: engines.assessmentIntelligence?.summary,
-      gaps: engines.gapIntelligence?.gaps.map((g) => ({
-        title: g.title,
-        severity: g.severity,
-        blocking: g.blocking,
-        affected_capabilities: g.affected_capabilities,
-        affected_research_assets: g.affected_research_assets,
-        recommended_next_action: g.recommended_next_action,
-      })) ?? [],
-      readiness: engines.sponsorReadiness ? {
-        readiness_label: engines.sponsorReadiness.readiness_label,
-        summary: engines.sponsorReadiness.summary,
-        strengths: engines.sponsorReadiness.strengths,
-        concerns: engines.sponsorReadiness.concerns,
-      } : undefined,
-      recommendations: engines.recommendations?.recommendations.map((r) => ({
-        priority: r.priority,
-        title: r.title,
-        reason: r.reason,
-        recommended_action: r.recommended_action,
-        blocking: r.blocking,
-      })),
+      agentOutputs,
       artifactsProcessed: artifactCount ?? 0,
       sessionCount: 1,
-    }
-
-    const report = generator.generate(reportInput)
+    })
 
     return Response.json({ data: report, error: null })
   } catch (err) {

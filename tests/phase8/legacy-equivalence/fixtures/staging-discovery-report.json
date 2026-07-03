@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "surface": "discovery_report",
+    "route": "/api/v1/discovery/report",
+    "captured": "2026-07-03",
+    "source": "staging-anonymized",
+    "fixture_version": "1.0.0"
+  },
+  "input": {
+    "orgId": "00000000-0000-4000-8000-000000000004",
+    "sessionId": "00000000-0000-4000-8000-000000000601",
+    "institutionName": "Metro Biorepository Alliance",
+    "artifactsProcessed": 7,
+    "sessionCount": 1,
+    "agentOutputs": {
+      "capability_detector": {
+        "output": {
+          "capabilities": [
+            {
+              "capabilityId": "cap-stg-rep-001",
+              "claimTypeId": "cold_storage",
+              "name": "Cryogenic Sample Storage",
+              "category": "infrastructure",
+              "status": "confirmed",
+              "supportingEntityIds": [],
+              "reasoning": "LN2 storage documented in facility overview"
+            },
+            {
+              "capabilityId": "cap-stg-rep-002",
+              "claimTypeId": "sample_processing",
+              "name": "Nucleic Acid Extraction",
+              "category": "operations",
+              "status": "confirmed",
+              "supportingEntityIds": [],
+              "reasoning": "Automated extraction platform listed in equipment inventory"
+            }
+          ]
+        },
+        "confidence": 0.89,
+        "status": "completed",
+        "created_at": "2026-07-03T12:00:00.000Z"
+      },
+      "claim_candidate_detector": {
+        "output": {
+          "candidates": [
+            {
+              "id": "cand-stg-rep-001",
+              "proposedClaimTypeId": "biospecimen_processing",
+              "reasoning": "Extraction capability supported by equipment documentation"
+            }
+          ]
+        },
+        "confidence": 0.74,
+        "status": "completed",
+        "created_at": "2026-07-03T12:00:00.000Z"
+      },
+      "evidence_gap_detector": {
+        "output": { "reports": [{ "gaps": [] }] },
+        "confidence": 1,
+        "status": "completed",
+        "created_at": "2026-07-03T12:00:00.000Z"
+      }
+    }
+  }
+}

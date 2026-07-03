@@ -19,7 +19,7 @@ import type {
   GapReviewStatus,
   GapSeverity,
   GapSummary,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Deterministic severity mapping

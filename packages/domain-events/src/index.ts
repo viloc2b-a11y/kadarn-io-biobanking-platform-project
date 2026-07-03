@@ -283,16 +283,6 @@ export interface PolicyShadowEvaluatedPayload {
   correlationId: string;
 }
 
-export interface TrustScoreEvaluatedPayload {
-  providerOrgId: string;
-  trustScore: number;
-  evaluatedAt: string;
-  operationalScore?: number;
-  regulatoryScore?: number;
-  financialScore?: number;
-  technicalScore?: number;
-}
-
 export interface TrustEventRecordedPayload {
   organizationId: string;
   eventId: string;
@@ -699,7 +689,6 @@ export interface KadarnEventMap {
   AuditEventCreated: AuditEventCreatedPayload;
   WorkflowSignalRequested: WorkflowSignalRequestedPayload;
   PolicyShadowEvaluated: PolicyShadowEvaluatedPayload;
-  TrustScoreEvaluated: TrustScoreEvaluatedPayload;
   TrustEventRecorded: TrustEventRecordedPayload;
   InvoiceIssued: InvoiceIssuedPayload;
   PaymentRecorded: PaymentRecordedPayload;

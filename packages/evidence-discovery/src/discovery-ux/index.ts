@@ -4,8 +4,8 @@
 // Sprint 20B.7.
 // ==========================================================================
 
-export { DiscoveryUXOrchestrator } from './orchestrator.js';
-export { DEFAULT_UX_CONFIG, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from './types.js';
+export { DiscoveryUXOrchestrator } from './orchestrator';
+export { DEFAULT_UX_CONFIG, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from './types';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
@@ -24,4 +24,4 @@ export type {
   ProcessingState,
   ReviewState,
   CompleteState,
-} from './types.js';
+} from './types';

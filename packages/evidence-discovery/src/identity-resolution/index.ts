@@ -2,7 +2,7 @@
 // Identity Resolution Engine — Public API (Sprint 23B)
 // ==========================================================================
 
-export { IdentityResolutionEngine } from './engine.js'
+export { IdentityResolutionEngine } from './engine'
 
 export type {
   AffiliationEntry,
@@ -16,4 +16,4 @@ export type {
   IdentityTimelineEvent,
   ResolutionInput,
   ReviewItem,
-} from './types.js'
+} from './types'

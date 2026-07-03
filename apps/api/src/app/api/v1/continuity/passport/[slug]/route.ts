@@ -1,28 +1,15 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/auth-guards'
 import { rateLimit, PUBLIC_RATE_LIMIT } from '@/lib/rate-limit'
+import { getPublishedViewService } from '@/lib/published-view-service'
 
-function verificationLabel(status: string): string {
-  if (status === 'kadarn_verified') return 'Verified'
-  if (status === 'reference_confirmed') return 'Reference confirmed'
-  if (status === 'evidence_submitted') return 'Evidence submitted'
-  return 'Self-reported'
-}
-
-export const GET = rateLimit(PUBLIC_RATE_LIMIT, withAuth(async (_request, user) => {
-  // RC-0.3: Passport routes now require authentication.
-  // Public passport data is still accessible to any authenticated user,
-  // but requires auth to verify the requester's identity for consent tracking.
+export const GET = rateLimit(PUBLIC_RATE_LIMIT, withAuth(async (request) => {
+  // RC-0.3 + Phase 8 28D: Passport reads via Published View Compatibility Layer.
   try {
-    const { slug } = await _request.url
-      ? { slug: new URL(_request.url).pathname.split('/').pop()! }
-      : { slug: '' }
-
-    const supabase = await createRouteClient()
-
-    // Use the request URL to extract slug from path params
-    const url = new URL(_request.url)
+    const url = new URL(request.url)
     const pathSegments = url.pathname.split('/')
     const slugFromPath = pathSegments[pathSegments.indexOf('passport') + 1]
+
+    const supabase = await createRouteClient()
 
     const { data: profile, error: profileError } = await supabase
       .from('site_continuity_profiles')
@@ -43,25 +30,19 @@ export const GET = rateLimit(PUBLIC_RATE_LIMIT, withAuth(async (_request, user) 
 
     if (claimsError) throw claimsError
 
-    return Response.json({
-      data: {
-        profile: {
-          headline: profile.headline,
-          summary: profile.summary,
-          slug: profile.public_slug,
-        },
-        claims: (claims ?? []).map(c => ({
-          id: c.id,
-          type: c.claim_type,
-          category: c.category,
-          title: c.title,
-          description: c.description,
-          verification: verificationLabel(c.verification_status),
-          confidence: c.confidence_score,
-        })),
+    const viewService = getPublishedViewService()
+    const response = viewService.getPassportResponse({
+      profile: {
+        id: profile.id,
+        organization_id: profile.organization_id,
+        headline: profile.headline,
+        summary: profile.summary,
+        public_slug: profile.public_slug,
       },
-      error: null,
+      claims: claims ?? [],
     })
+
+    return Response.json({ data: response, error: null })
   } catch (error) {
     return handleApiError(error)
   }

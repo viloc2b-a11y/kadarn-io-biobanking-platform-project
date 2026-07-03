@@ -8,7 +8,7 @@
 // ==========================================================================
 
 import type { DbClient } from '../repository.js';
-import type { SemanticExtractionRequest, SemanticRequestType, SemanticRequestStatus } from './types.js';
+import type { SemanticExtractionRequest, SemanticRequestType, SemanticRequestStatus } from './types';
 
 export interface CreateRequestRecord {
   requestId: string;

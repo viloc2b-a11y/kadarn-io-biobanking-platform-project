@@ -7,8 +7,8 @@
 // Handles CLAIM → RUN → COMPLETE/FAIL lifecycle.
 // ==========================================================================
 
-import { AgentRegistry } from './registry.js';
-import type { AgentContext, AgentResult, DiscoveryAgent } from './types.js';
+import { AgentRegistry } from './registry';
+import type { AgentContext, AgentResult, DiscoveryAgent } from './types';
 import type { SemanticExtractionRequest, SemanticRequestType } from '../../preparation/types.js';
 import { createRequest, transitionRequest } from '../../preparation/types.js';
 import crypto from 'node:crypto';

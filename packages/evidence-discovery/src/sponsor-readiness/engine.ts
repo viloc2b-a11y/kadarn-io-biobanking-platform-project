@@ -13,7 +13,7 @@ import type {
   SponsorReadiness,
   SponsorReadinessInput,
   SponsorReadinessLabel,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Readiness label — deterministic mapping from assessment summary

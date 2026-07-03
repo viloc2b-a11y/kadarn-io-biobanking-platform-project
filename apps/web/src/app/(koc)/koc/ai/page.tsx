@@ -3,8 +3,8 @@ import { useState } from 'react'
 export default function AiPage() {
   const [insights] = useState([
     { type: 'anomaly', title: 'Unusual temperature pattern detected', desc: 'Shipment corridor BKK-FRA shows 23% more excursions this month', severity: 'warning' },
-    { type: 'prediction', title: 'Biobank A trust score projected to drop', desc: 'Based on recent fulfillment dispute trend', severity: 'info' },
-    { type: 'recommendation', title: 'Route optimization available', desc: '3 alternative labs within 0.05 trust score of current suppliers', severity: 'info' },
+    { type: 'prediction', title: 'Biobank A evidence coverage projected to drop', desc: 'Based on recent fulfillment dispute trend', severity: 'info' },
+    { type: 'recommendation', title: 'Route optimization available', desc: '3 alternative labs within comparable evidence coverage of current suppliers', severity: 'info' },
   ])
   return (
     <div>

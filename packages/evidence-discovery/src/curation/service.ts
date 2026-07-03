@@ -8,10 +8,10 @@
 // Human curation is first-class provenance.
 // ==========================================================================
 
-import type { CurationRequest, CurationEvent, CurationAction } from './types.js';
-import { CurationError, ALL_CURATION_ACTIONS } from './types.js';
+import type { CurationRequest, CurationEvent, CurationAction } from './types';
+import { CurationError, ALL_CURATION_ACTIONS } from './types';
 import type { DbClient } from '../repository.js';
-import { insertCurationEvent } from './repository.js';
+import { insertCurationEvent } from './repository';
 import crypto from 'node:crypto';
 
 // --------------------------------------------------------------------------

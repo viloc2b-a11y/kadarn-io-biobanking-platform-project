@@ -49,10 +49,10 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF OLD.status IS DISTINCT FROM NEW.status THEN
+    IF OLD.verification_status IS DISTINCT FROM NEW.verification_status THEN
         NEW.verification_history = COALESCE(OLD.verification_history, '[]'::jsonb) || jsonb_build_object(
-            'from', OLD.status,
-            'to',   NEW.status,
+            'from', OLD.verification_status,
+            'to',   NEW.verification_status,
             'by',   NEW.reviewer_id,
             'at',   NOW(),
             'note', NEW.reviewer_notes
@@ -64,7 +64,7 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_continuity_verification_history ON continuity_experience_claims;
 CREATE TRIGGER trg_continuity_verification_history
-    BEFORE UPDATE OF status ON continuity_experience_claims
+    BEFORE UPDATE OF verification_status ON continuity_experience_claims
     FOR EACH ROW
     EXECUTE FUNCTION continuity_verification_history_trigger();
 
@@ -95,8 +95,8 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Claim not found: %', p_claim_id;
     END IF;
-    IF v_claim.status != 'verified' THEN
-        RAISE EXCEPTION 'Claim % must be verified before promotion (status: %)', p_claim_id, v_claim.status;
+    IF v_claim.verification_status::text NOT IN ('kadarn_verified', 'verified', 'reference_confirmed') THEN
+        RAISE EXCEPTION 'Claim % must be verified before promotion (status: %)', p_claim_id, v_claim.verification_status;
     END IF;
     IF v_claim.promoted_to_ledger_at IS NOT NULL THEN
         RAISE EXCEPTION 'Claim % already promoted to ledger at %', p_claim_id, v_claim.promoted_to_ledger_at;

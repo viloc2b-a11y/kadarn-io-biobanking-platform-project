@@ -22,7 +22,7 @@ Por la presente, **KEMS-001 v1.0 — The Kadarn Confidence Graph Model** queda e
 | **Effective Date** | 2026-07-01 |
 | **Baseline** | AF-1.0 (Architecture Freeze 1.0) |
 | **Owner** | Architecture Lead |
-| **Location** | `vendor/kems/KEMS-001_Confidence_Graph_Model_v1.0.md` |
+| **Location** | `vendor/kems/KEMS-001_Confidence_Graph_Model_v1.0.md` [RC-0.3: consolidation to docs/kems/ attempted but STOPPED — divergence exceeds weights/header, see canonical-documents-registry-af-2.1.md RC-0.3 note; both copies remain, pending Architecture Review] |
 
 ---
 

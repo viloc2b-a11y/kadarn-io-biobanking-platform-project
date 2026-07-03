@@ -2,7 +2,7 @@
 // Governance & Explainability — Public API (Sprint 23D)
 // ==========================================================================
 
-export { GovernanceExplainabilityService } from './engine.js'
+export { GovernanceExplainabilityService } from './engine'
 
 export type {
   EngineId,
@@ -10,4 +10,4 @@ export type {
   ExplainabilityRecord,
   GovernanceDomain,
   GovernanceVersion,
-} from './types.js'
+} from './types'

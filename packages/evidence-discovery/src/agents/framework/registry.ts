@@ -4,7 +4,7 @@
 // Sprint 20A.4A.
 // ==========================================================================
 
-import type { DiscoveryAgent } from './types.js';
+import type { DiscoveryAgent } from './types';
 import type { SemanticRequestType } from '../../preparation/types.js';
 
 export class AgentRegistry {

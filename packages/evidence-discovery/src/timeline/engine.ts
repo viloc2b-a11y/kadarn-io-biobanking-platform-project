@@ -7,7 +7,7 @@
 // No Claims. No Confidence computation. No Discovery modification.
 // ==========================================================================
 
-import type { TimelineEvent, TimelineDate, DatePrecision, EventCategory, InstitutionalTimeline } from './types.js';
+import type { TimelineEvent, TimelineDate, DatePrecision, EventCategory, InstitutionalTimeline } from './types';
 import type { Entity, Relationship, DiscoveryResult } from '../orchestrator.js';
 
 // --------------------------------------------------------------------------

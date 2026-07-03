@@ -72,23 +72,6 @@ export const recordSettlementProvenance = (
   change?: string,
 ) => recordSettlement(settlementId, orgId, amount, actorId, cId, change);
 
-export interface TrustEvaluation { trustScore: number; providerOrgId: string; evaluatedAt: string; }
-
-export function evaluateProviderTrust(providerOrgId: string): TrustEvaluation {
-  const score = 0.85;
-  const evaluatedAt = new Date().toISOString();
-  publishIntegrationEvent('TrustScoreEvaluated', {
-    providerOrgId,
-    trustScore: score,
-    evaluatedAt,
-  }, {
-    actorId: providerOrgId,
-    organizationId: providerOrgId,
-    correlationId: crypto.randomUUID(),
-  });
-  return { trustScore: score, providerOrgId, evaluatedAt };
-}
-
 export interface SettlementRecord { dealId: string; settled: boolean; note: string; }
 
 export function initiateSettlement(dealId: string, amount: number | null): SettlementRecord {

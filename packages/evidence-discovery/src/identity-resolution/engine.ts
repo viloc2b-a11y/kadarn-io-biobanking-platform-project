@@ -18,7 +18,7 @@ import type {
   IdentityTimelineEvent,
   ResolutionInput,
   ReviewItem,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Normalization helpers

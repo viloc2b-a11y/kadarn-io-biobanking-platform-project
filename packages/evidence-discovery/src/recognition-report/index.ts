@@ -2,7 +2,7 @@
 // Institution Recognition Report — Public API (Sprint 22A)
 // ==========================================================================
 
-export { InstitutionRecognitionReportGenerator } from './generator.js'
+export { InstitutionRecognitionReportGenerator } from './generator'
 
 export type {
   CapabilitySection,
@@ -15,4 +15,4 @@ export type {
   ReportInput,
   ResearchAssetSection,
   SponsorReadinessSection,
-} from './generator.js'
+} from './generator'

@@ -1,15 +1,15 @@
 // ==========================================================================
-// Discovery Dashboard API — Aggregate Data
+// Discovery Dashboard API — Aggregate Data / Phase 8 28D convergence
 // ==========================================================================
 // GET /api/v1/discovery/dashboard?sessionId=xxx
-// Returns all data needed to render the Discovery Interaction Dashboard.
+// Capability/claim outputs via Published View service (ADR-030).
 // Never writes to Evidence Core.
 // ==========================================================================
 
-import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server';
+import { withAuth, handleApiError, createServiceClient } from '@/lib/supabase-server';
 import { requireValidatedActiveOrg } from '@/lib/workspace';
 import { buildDiscoveryMetrics } from '@/lib/discovery-metrics';
-import { buildAllEngineOutputs } from '@/lib/dashboard-engines';
+import { getPublishedViewService } from '@/lib/published-view-service';
 
 const RUN_SCOPED_AGENTS = [
   'evidence_snapshot',
@@ -52,7 +52,7 @@ function extractRelationshipCount(output: Record<string, unknown> | undefined): 
 
 export const GET = withAuth(async (request, user) => {
   try {
-    const supabase = await createRouteClient();
+    const supabase = createServiceClient();
     const organizationId = await requireValidatedActiveOrg(user);
     const url = new URL(request.url);
     const sessionId = url.searchParams.get('sessionId');
@@ -200,6 +200,14 @@ export const GET = withAuth(async (request, user) => {
           .limit(100)
       : { data: [] };
 
+    const viewService = getPublishedViewService();
+    const viewAdapted = viewService.adaptDiscoveryDashboard({
+      orgId: organizationId,
+      sessionId,
+      agentOutputs,
+      candidates: (candidates ?? []) as Array<Record<string, unknown>>,
+    });
+
     const metrics = buildDiscoveryMetrics({
       counts: {
         artifacts: artifactCount,
@@ -207,7 +215,7 @@ export const GET = withAuth(async (request, user) => {
         relationships: relationshipCount,
         candidates: candidateCount,
       },
-      agentOutputs,
+      agentOutputs: viewAdapted.agentOutputs,
       curationEvents: curationEvents ?? [],
       validationNotes: validationNotes ?? [],
       sessionCreatedAt: session.created_at,
@@ -227,11 +235,11 @@ export const GET = withAuth(async (request, user) => {
           candidates: candidateCount,
         },
         metrics,
-        agentOutputs,
+        agentOutputs: viewAdapted.agentOutputs,
         curationEvents: curationEvents ?? [],
         validationNotes: validationNotes ?? [],
         artifacts: artifacts ?? [],
-        candidates: candidates ?? [],
+        candidates: viewAdapted.candidates,
       },
       error: null,
     });

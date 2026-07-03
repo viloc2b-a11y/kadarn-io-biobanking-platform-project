@@ -1,17 +1,4 @@
 {
-  "subagents": {
-    "agentOverrides": {
-      "worker": {
-        "defaultContext": "fork"
-      },
-      "planner": {
-        "defaultContext": "fork"
-      },
-      "oracle": {
-        "defaultContext": "fork"
-      }
-    }
-  },
   "gentle-ai": {
     "sdd": {
       "mode": "interactive",

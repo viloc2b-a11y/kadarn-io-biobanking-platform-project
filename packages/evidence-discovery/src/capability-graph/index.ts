@@ -2,11 +2,11 @@
 // Capability Graph — Public API (Sprint 24B)
 // ==========================================================================
 
-export { CapabilityGraphEngine } from './engine.js'
+export { CapabilityGraphEngine } from './engine'
 
 export type {
   AnonymousInstitutionResult,
   CapabilityGraphResult,
   CapabilityQuery,
   InstitutionRecord,
-} from './engine.js'
+} from './engine'

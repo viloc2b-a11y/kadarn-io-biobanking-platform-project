@@ -4,11 +4,11 @@
 // Sprint 20B.5.
 // ==========================================================================
 
-export { NarrativeEngine } from './engine.js';
+export { NarrativeEngine } from './engine';
 export type {
   InstitutionalNarrative,
   NarrativeSection,
   NarrativeParagraph,
   NarrativeCitation,
   NarrativeSectionType,
-} from './types.js';
+} from './types';

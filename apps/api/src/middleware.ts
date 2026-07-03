@@ -10,12 +10,13 @@ const buckets = new Map<string, { count: number; resetAt: number }>()
 
 // Periodic cleanup of expired entries (best-effort; may not run in edge-isolated environments)
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now()
     for (const [key, bucket] of buckets) {
       if (now >= bucket.resetAt) buckets.delete(key)
     }
-  }, CLEANUP_INTERVAL_MS).unref()
+  }, CLEANUP_INTERVAL_MS)
+  if (typeof cleanupTimer?.unref === 'function') cleanupTimer.unref()
 }
 
 /**

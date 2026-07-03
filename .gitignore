@@ -17,6 +17,12 @@ build/
 .env.development
 .env.*.local
 
+# Pi subagent artifacts
+.pi-subagents/
+
+# Temp output
+output.txt
+
 # Allow example env files (contain only placeholders)
 !.env.example
 !apps/*/.env.example

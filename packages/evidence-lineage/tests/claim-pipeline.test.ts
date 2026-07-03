@@ -4,7 +4,7 @@ import { ClaimProvenanceEngine } from '../src/claim-provenance.js'
 import { EntityResolutionEngine } from '../src/entity-resolution.js'
 import type { Claim } from '../src/claim-generation.js'
 
-describe('ClaimGeneration + ClaimProvenance (28C + 28D)', () => {
+describe('ClaimGeneration + ClaimProvenance (28C + 28E)', () => {
   let claimEngine: ClaimGenerationEngine
   let provenanceEngine: ClaimProvenanceEngine
   let entityEngine: EntityResolutionEngine

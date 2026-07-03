@@ -4,7 +4,7 @@
 // Sprint 20A.1.
 // ==========================================================================
 
-export { executeTransition, createCandidate, assertState, isTerminal, executeTransitionSequence, StateMachineError } from './state-machine.js';
+export { executeTransition, createCandidate, assertState, isTerminal, executeTransitionSequence, StateMachineError } from './state-machine';
 export {
   createSession,
   createRun,
@@ -16,20 +16,22 @@ export {
   getTransitionEvents,
   getCandidatesByRun,
   updateCandidateState,
-} from './repository.js';
-export type { DbClient } from './repository.js';
-export { CapabilityDetector, CapabilityNormalizer, CapabilityGates, StopConditionEvaluator } from './capability/index.js';
+} from './repository';
+export type { DbClient } from './repository';
+export { CapabilityDetector, CapabilityNormalizer, CapabilityGates, StopConditionEvaluator } from './capability/index';
 
-export { ClaimCandidateDetector, ClaimMappingRegistry, ClaimGates, ClaimStopConditionEvaluator } from './claim-candidate/index.js';
-export { EvidenceGapDetector } from './gap-detection/index.js';
-export type { EvidenceGap, RecommendedEvidence, GapAnalysisResult, GapAnalysisReport } from './gap-detection/index.js';
-export type { GapSeverity as DetectionGapSeverity, GapCategory as DetectionGapCategory } from './gap-detection/index.js';
-export { NarrativeEngine } from './narrative/index.js';
-export type { InstitutionalNarrative, NarrativeSection, NarrativeParagraph, NarrativeCitation, NarrativeSectionType } from './narrative/index.js';
-export { ProfileBuilder } from './profile/index.js';
-export type { InstitutionalProfile, ProfileSummary, ProfileStatus } from './profile/index.js';
-export { DiscoveryUXOrchestrator, DEFAULT_UX_CONFIG, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from './discovery-ux/index.js';
-export { CapabilityIntelligenceEngine } from './capability-intelligence/index.js';
+export { ClaimCandidateDetector, ClaimMappingRegistry, ClaimGates, ClaimStopConditionEvaluator } from './claim-candidate/index';
+export { agentOutputsToLineageExtraction } from './lineage/agent-output-mapper';
+export type { AgentOutputMap, LineageExtractionInput } from './lineage/agent-output-mapper';
+export { EvidenceGapDetector } from './gap-detection/index';
+export type { EvidenceGap, RecommendedEvidence, GapAnalysisResult, GapAnalysisReport } from './gap-detection/index';
+export type { GapSeverity as DetectionGapSeverity, GapCategory as DetectionGapCategory } from './gap-detection/index';
+export { NarrativeEngine } from './narrative/index';
+export type { InstitutionalNarrative, NarrativeSection, NarrativeParagraph, NarrativeCitation, NarrativeSectionType } from './narrative/index';
+export { ProfileBuilder } from './profile/index';
+export type { InstitutionalProfile, ProfileSummary, ProfileStatus } from './profile/index';
+export { DiscoveryUXOrchestrator, DEFAULT_UX_CONFIG, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from './discovery-ux/index';
+export { CapabilityIntelligenceEngine } from './capability-intelligence/index';
 export type {
   CapabilityEntry,
   CapabilityIntelligence,
@@ -38,8 +40,8 @@ export type {
   CapabilitySummary as IntelligenceCapabilitySummary,
   CapabilityCategory as IntelligenceCapabilityCategory,
   ResearchAssetLabel as IntelligenceResearchAssetLabel,
-} from './capability-intelligence/index.js';
-export { EvidenceGapIntelligenceEngine } from './evidence-gap-intelligence/index.js';
+} from './capability-intelligence/index';
+export { EvidenceGapIntelligenceEngine } from './evidence-gap-intelligence/index';
 export type {
   EvidenceGapEntry,
   EvidenceGapIntelligence,
@@ -48,8 +50,8 @@ export type {
   GapReviewStatus,
   GapSeverity,
   GapSummary,
-} from './evidence-gap-intelligence/index.js';
-export { InstitutionalCapabilityAssessmentEngine } from './institutional-capability-assessment/index.js';
+} from './evidence-gap-intelligence/index';
+export { InstitutionalCapabilityAssessmentEngine } from './institutional-capability-assessment/index';
 export type {
   AssessmentInput,
   AssessmentStatus,
@@ -60,14 +62,14 @@ export type {
   OperationalMaturity,
   RecommendedAction,
   SponsorRelevance,
-} from './institutional-capability-assessment/index.js';
-export { SponsorReadinessEngine } from './sponsor-readiness/index.js';
+} from './institutional-capability-assessment/index';
+export { SponsorReadinessEngine } from './sponsor-readiness/index';
 export type {
   SponsorReadiness,
   SponsorReadinessInput,
   SponsorReadinessLabel,
-} from './sponsor-readiness/index.js';
-export { RecommendationEngine } from './recommendation-engine/index.js';
+} from './sponsor-readiness/index';
+export { RecommendationEngine } from './recommendation-engine/index';
 export type {
   Recommendation,
   RecommendationCategory,
@@ -77,8 +79,8 @@ export type {
   RecommendationStatus,
   RecommendationSummary,
   SourceEngine,
-} from './recommendation-engine/index.js';
-export { InstitutionRecognitionReportGenerator } from './recognition-report/index.js';
+} from './recommendation-engine/index';
+export { InstitutionRecognitionReportGenerator } from './recognition-report/index';
 export type {
   CapabilitySection,
   EvidenceGapSection,
@@ -90,27 +92,27 @@ export type {
   ReportInput,
   ResearchAssetSection,
   SponsorReadinessSection,
-} from './recognition-report/index.js';
-export { ContinuousMonitoringOrchestrator } from './continuous-monitoring/index.js';
+} from './recognition-report/index';
+export { ContinuousMonitoringOrchestrator } from './continuous-monitoring/index';
 export type {
   MonitoringSource,
   MonitoringState,
   RefreshResult,
   RefreshStatus,
   SourceChange,
-} from './continuous-monitoring/index.js';
-export { NotificationCenter } from './notification-center/index.js';
+} from './continuous-monitoring/index';
+export { NotificationCenter } from './notification-center/index';
 export type {
   Notification,
   NotificationCategory,
   NotificationFeed,
   NotificationStatus,
-} from './notification-center/index.js';
+} from './notification-center/index';
 
 // ==========================================================================
 // Connector Layer (Sprint 23A)
 // ==========================================================================
-export { BaseConnectorAdapter, ConnectorRegistry, connectorRegistry } from './connectors/index.js';
+export { BaseConnectorAdapter, ConnectorRegistry, connectorRegistry } from './connectors/index';
 export type {
   ConnectorAdapter,
   ConnectorHealth,
@@ -119,12 +121,12 @@ export type {
   ConnectorRegistryEntry,
   ConnectorResponse,
   ProviderId,
-} from './connectors/index.js';
+} from './connectors/index';
 
 // ==========================================================================
 // Identity Resolution Engine (Sprint 23B)
 // ==========================================================================
-export { IdentityResolutionEngine } from './identity-resolution/index.js';
+export { IdentityResolutionEngine } from './identity-resolution/index';
 export type {
   AffiliationEntry,
   CanonicalIdentity,
@@ -137,12 +139,12 @@ export type {
   IdentityTimelineEvent,
   ResolutionInput,
   ReviewItem as IdentityReviewItem,
-} from './identity-resolution/index.js';
+} from './identity-resolution/index';
 
 // ==========================================================================
 // Evidence Firewall (Sprint 23C)
 // ==========================================================================
-export { EvidenceFirewall } from './evidence-firewall/index.js';
+export { EvidenceFirewall } from './evidence-firewall/index';
 export type {
   EvidencePayload,
   EvidenceQuarantineEntry,
@@ -152,93 +154,93 @@ export type {
   FirewallStatus,
   FirewallValidationResult,
   ValidationRule,
-} from './evidence-firewall/index.js';
+} from './evidence-firewall/index';
 
 // ==========================================================================
 // Governance & Explainability (Sprint 23D)
 // ==========================================================================
-export { GovernanceExplainabilityService } from './governance/index.js';
+export { GovernanceExplainabilityService } from './governance/index';
 export type {
   EngineId,
   EngineVersion,
   ExplainabilityRecord,
   GovernanceDomain,
   GovernanceVersion,
-} from './governance/index.js';
+} from './governance/index';
 
 // ==========================================================================
 // Private Evidence Layer (Sprint 23E)
 // ==========================================================================
-export { PrivateEvidenceService } from './private-evidence/index.js';
+export { PrivateEvidenceService } from './private-evidence/index';
 export type {
   AuthorizationState,
   EvidenceVisibility,
   PrivateEvidenceRecord,
   ViewerRole,
   VisibilitySummary,
-} from './private-evidence/index.js';
+} from './private-evidence/index';
 
 // ==========================================================================
 // Visibility Policy Engine (Sprint 24A — Phase 5)
 // ==========================================================================
-export { VisibilityPolicyEngine } from './visibility-policy/index.js';
+export { VisibilityPolicyEngine } from './visibility-policy/index';
 export type {
   ActorType,
   VisibilityLevel,
   VisibilityPolicy,
   VisibilityResolution,
-} from './visibility-policy/index.js';
+} from './visibility-policy/index';
 
 // ==========================================================================
 // Capability Graph (Sprint 24B — Phase 5)
 // ==========================================================================
-export { CapabilityGraphEngine } from './capability-graph/index.js';
+export { CapabilityGraphEngine } from './capability-graph/index';
 export type {
   AnonymousInstitutionResult,
   CapabilityGraphResult,
   CapabilityQuery,
   InstitutionRecord,
-} from './capability-graph/index.js';
+} from './capability-graph/index';
 
 // ==========================================================================
 // Discovery Workspace (Sprint 24C — Phase 5)
 // ==========================================================================
-export { DiscoveryWorkspaceEngine } from './discovery-workspace/index.js';
+export { DiscoveryWorkspaceEngine } from './discovery-workspace/index';
 export type {
   CompatibilitySummary,
   DiscoveryWorkspace,
   WorkspaceInput,
   WorkspaceStatus,
-} from './discovery-workspace/index.js';
+} from './discovery-workspace/index';
 
 // ==========================================================================
 // Opportunity Brief Engine (Sprint 24D — Phase 5)
 // ==========================================================================
-export { OpportunityBriefGenerator } from './opportunity-brief/index.js';
+export { OpportunityBriefGenerator } from './opportunity-brief/index';
 export type {
   BriefStatus,
   OpportunityBrief,
   SiteDecision,
   SponsorDisplayMode,
   VisibilityAccessRequest,
-} from './opportunity-brief/index.js';
+} from './opportunity-brief/index';
 
 // ==========================================================================
 // Institutional Consent Engine (Sprint 24E — Phase 5)
 // ==========================================================================
-export { InstitutionalConsentEngine } from './institutional-consent/index.js';
+export { InstitutionalConsentEngine } from './institutional-consent/index';
 export type {
   AuditEvent,
   AuthorizationState as ConsentAuthorizationState,
   ConsentPurpose,
   ConsentScope,
   InstitutionalConsent,
-} from './institutional-consent/index.js';
+} from './institutional-consent/index';
 
 // ==========================================================================
 // Feasibility Passport (Sprint 24F — Phase 5)
 // ==========================================================================
-export { FeasibilityPassportEngine } from './feasibility-passport/index.js';
+export { FeasibilityPassportEngine } from './feasibility-passport/index';
 export type {
   CollaborationWorkspace,
   FeasibilityPassport,
@@ -246,7 +248,7 @@ export type {
   PassportCapability,
   RevealStatus,
   WorkspaceSection,
-} from './feasibility-passport/index.js';
+} from './feasibility-passport/index';
 export type {
   DiscoveryPhase,
   DiscoveryPhaseStatus,
@@ -259,7 +261,7 @@ export type {
   ReviewItem,
   ReviewedItem,
   PipelineStage,
-} from './discovery-ux/index.js';
+} from './discovery-ux/index';
 export type {
   CandidateClaim,
   MissingEvidenceItem,
@@ -272,7 +274,7 @@ export type {
   ClaimStopCondition,
   StopConditionResult as ClaimStopConditionResult,
   StopConditionsConfig as ClaimStopConditionsConfig,
-} from './claim-candidate/index.js';
+} from './claim-candidate/index';
 export type {
   CandidateCapability,
   CapabilityCategory,
@@ -285,20 +287,20 @@ export type {
   StopCondition,
   StopConditionResult,
   StopConditionsConfig,
-} from './capability/index.js';
-export { TimelineEngine } from './timeline/index.js';
-export type { InstitutionalTimeline, TimelineEvent, TimelineDate, DatePrecision, EventCategory } from './timeline/index.js';
-export { CurationService, CurationError, ALL_CURATION_ACTIONS } from './curation/index.js';
-export type { CurationAction, CurationTargetType, CurationEvent, CurationRequest } from './curation/index.js';
-export { SnapshotBuilder } from './snapshot.js';
-export type { InstitutionalEvidenceSnapshot, SnapshotSummary, SnapshotDocumentInventoryItem, SnapshotEntityGroup, SnapshotRelationshipItem, SnapshotTimelineEvent, SnapshotUncertaintyItem, SnapshotNextBestAction } from './snapshot.js';
-export { DiscoveryOrchestrator } from './orchestrator.js';
-export type { DiscoveryResult, DiscoveryArtifactInfo, DocumentClassification, Entity, Relationship, OrchestratorStores } from './orchestrator.js';
-export { AgentRegistry, AgentRunner, DocumentClassifierAgent, EntityExtractorAgent, RelationshipExtractorAgent } from './agents/index.js';
-export type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance, AgentResultStatus, DocumentType, ClassifierOutput } from './agents/index.js';
-export { createRequest, transitionRequest, InvalidRequestTransitionError, ALL_REQUEST_TYPES, ALLOWED_REQUEST_TRANSITIONS, insertRequest, updateRequestStatus, getPendingRequests, getRequestById, getRequestsByRun } from './preparation/index.js';
-export type { SemanticExtractionRequest, SemanticRequestType, SemanticRequestStatus, RequestPriority } from './preparation/index.js';
-export { ALLOWED_TRANSITIONS } from './types.js';
+} from './capability/index';
+export { TimelineEngine } from './timeline/index';
+export type { InstitutionalTimeline, TimelineEvent, TimelineDate, DatePrecision, EventCategory } from './timeline/index';
+export { CurationService, CurationError, ALL_CURATION_ACTIONS } from './curation/index';
+export type { CurationAction, CurationTargetType, CurationEvent, CurationRequest } from './curation/index';
+export { SnapshotBuilder } from './snapshot';
+export type { InstitutionalEvidenceSnapshot, SnapshotSummary, SnapshotDocumentInventoryItem, SnapshotEntityGroup, SnapshotRelationshipItem, SnapshotTimelineEvent, SnapshotUncertaintyItem, SnapshotNextBestAction } from './snapshot';
+export { DiscoveryOrchestrator } from './orchestrator';
+export type { DiscoveryResult, DiscoveryArtifactInfo, DocumentClassification, Entity, Relationship, OrchestratorStores } from './orchestrator';
+export { AgentRegistry, AgentRunner, DocumentClassifierAgent, EntityExtractorAgent, RelationshipExtractorAgent } from './agents/index';
+export type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance, AgentResultStatus, DocumentType, ClassifierOutput } from './agents/index';
+export { createRequest, transitionRequest, InvalidRequestTransitionError, ALL_REQUEST_TYPES, ALLOWED_REQUEST_TRANSITIONS, insertRequest, updateRequestStatus, getPendingRequests, getRequestById, getRequestsByRun } from './preparation/index';
+export type { SemanticExtractionRequest, SemanticRequestType, SemanticRequestStatus, RequestPriority } from './preparation/index';
+export { ALLOWED_TRANSITIONS } from './types';
 export type {
   Layer0Artifact,
   Layer1Markdown,
@@ -313,4 +315,4 @@ export type {
   TimelineEvent as CoreTimelineEvent,
   ArtifactType,
   EvidenceClass,
-} from './types.js';
+} from './types';

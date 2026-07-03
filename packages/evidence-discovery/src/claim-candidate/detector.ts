@@ -12,11 +12,11 @@ import type {
   CandidateClaim,
   MissingEvidenceItem,
   ClaimCandidateDetectionResult,
-} from './types.js';
+} from './types';
 import type { DiscoveryResult } from '../orchestrator.js';
 import type { InstitutionalTimeline } from '../timeline/types.js';
 import type { CandidateCapability } from '../capability/types.js';
-import { ClaimMappingRegistry, type ClaimMappingRule } from './mapping.js';
+import { ClaimMappingRegistry, type ClaimMappingRule } from './mapping';
 
 // --------------------------------------------------------------------------
 // Detector

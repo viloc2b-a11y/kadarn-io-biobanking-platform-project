@@ -15,7 +15,7 @@ import { ClaimCandidateDetector } from '../claim-candidate/detector.js';
 import { EvidenceGapDetector } from '../gap-detection/detector.js';
 import { NarrativeEngine } from '../narrative/engine.js';
 import { ClaimMappingRegistry } from '../claim-candidate/mapping.js';
-import type { InstitutionalProfile, ProfileSummary, ProfileStatus } from './types.js';
+import type { InstitutionalProfile, ProfileSummary, ProfileStatus } from './types';
 
 export interface ProfileBuilderOptions {
   /** Institution display name (defaults to siteId) */

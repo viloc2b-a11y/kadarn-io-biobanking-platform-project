@@ -2,7 +2,7 @@
 name: implementing-just-in-time-access-provisioning
 description: Implement Just-In-Time (JIT) access provisioning to eliminate standing
   privileges by granting temporary, time-bound access only when needed. This skill
-  covers JIT architecture design, approval workflo
+  covers JIT architecture design, approval workflows, automatic expiration, integration with PAM and IGA platforms, and alignment with zero trust principles.
 domain: cybersecurity
 subdomain: identity-access-management
 tags:

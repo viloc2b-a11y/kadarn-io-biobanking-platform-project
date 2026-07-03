@@ -4,11 +4,11 @@
 // Sprint 20A.3B.
 // ==========================================================================
 
-export { createRequest, transitionRequest, InvalidRequestTransitionError, ALL_REQUEST_TYPES, ALLOWED_REQUEST_TRANSITIONS } from './types.js';
-export { insertRequest, updateRequestStatus, getPendingRequests, getRequestById, getRequestsByRun } from './repository.js';
+export { createRequest, transitionRequest, InvalidRequestTransitionError, ALL_REQUEST_TYPES, ALLOWED_REQUEST_TRANSITIONS } from './types';
+export { insertRequest, updateRequestStatus, getPendingRequests, getRequestById, getRequestsByRun } from './repository';
 export type {
   SemanticExtractionRequest,
   SemanticRequestType,
   SemanticRequestStatus,
   RequestPriority,
-} from './types.js';
+} from './types';

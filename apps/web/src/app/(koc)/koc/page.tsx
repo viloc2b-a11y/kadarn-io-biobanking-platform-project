@@ -92,7 +92,7 @@ export default function KocPage() {
         <StatCard label="Pending Requests"     value={health?.pending_requests ?? '—'}     icon="⇄" color="var(--txdd)" />
       </div>
 
-      {/* Trust + KPE */}
+      {/* KPE */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 22 }}>
         <div style={{ padding: 24, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--navy2)' }}>
           <div style={{ fontSize: 11, color: 'var(--txdd)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16 }}>

@@ -14,10 +14,14 @@
     "test:audit": "vitest run tests/security/audit.test.ts",
     "test:threat": "vitest run tests/security/threat.test.ts",
     "test:security": "vitest run tests/security/",
+    "test:phase8": "vitest run phase8",
+    "test:gate-28jk": "vitest run phase8/legacy-equivalence/gate.test.ts",
+    "staging:cutover-smoke": "npx tsx phase8/staging-cutover-smoke.ts",
     "test:coverage": "vitest run --coverage",
     "seed:users": "npx tsx setup/seed-users.ts"
   },
   "devDependencies": {
+    "@kadarn/published-view": "*",
     "@supabase/supabase-js": "^2.49.0",
     "@types/node": "^26.0.1",
     "typescript": "^5.8.0",

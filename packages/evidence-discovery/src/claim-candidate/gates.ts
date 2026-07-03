@@ -8,7 +8,7 @@
 // No Claims. No Evidence Core writes. No promotion.
 // ==========================================================================
 
-import type { CandidateClaim } from './types.js';
+import type { CandidateClaim } from './types';
 
 // --------------------------------------------------------------------------
 // Types

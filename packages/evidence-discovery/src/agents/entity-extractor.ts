@@ -7,7 +7,7 @@
 // No LLM dependency. Extracts based on regex patterns and keyword signals.
 // ==========================================================================
 
-import type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance } from './framework/types.js';
+import type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance } from './framework/types';
 import type { SemanticRequestType } from '../preparation/types.js';
 import crypto from 'node:crypto';
 

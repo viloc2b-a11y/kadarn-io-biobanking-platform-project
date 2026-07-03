@@ -41,7 +41,7 @@ BEGIN
 
     -- Test that we can insert without providing an id
     INSERT INTO collection_twins (organization_id, status)
-    VALUES ('00000000-0000-0000-0000-000000000000', 'planned')
+    VALUES ('a0000000-0000-0000-0000-000000000004', 'planned')
     RETURNING id INTO v_can_insert;
 
     RAISE NOTICE 'collection_twins auto-id: % (inserted id: %)',

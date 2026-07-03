@@ -4,20 +4,20 @@
 // Sprint 20B.2.
 // ==========================================================================
 
-export { CapabilityDetector } from './engine.js';
+export { CapabilityDetector } from './engine';
 
-export { CapabilityNormalizer } from './normalization.js';
-export type { NormalizedCapability } from './normalization.js';
+export { CapabilityNormalizer } from './normalization';
+export type { NormalizedCapability } from './normalization';
 
-export { CapabilityGates } from './gates.js';
-export type { GateResult, GateConfig, GatesConfig } from './gates.js';
+export { CapabilityGates } from './gates';
+export type { GateResult, GateConfig, GatesConfig } from './gates';
 
-export { StopConditionEvaluator } from './stop-conditions.js';
-export type { StopCondition, StopConditionResult, StopConditionsConfig } from './stop-conditions.js';
+export { StopConditionEvaluator } from './stop-conditions';
+export type { StopCondition, StopConditionResult, StopConditionsConfig } from './stop-conditions';
 
 export type {
   CandidateCapability,
   CapabilityCategory,
   CapabilityStatus,
   CapabilityDetectionResult,
-} from './types.js';
+} from './types';

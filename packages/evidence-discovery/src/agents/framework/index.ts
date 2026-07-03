@@ -4,12 +4,12 @@
 // Sprint 20A.4A.
 // ==========================================================================
 
-export { AgentRegistry } from './registry.js';
-export { AgentRunner } from './runner.js';
+export { AgentRegistry } from './registry';
+export { AgentRunner } from './runner';
 export type {
   DiscoveryAgent,
   AgentContext,
   AgentResult,
   AgentProvenance,
   AgentResultStatus,
-} from './types.js';
+} from './types';

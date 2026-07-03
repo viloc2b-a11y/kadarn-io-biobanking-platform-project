@@ -1,32 +1,39 @@
 // ==========================================================================
-// Public Institution Profile API — Sprint 25D
+// Public Institution Profile API — Sprint 25D / Phase 8 28D convergence
 // ==========================================================================
 // GET /api/v1/institution/public/{slug}
-// Public-facing profile. No private evidence. No identity exposure.
-// RC-0.3: Wrapped with withErrorHandling for consistent error handling.
+// All capability/claim outputs via Published View service (ADR-030).
 // ==========================================================================
 
-import { withErrorHandling, createRouteClient } from '@/lib/auth-guards'
-import { buildAllEngineOutputs } from '@/lib/dashboard-engines'
+import { withErrorHandling } from '@/lib/auth-guards'
+import { createServiceClient } from '@/lib/supabase-server'
 import { rateLimit, PUBLIC_RATE_LIMIT } from '@/lib/rate-limit'
+import { getPublishedViewService } from '@/lib/published-view-service'
 
 export const GET = rateLimit(PUBLIC_RATE_LIMIT, withErrorHandling(async (_request: Request) => {
   const url = new URL(_request.url)
   const slug = url.pathname.split('/').pop()!
 
-  const supabase = await createRouteClient()
+  const supabase = createServiceClient()
 
-  const { data: org } = await supabase
+  const { data: orgRow } = await supabase
     .from('organizations')
-    .select('id, name, city, state, description')
+    .select('id, name, city, region, description')
     .eq('id', slug)
     .single()
 
-  if (!org) {
+  if (!orgRow) {
     return Response.json({ error: 'Institution not found' }, { status: 404 })
   }
 
-  // Get latest session for this org
+  const org = {
+    id: orgRow.id,
+    name: orgRow.name,
+    city: orgRow.city,
+    state: orgRow.region,
+    description: orgRow.description,
+  }
+
   const { data: sessions } = await supabase
     .from('discovery_sessions')
     .select('id')
@@ -35,11 +42,7 @@ export const GET = rateLimit(PUBLIC_RATE_LIMIT, withErrorHandling(async (_reques
     .limit(1)
 
   const session = sessions?.[0]
-
-  // Build engine outputs (if session exists)
-  let capabilities = null
-  let assessment = null
-  let readiness = null
+  const agentOutputs: Record<string, { output: Record<string, unknown>; confidence: number; status: string; created_at: string }> = {}
 
   if (session) {
     const { data: runs } = await supabase
@@ -50,7 +53,6 @@ export const GET = rateLimit(PUBLIC_RATE_LIMIT, withErrorHandling(async (_reques
       .limit(1)
 
     const latestRun = runs?.[0] ?? null
-    const agentOutputs: Record<string, { output: Record<string, unknown>; confidence: number; status: string; created_at: string }> = {}
 
     if (latestRun) {
       const { data: artifacts } = await supabase
@@ -58,7 +60,7 @@ export const GET = rateLimit(PUBLIC_RATE_LIMIT, withErrorHandling(async (_reques
         .select('id')
         .eq('run_id', latestRun.id)
 
-      const artifactIds = (artifacts ?? []).map((a) => a.id)
+      const artifactIds = (artifacts ?? []).map(a => a.id)
 
       if (artifactIds.length > 0) {
         const { data: outputs } = await supabase
@@ -79,32 +81,15 @@ export const GET = rateLimit(PUBLIC_RATE_LIMIT, withErrorHandling(async (_reques
         }
       }
     }
-
-    const engines = buildAllEngineOutputs(agentOutputs)
-    capabilities = engines.capabilityIntelligence
-    assessment = engines.assessmentIntelligence
-    readiness = engines.sponsorReadiness
   }
 
-  // Public profile: no private evidence, no recommendations (sponsor-specific)
-  return Response.json({
-    data: {
-      institution_name: org.name,
-      institution_slug: slug,
-      institution_story: org.description ?? `${org.name} is a Kadarn-enrolled institution.`,
-      location: [org.city, org.state].filter(Boolean).join(', '),
-      capabilities,
-      assessment,
-      gaps: null, // Gaps are sponsor/internal only
-      readiness: readiness ? {
-        readiness_label: readiness.readiness_label,
-        summary: readiness.summary,
-        strengths: readiness.strengths,
-        concerns: readiness.concerns,
-      } : null,
-      recommendations: null, // Not public
-      generated_at: new Date().toISOString(),
-    },
-    error: null,
+  const viewService = getPublishedViewService()
+  const data = viewService.getInstitutionPublicResponse({
+    org,
+    slug,
+    agentOutputs,
+    sessionId: session?.id,
   })
+
+  return Response.json({ data, error: null })
 }))

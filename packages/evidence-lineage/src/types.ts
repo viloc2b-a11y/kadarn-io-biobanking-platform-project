@@ -1,13 +1,12 @@
 // ==========================================================================
-// Kadarn Evidence Lineage — Types
+// Kadarn Evidence Lineage — Types (engine runtime representation)
 // ==========================================================================
-// Sprint 28A. Phase 8.
+// Sprint 28A — Domain Freeze.
 //
-// Separates document origin from semantic origin.
-// Source → SourceVersion → Artifact → ExtractionRun → ExtractedFact.
+// Canonical frozen contracts: @kadarn/types/phase8
+// Engine uses camelCase runtime shapes; map via contract-mapper.ts for persistence/API.
 //
-// Types are self-contained (no dependency on @kadarn/document-intake)
-// to keep the lineage package independently testable.
+// Chain: Source → SourceVersion → Artifact → ExtractionRun → ExtractedFact
 // ==========================================================================
 
 // --------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 // Evidence Firewall — Public API (Sprint 23C)
 // ==========================================================================
 
-export { EvidenceFirewall } from './engine.js'
+export { EvidenceFirewall } from './engine'
 
 export type {
   EvidencePayload,
@@ -13,4 +13,4 @@ export type {
   FirewallStatus,
   FirewallValidationResult,
   ValidationRule,
-} from './types.js'
+} from './types'

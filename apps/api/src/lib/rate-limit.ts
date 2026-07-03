@@ -33,12 +33,13 @@ interface RateLimitEntry {
 const store = new Map<string, RateLimitEntry>()
 
 // Periodic cleanup every 60s
-setInterval(() => {
+const rateLimitCleanupTimer = setInterval(() => {
   const now = Date.now()
   for (const [key, entry] of store) {
     if (now > entry.resetAt) store.delete(key)
   }
-}, 60_000).unref()
+}, 60_000)
+if (typeof rateLimitCleanupTimer?.unref === 'function') rateLimitCleanupTimer.unref()
 
 // ---------------------------------------------------------------------------
 // Default key generator — IP + route

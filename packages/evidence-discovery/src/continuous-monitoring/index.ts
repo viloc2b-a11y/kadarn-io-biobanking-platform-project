@@ -2,7 +2,7 @@
 // Continuous Monitoring — Public API (Sprint 22D)
 // ==========================================================================
 
-export { ContinuousMonitoringOrchestrator } from './orchestrator.js'
+export { ContinuousMonitoringOrchestrator } from './orchestrator'
 
 export type {
   MonitoringSource,
@@ -10,4 +10,4 @@ export type {
   RefreshResult,
   RefreshStatus,
   SourceChange,
-} from './orchestrator.js'
+} from './orchestrator'

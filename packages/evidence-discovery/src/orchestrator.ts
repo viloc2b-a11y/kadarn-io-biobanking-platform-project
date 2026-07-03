@@ -8,13 +8,13 @@
 // The Snapshot, UI, and APIs talk to this — never directly to agents.
 // ==========================================================================
 
-import { AgentRegistry, AgentRunner } from './agents/framework/index.js';
-import { DocumentClassifierAgent } from './agents/classifier.js';
-import { EntityExtractorAgent } from './agents/entity-extractor.js';
-import { RelationshipExtractorAgent } from './agents/relationship-extractor.js';
-import { createRequest as buildRequest } from './preparation/types.js';
-import type { SemanticExtractionRequest } from './preparation/types.js';
-import type { AgentResult, DiscoveryAgent } from './agents/framework/types.js';
+import { AgentRegistry, AgentRunner } from './agents/framework/index';
+import { DocumentClassifierAgent } from './agents/classifier';
+import { EntityExtractorAgent } from './agents/entity-extractor';
+import { RelationshipExtractorAgent } from './agents/relationship-extractor';
+import { createRequest as buildRequest } from './preparation/types';
+import type { SemanticExtractionRequest } from './preparation/types';
+import type { AgentResult, DiscoveryAgent } from './agents/framework/types';
 
 // --------------------------------------------------------------------------
 // Orchestrator dependencies

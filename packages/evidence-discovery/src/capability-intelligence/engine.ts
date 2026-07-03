@@ -19,7 +19,7 @@ import type {
   CapabilityStatus,
   CapabilitySummary,
   ResearchAssetLabel,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Deterministic capability-name → category mapping

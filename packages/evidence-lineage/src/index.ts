@@ -45,5 +45,19 @@ export type { IntegrationSystem, IntegrationContract, WebhookEvent } from './sys
 export { HybridIndexingEngine } from './hybrid-indexing.js'
 export type { IndexConfig, MaterializedEdge } from './hybrid-indexing.js'
 
+export { ReconstructService } from './reconstruct.js'
+export type { ReconstructResult } from './reconstruct.js'
+
 export { ArchitectureFreezeEngine } from './architecture-freeze.js'
 export type { ArchitectureFreezeRecord } from './architecture-freeze.js'
+
+export {
+  toContractLineage,
+  toContractSource,
+  toContractSourceVersion,
+  toContractArtifact,
+  toContractExtractionRun,
+  toContractExtractedFact,
+  assertContractLineageComplete,
+} from './contract-mapper.js'
+export type { ContractLineageBundle } from './contract-mapper.js'

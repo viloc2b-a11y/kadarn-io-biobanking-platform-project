@@ -2,7 +2,7 @@
 // Evidence Gap Intelligence Engine — Public API (Sprint 21C)
 // ==========================================================================
 
-export { EvidenceGapIntelligenceEngine } from './engine.js'
+export { EvidenceGapIntelligenceEngine } from './engine'
 
 export type {
   EvidenceGapEntry,
@@ -12,4 +12,4 @@ export type {
   GapReviewStatus,
   GapSeverity,
   GapSummary,
-} from './types.js'
+} from './types'

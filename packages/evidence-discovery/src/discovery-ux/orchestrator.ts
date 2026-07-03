@@ -22,8 +22,8 @@ import type {
   ReviewedItem,
   UXMessage,
   DiscoveryUXConfig,
-} from './types.js';
-import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS, DEFAULT_UX_CONFIG } from './types.js';
+} from './types';
+import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS, DEFAULT_UX_CONFIG } from './types';
 
 // --------------------------------------------------------------------------
 // UX Orchestrator

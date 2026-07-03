@@ -9,7 +9,7 @@
 // Every detection is explainable.
 // ==========================================================================
 
-import type { CandidateCapability, CapabilityCategory, CapabilityStatus, CapabilityDetectionResult } from './types.js';
+import type { CandidateCapability, CapabilityCategory, CapabilityStatus, CapabilityDetectionResult } from './types';
 import type { Entity, Relationship, DiscoveryResult } from '../orchestrator.js';
 import type { InstitutionalTimeline, TimelineEvent } from '../timeline/types.js';
 

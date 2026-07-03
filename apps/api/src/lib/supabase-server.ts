@@ -1,12 +1,38 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+import { cookies, headers } from 'next/headers';
+
+/**
+ * Service-role client for server-side public reads (no user session).
+ * Use only on routes that intentionally bypass RLS for published data.
+ */
+export function createServiceClient() {
+  return createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
 
 /**
  * Creates a Supabase client for API route handlers.
- * Uses the authenticated user's JWT from the request cookie.
+ * Uses Bearer token from Authorization header when present, otherwise cookies.
  * RLS is enforced — no service_role bypass for user requests.
  */
 export async function createRouteClient() {
+  const headerStore = await headers();
+  const bearer = headerStore.get('Authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (bearer) {
+    return createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_ANON_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${bearer}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      },
+    );
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -93,10 +119,10 @@ export function withAuth(
     params?: Record<string, string>,
   ) => Promise<Response>,
 ) {
-  return async (request: Request, { params }: { params?: Promise<Record<string, string>> }) => {
+  return async (request: Request, context: { params: Promise<Record<string, string>> }) => {
     try {
       const user = await getAuthUser();
-      const resolvedParams = params ? await params : undefined;
+      const resolvedParams = await context.params;
       return await handler(request, user, resolvedParams);
     } catch (error) {
       return handleApiError(error);

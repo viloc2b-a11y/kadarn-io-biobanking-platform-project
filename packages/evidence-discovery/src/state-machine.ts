@@ -8,8 +8,8 @@
 // No AI agent bypasses this state machine.
 // ==========================================================================
 
-import type { DiscoveryState, TransitionEvent, EvidenceCandidate } from './types.js';
-import { ALLOWED_TRANSITIONS } from './types.js';
+import type { DiscoveryState, TransitionEvent, EvidenceCandidate } from './types';
+import { ALLOWED_TRANSITIONS } from './types';
 
 // --------------------------------------------------------------------------
 // State machine errors

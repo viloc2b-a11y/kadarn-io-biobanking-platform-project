@@ -4,7 +4,7 @@
 // Sprint 20B.4.
 // ==========================================================================
 
-export { EvidenceGapDetector } from './detector.js';
+export { EvidenceGapDetector } from './detector';
 export type {
   EvidenceGap,
   RecommendedEvidence,
@@ -12,4 +12,4 @@ export type {
   GapAnalysisReport,
   GapSeverity,
   GapCategory,
-} from './types.js';
+} from './types';

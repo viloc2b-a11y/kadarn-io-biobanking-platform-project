@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "surface": "passport",
+    "route": "/api/v1/continuity/passport/:slug",
+    "captured": "2026-07-03",
+    "source": "staging-anonymized",
+    "fixture_version": "1.0.0"
+  },
+  "input": {
+    "profile": {
+      "id": "00000000-0000-4000-8000-000000000101",
+      "organization_id": "00000000-0000-4000-8000-000000000001",
+      "headline": "Regional Biobank Network",
+      "summary": "Multi-site biospecimen facility with cold-chain infrastructure",
+      "public_slug": "regional-biobank-staging"
+    },
+    "claims": [
+      {
+        "id": "00000000-0000-4000-8000-000000000201",
+        "claim_type": "biospecimen_collection",
+        "category": "capability",
+        "title": "500K plasma samples",
+        "description": "Longitudinal biobank collection across 3 sites",
+        "therapeutic_area": "Oncology",
+        "study_phase": "Phase III",
+        "verification_status": "kadarn_verified",
+        "confidence_score": 88
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000202",
+        "claim_type": "clinical_experience",
+        "category": "experience",
+        "title": "Phase II immunotherapy trials",
+        "description": "12 completed trials 2019-2024",
+        "verification_status": "evidence_submitted",
+        "confidence_score": 72
+      }
+    ]
+  },
+  "expected_legacy_response": {
+    "profile": {
+      "headline": "Regional Biobank Network",
+      "summary": "Multi-site biospecimen facility with cold-chain infrastructure",
+      "slug": "regional-biobank-staging"
+    },
+    "claim_count": 2,
+    "claims_ordered_by_confidence_desc": true,
+    "verification_labels": ["Externally confirmed", "Supported by evidence"]
+  }
+}

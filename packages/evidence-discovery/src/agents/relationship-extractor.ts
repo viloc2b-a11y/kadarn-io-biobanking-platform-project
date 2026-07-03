@@ -8,9 +8,9 @@
 // Deterministic, pattern-based. No LLM.
 // ==========================================================================
 
-import type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance } from './framework/types.js';
+import type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance } from './framework/types';
 import type { SemanticRequestType } from '../preparation/types.js';
-import type { ExtractedEntity } from './entity-extractor.js';
+import type { ExtractedEntity } from './entity-extractor';
 import crypto from 'node:crypto';
 
 // --------------------------------------------------------------------------

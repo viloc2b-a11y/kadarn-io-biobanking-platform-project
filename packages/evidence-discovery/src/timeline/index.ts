@@ -4,11 +4,11 @@
 // Sprint 20B.1.
 // ==========================================================================
 
-export { TimelineEngine } from './engine.js';
+export { TimelineEngine } from './engine';
 export type {
   InstitutionalTimeline,
   TimelineEvent,
   TimelineDate,
   DatePrecision,
   EventCategory,
-} from './types.js';
+} from './types';

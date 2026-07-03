@@ -2,7 +2,7 @@
 // Institutional Consent Engine — Public API (Sprint 24E)
 // ==========================================================================
 
-export { InstitutionalConsentEngine } from './engine.js'
+export { InstitutionalConsentEngine } from './engine'
 
 export type {
   AuditEvent,
@@ -10,4 +10,4 @@ export type {
   ConsentPurpose,
   ConsentScope,
   InstitutionalConsent,
-} from './engine.js'
+} from './engine'

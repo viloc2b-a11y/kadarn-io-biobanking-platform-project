@@ -2,7 +2,7 @@
 // Private Evidence Layer — Public API (Sprint 23E)
 // ==========================================================================
 
-export { PrivateEvidenceService } from './engine.js'
+export { PrivateEvidenceService } from './engine'
 
 export type {
   AuthorizationState,
@@ -10,4 +10,4 @@ export type {
   PrivateEvidenceRecord,
   ViewerRole,
   VisibilitySummary,
-} from './engine.js'
+} from './engine'

@@ -9,8 +9,6 @@ const LABELS: Record<string, string> = {
   shipments_in_transit: 'In Transit',
   shipments_pending: 'Pending Pickup',
   shipments_customs: 'Customs Hold',
-  network_trust_avg: 'Trust Avg',
-  trust_org_count: 'Trusted Orgs',
 }
 
 export default function HealthPage() {
@@ -41,12 +39,11 @@ export default function HealthPage() {
         {Object.entries(data).map(([k,v]) => {
           const label = LABELS[k] ?? k.replace(/([A-Z])/g,' $1').trim()
           const val = v as number
-          const isTrust = k === 'network_trust_avg'
           return (
             <div key={k} style={{background:'var(--card)',border:'1px solid var(--br)',borderRadius:12,padding:16}}>
               <div style={{fontSize:10,color:'var(--txd)',textTransform:'uppercase',letterSpacing:1}}>{label}</div>
-              <div style={{fontSize:24,fontWeight:700,marginTop:6,color: isTrust && val !== null ? (val >= 80 ? 'var(--teal)' : val >= 60 ? 'var(--amber)' : 'var(--red)') : undefined}}>
-                {val !== null ? (isTrust ? `${val}%` : val.toLocaleString()) : '—'}
+              <div style={{fontSize:24,fontWeight:700,marginTop:6}}>
+                {val !== null ? val.toLocaleString() : '—'}
               </div>
             </div>
           )

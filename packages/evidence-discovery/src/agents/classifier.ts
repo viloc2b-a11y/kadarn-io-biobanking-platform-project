@@ -7,7 +7,7 @@
 // No LLM dependency. Classifies based on keyword signals in Layer 1 Markdown.
 // ==========================================================================
 
-import type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance } from './framework/types.js';
+import type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance } from './framework/types';
 import type { SemanticRequestType } from '../preparation/types.js';
 import crypto from 'node:crypto';
 

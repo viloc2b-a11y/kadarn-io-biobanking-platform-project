@@ -26,7 +26,7 @@ export function ExecutiveInstitutionProfile({ data, loading }: ExecutiveProfileP
   if (loading && !data) return <ProfileSkeleton />
   if (!data) return <EmptyProfile />
 
-  const institutionName = data.session?.siteName ?? 'Institution'
+  const institutionName = 'Institution'
   const caps = data.capabilityIntelligence
   const gaps = data.gapIntelligence
   const assessment = data.assessmentIntelligence
@@ -153,9 +153,9 @@ function ExecutiveSummaryCard({
           </div>
         </div>
       )}
-      {session?.updatedAt && (
+      {session?.updated_at && (
         <div style={{ marginTop: 12, fontSize: 11, color: 'var(--txdd)' }}>
-          Last updated: {new Date(session.updatedAt).toLocaleDateString()}
+          Last updated: {new Date(session.updated_at).toLocaleDateString()}
         </div>
       )}
     </div>

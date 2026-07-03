@@ -147,3 +147,8 @@ export interface ApiError {
     message: string
   }
 }
+
+// ─── Phase 8 (frozen domain contracts — Sprint 28A) ──────────────────────────
+
+export * as phase8 from './phase8/index.js'
+export type * from './phase8/index.js'

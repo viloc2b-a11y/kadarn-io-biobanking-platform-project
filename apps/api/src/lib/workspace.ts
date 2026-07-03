@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { User } from '@supabase/supabase-js'
-import { ApiError, createRouteClient } from '@/lib/supabase-server'
+import { ApiError, createServiceClient } from '@/lib/supabase-server'
 
 export const workspacePaginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -37,7 +37,7 @@ export function requireActiveOrg(user: User): string {
  */
 export async function requireValidatedActiveOrg(user: User): Promise<string> {
   const orgId = requireActiveOrg(user)
-  const supabase = await createRouteClient()
+  const supabase = createServiceClient()
   const { data: membership, error } = await supabase
     .from('organization_memberships')
     .select('id')

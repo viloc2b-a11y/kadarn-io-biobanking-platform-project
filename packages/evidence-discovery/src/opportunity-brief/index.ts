@@ -2,7 +2,7 @@
 // Opportunity Brief Engine — Public API (Sprint 24D)
 // ==========================================================================
 
-export { OpportunityBriefGenerator } from './engine.js'
+export { OpportunityBriefGenerator } from './engine'
 
 export type {
   BriefStatus,
@@ -10,4 +10,4 @@ export type {
   SiteDecision,
   SponsorDisplayMode,
   VisibilityAccessRequest,
-} from './engine.js'
+} from './engine'

@@ -18,7 +18,7 @@ import type {
   RecommendationStatus,
   RecommendationSummary,
   SourceEngine,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Category mapping — from action keywords

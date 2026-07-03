@@ -1,10 +1,10 @@
 import type { DashboardData, CapabilityIntelligenceData, GapIntelligenceData, SponsorReadinessData, SponsorReadinessLabel } from './types'
 import { DISCOVERY_COPY } from './discovery-copy'
-import { assessSponsorReadiness, type SponsorReadinessLabel } from './lib'
+import { assessSponsorReadiness, type SponsorReadinessLabel as AssessmentReadinessLabel } from './lib'
 import { Badge, EmptyPanel, PanelHeader, PanelSkeleton, cardStyle } from './panel-primitives'
 
 const LABEL_COPY: Record<
-  SponsorReadinessLabel,
+  AssessmentReadinessLabel,
   { label: string; description: string; tone: 'green' | 'amber' | 'red' | 'default' }
 > = {
   presentation_ready: {
@@ -132,7 +132,7 @@ export function SponsorReadinessSummary({ data, loading }: { data: DashboardData
   )
 }
 
-function nextStepFor(label: SponsorReadinessLabel): string {
+function nextStepFor(label: AssessmentReadinessLabel): string {
   switch (label) {
     case 'needs_additional_evidence':
       return 'Resolve critical evidence gaps before presenting this profile to a sponsor.'
@@ -143,10 +143,6 @@ function nextStepFor(label: SponsorReadinessLabel): string {
     default:
       return DISCOVERY_COPY.needsReview
   }
-}
-
-
-
 }
 
 /** Sprint 21E: Render directly from Sponsor Readiness Engine output. */
@@ -235,7 +231,7 @@ function labelTone(label: SponsorReadinessLabel): 'green' | 'amber' | 'red' | 'd
     case 'Needs Human Review': return 'amber'
     default: return 'default'
   }
-
+}
 
 /** Sprint 21B/21C: Sponsor readiness derived from engine outputs. */
 function EngineDrivenReadiness({
@@ -256,7 +252,7 @@ function EngineDrivenReadiness({
   const hasCurationReview = (data.curationEvents?.length ?? 0) > 0
 
   // Determine readiness from engine data
-  let label: SponsorReadinessLabel
+  let label: AssessmentReadinessLabel
   if (totalCaps === 0) {
     label = 'not_enough_evidence'
   } else if (blockingGaps.length > 0) {

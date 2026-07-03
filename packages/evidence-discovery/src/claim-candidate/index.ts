@@ -4,20 +4,20 @@
 // Sprint 20B.3.
 // ==========================================================================
 
-export { ClaimCandidateDetector } from './detector.js';
+export { ClaimCandidateDetector } from './detector';
 
-export { ClaimMappingRegistry } from './mapping.js';
-export type { ClaimMappingRule } from './mapping.js';
+export { ClaimMappingRegistry } from './mapping';
+export type { ClaimMappingRule } from './mapping';
 
-export { ClaimGates } from './gates.js';
-export type { GateResult, GateConfig, ClaimsGateConfig } from './gates.js';
+export { ClaimGates } from './gates';
+export type { GateResult, GateConfig, ClaimsGateConfig } from './gates';
 
-export { ClaimStopConditionEvaluator } from './stop-conditions.js';
-export type { ClaimStopCondition, StopConditionResult, StopConditionsConfig } from './stop-conditions.js';
+export { ClaimStopConditionEvaluator } from './stop-conditions';
+export type { ClaimStopCondition, StopConditionResult, StopConditionsConfig } from './stop-conditions';
 
 export type {
   CandidateClaim,
   MissingEvidenceItem,
   ClaimStatus,
   ClaimCandidateDetectionResult,
-} from './types.js';
+} from './types';

@@ -1,7 +1,7 @@
 // ==========================================================================
 // Kadarn Evidence Lineage — Claim Provenance Engine
 // ==========================================================================
-// Sprint 28D. Phase 8.
+// Sprint 28E — Claim Provenance Engine
 //
 // Every Claim can answer: Why does this Claim exist?
 // Full traceability: Facts → Sources → Parser → Model → Rule → Actor → Date.

@@ -29,7 +29,7 @@ function ScoreCard({ score }: { score: any }) {
         <Metric label="Clinical Studies" value={String(score.clinicalStudies)} />
         <Metric label="Therapeutic Areas" value={String(score.therapeuticAreas)} />
         <Metric label="Biospecimens" value={formatNum(score.biospecimens)} />
-        <Metric label="Trust Level" value={score.trustLevel} color="#10b981" />
+        <Metric label="Evidence Level" value={score.evidenceLevel} color="#10b981" />
         <Metric label="Continuity Level" value={score.continuityLevel} />
         <Metric label="Evidence Coverage" value={`${score.evidenceCoverage}%`} />
         <Metric label="Reference Coverage" value={`${score.referenceCoverage}%`} />
@@ -67,7 +67,7 @@ function Recommendations({ data }: { data: any }) {
         <span style={{ fontSize: 20, fontWeight: 700, color: '#60a5fa' }}>{data.completionPercent}%</span>
       </div>
       <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 12 }}>
-        Your Continuity Profile is {data.completionPercent}% complete. Estimated Trust Increase: <strong style={{ color: '#10b981' }}>+{data.recommendations.reduce((s: number, r: any) => s + r.estimatedTrustIncrease, 0)} points</strong>
+        Your Continuity Profile is {data.completionPercent}% complete. Estimated Evidence Level Increase: <strong style={{ color: '#10b981' }}>+{data.recommendations.reduce((s: number, r: any) => s + r.estimatedEvidenceLevelIncrease, 0)} points</strong>
       </p>
       <div style={{ display: 'grid', gap: 8 }}>
         {data.recommendations.map((rec: any, i: number) => (
@@ -77,7 +77,7 @@ function Recommendations({ data }: { data: any }) {
               <span style={{ color: '#e2e8f0' }}>{rec.action}</span>
               <span style={{ color: '#64748b', marginLeft: 8 }}>({rec.category})</span>
             </div>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>+{rec.estimatedTrustIncrease}</span>
+            <span style={{ color: '#10b981', fontWeight: 600 }}>+{rec.estimatedEvidenceLevelIncrease}</span>
           </div>
         ))}
       </div>
@@ -166,7 +166,7 @@ export default async function SitePassportPage({ params }: PassportPageProps) {
     <main style={{ padding: 40, display: 'grid', gap: 24, maxWidth: 960, margin: '0 auto' }}>
       <section>
         <h1 style={{ fontSize: 32, marginBottom: 8 }}>{data.profile?.headline ?? 'Site Passport'}</h1>
-        <p style={{ maxWidth: 760 }}>{data.profile?.summary ?? 'Verified site continuity profile.'}</p>
+        <p style={{ maxWidth: 760 }}>{data.profile?.summary ?? 'Evidence-backed site continuity profile.'}</p>
       </section>
 
       <ScoreCard score={scorecardData} />

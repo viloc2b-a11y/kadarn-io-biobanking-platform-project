@@ -696,12 +696,12 @@ export async function computeSiteScore(
     components.coverageScore + components.tenureScore,
   )
 
-  const trustLevel = verifiedCount > 0
-    ? 'Kadarn Verified'
+  const evidenceLevel = verifiedCount > 0
+    ? 'Externally Confirmed'
     : hasConfirmedRef > 0
       ? 'Reference Confirmed'
       : hasEvidence > 0
-        ? 'Evidence Backed'
+        ? 'Supported by Evidence'
         : 'Self Reported'
 
   const continuityLevel = overallScore >= 80
@@ -718,12 +718,12 @@ export async function computeSiteScore(
     clinicalStudies: totalStudies || total,
     therapeuticAreas: therapeuticAreasSet.size || Math.min(total, 5),
     biospecimens: totalBiospecimens,
-    trustLevel,
+    evidenceLevel,
     continuityLevel,
     evidenceCoverage,
     referenceCoverage,
-    infrastructure: infraOk ? 'Verified' : 'Not Verified',
-    regulatoryReadiness: regulatoryOk ? 'Verified' : 'Not Verified',
+    infrastructure: infraOk ? 'Supported by Evidence' : 'Not Yet Supported',
+    regulatoryReadiness: regulatoryOk ? 'Supported by Evidence' : 'Not Yet Supported',
   }
 }
 
@@ -741,7 +741,7 @@ export async function generateRecommendations(
     .eq('site_continuity_profile_id', profileId)
 
   const list = claims ?? []
-  const recommendations: Array<{ category: string; action: string; priority: string; estimatedTrustIncrease: number }> = []
+  const recommendations: Array<{ category: string; action: string; priority: string; estimatedEvidenceLevelIncrease: number }> = []
 
   const therapeuticAreas = new Set<string>()
   let hasGcpEvidence = false
@@ -767,31 +767,31 @@ export async function generateRecommendations(
     const evInTa = claimsInTa.reduce((sum: number, c: { continuity_evidence_items?: Array<unknown> }) =>
       sum + (c.continuity_evidence_items ?? []).length, 0)
     if (evInTa === 0) {
-      recommendations.push({ category: 'Evidence', action: 'Add evidence for ' + ta + ' experience', priority: 'high', estimatedTrustIncrease: 8 })
+      recommendations.push({ category: 'Evidence', action: 'Add evidence for ' + ta + ' experience', priority: 'high', estimatedEvidenceLevelIncrease: 8 })
     }
     const refsInTa = claimsInTa.reduce((sum: number, c: { continuity_references?: Array<unknown> }) =>
       sum + (c.continuity_references ?? []).length, 0)
     if (refsInTa === 0) {
-      recommendations.push({ category: 'References', action: 'Add references for ' + ta, priority: 'medium', estimatedTrustIncrease: 5 })
+      recommendations.push({ category: 'References', action: 'Add references for ' + ta, priority: 'medium', estimatedEvidenceLevelIncrease: 5 })
     }
   }
 
   if (!hasGcpEvidence) {
-    recommendations.push({ category: 'Certification', action: 'Upload GCP certificates', priority: 'high', estimatedTrustIncrease: 12 })
+    recommendations.push({ category: 'Certification', action: 'Upload GCP certificates', priority: 'high', estimatedEvidenceLevelIncrease: 12 })
   }
   if (!hasLabCapability) {
-    recommendations.push({ category: 'Infrastructure', action: 'Verify laboratory capabilities', priority: 'medium', estimatedTrustIncrease: 7 })
+    recommendations.push({ category: 'Infrastructure', action: 'Verify laboratory capabilities', priority: 'medium', estimatedEvidenceLevelIncrease: 7 })
   }
 
   const evCovered = list.filter((c: { continuity_evidence_items?: Array<unknown> }) => (c.continuity_evidence_items ?? []).length > 0).length
   if (list.length > 0 && evCovered / list.length < 0.5) {
-    recommendations.push({ category: 'Evidence', action: 'Add evidence documents to existing claims', priority: 'high', estimatedTrustIncrease: 10 })
+    recommendations.push({ category: 'Evidence', action: 'Add evidence documents to existing claims', priority: 'high', estimatedEvidenceLevelIncrease: 10 })
   }
 
   const refCovered = list.filter((c: { continuity_references?: Array<unknown> }) =>
     (c.continuity_references ?? []).filter((r: unknown) => (r as { status: string }).status === 'confirmed').length > 0).length
   if (list.length > 0 && refCovered / list.length < 0.3) {
-    recommendations.push({ category: 'References', action: 'Confirm pending references to boost credibility', priority: 'medium', estimatedTrustIncrease: 6 })
+    recommendations.push({ category: 'References', action: 'Confirm pending references to boost credibility', priority: 'medium', estimatedEvidenceLevelIncrease: 6 })
   }
 
   const evidenceScore = Math.min(40, (totalEvidence / Math.max(1, list.length * 2)) * 40)
@@ -957,7 +957,7 @@ export async function buildGrowthTimeline(
     milestones.push({ year: firstIvdYear, label: String(firstIvdYear), type: 'ivd', description: 'IVD validation capability established' })
   }
   if (verifiedYear) {
-    milestones.push({ year: verifiedYear, label: String(verifiedYear), type: 'verified', description: 'Kadarn Verified' })
+    milestones.push({ year: verifiedYear, label: String(verifiedYear), type: 'verified', description: 'Externally confirmed' })
   }
 
   // Add future projection

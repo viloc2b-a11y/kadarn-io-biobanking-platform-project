@@ -11,7 +11,7 @@ import type {
   ExplainabilityRecord,
   GovernanceDomain,
   GovernanceVersion,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Engine Registry

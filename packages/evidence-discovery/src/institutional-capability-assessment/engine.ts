@@ -24,7 +24,7 @@ import type {
   OperationalMaturity,
   RecommendedAction,
   SponsorRelevance,
-} from './types.js'
+} from './types'
 
 // --------------------------------------------------------------------------
 // Assessment status — deterministic mapping from capability + gap state

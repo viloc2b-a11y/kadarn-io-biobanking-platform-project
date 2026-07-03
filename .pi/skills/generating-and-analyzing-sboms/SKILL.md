@@ -131,8 +131,8 @@ cosign attest --key cosign.key \
   --type spdxjson \
   myorg/app:1.4.2
 
-# Keyless (Sigstore OIDC / Fulcio + Rekor)
-COSIGN_EXPERIMENTAL=1 cosign attest \
+# Keyless (Sigstore OIDC / Fulcio + Rekor) — no COSIGN_EXPERIMENTAL needed since Cosign 2.0
+cosign attest \
   --predicate app.cdx.json \
   --type cyclonedx \
   myorg/app:1.4.2

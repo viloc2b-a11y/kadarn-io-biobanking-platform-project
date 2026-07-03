@@ -1,0 +1,88 @@
+{
+  "_meta": {
+    "surface": "discovery_dashboard",
+    "route": "/api/v1/discovery/dashboard",
+    "captured": "2026-07-03",
+    "source": "staging-anonymized",
+    "fixture_version": "1.0.0"
+  },
+  "input": {
+    "orgId": "00000000-0000-4000-8000-000000000003",
+    "sessionId": "00000000-0000-4000-8000-000000000401",
+    "agentOutputs": {
+      "capability_detector": {
+        "output": {
+          "capabilities": [
+            {
+              "capabilityId": "cap-stg-dash-001",
+              "name": "Flow Cytometry",
+              "category": "analytics",
+              "status": "proposed",
+              "claimTypeId": "lab_capability"
+            },
+            {
+              "capabilityId": "cap-stg-dash-002",
+              "name": "Digital Pathology",
+              "category": "diagnostics",
+              "status": "confirmed",
+              "claimTypeId": "imaging_capability"
+            }
+          ]
+        },
+        "confidence": 0.84,
+        "status": "completed",
+        "created_at": "2026-07-03T11:00:00.000Z"
+      },
+      "claim_candidate_detector": {
+        "output": {
+          "candidates": [
+            {
+              "id": "cand-stg-dash-001",
+              "proposedClaimTypeId": "laboratory_capability",
+              "reasoning": "Flow cytometry lab mentioned in protocol section 4.2"
+            },
+            {
+              "id": "cand-stg-dash-002",
+              "proposedClaimTypeId": "digital_pathology",
+              "reasoning": "Whole slide imaging referenced in capabilities appendix"
+            }
+          ]
+        },
+        "confidence": 0.76,
+        "status": "completed",
+        "created_at": "2026-07-03T11:00:00.000Z"
+      },
+      "evidence_gap_detector": {
+        "output": {
+          "reports": [
+            {
+              "gaps": [
+                {
+                  "gapId": "gap-stg-001",
+                  "category": "documentation",
+                  "description": "Missing SOP for sample aliquoting",
+                  "severity": "medium"
+                }
+              ]
+            }
+          ]
+        },
+        "confidence": 0.95,
+        "status": "completed",
+        "created_at": "2026-07-03T11:00:00.000Z"
+      }
+    },
+    "candidates": [
+      {
+        "id": "00000000-0000-4000-8000-000000000501",
+        "current_state": "proposed",
+        "claim_type_id": "laboratory_capability"
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000502",
+        "current_state": "under_review",
+        "claim_type_id": "digital_pathology"
+      }
+    ]
+  }
+}

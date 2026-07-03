@@ -5,7 +5,7 @@
 // ==========================================================================
 
 import type { DbClient } from '../repository.js';
-import type { CurationEvent, CurationAction, CurationTargetType } from './types.js';
+import type { CurationEvent, CurationAction, CurationTargetType } from './types';
 
 export interface CreateCurationEventInput {
   targetType: string;

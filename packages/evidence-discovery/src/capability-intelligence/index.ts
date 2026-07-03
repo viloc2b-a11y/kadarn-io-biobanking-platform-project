@@ -2,7 +2,7 @@
 // Capability Intelligence Engine — Public API (Sprint 21B)
 // ==========================================================================
 
-export { CapabilityIntelligenceEngine } from './engine.js'
+export { CapabilityIntelligenceEngine } from './engine'
 
 export type {
   CapabilityCategory,
@@ -12,6 +12,6 @@ export type {
   CapabilityStatus,
   CapabilitySummary,
   ResearchAssetLabel,
-} from './types.js'
+} from './types'
 
-export { RESEARCH_ASSET_LABELS } from './types.js'
+export { RESEARCH_ASSET_LABELS } from './types'

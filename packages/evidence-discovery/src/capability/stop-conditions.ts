@@ -8,7 +8,7 @@
 // No Claims. No Evidence Core modification. No promotion.
 // ==========================================================================
 
-import type { CapabilityDetectionResult, CapabilityCategory } from './types.js';
+import type { CapabilityDetectionResult, CapabilityCategory } from './types';
 
 // --------------------------------------------------------------------------
 // Types

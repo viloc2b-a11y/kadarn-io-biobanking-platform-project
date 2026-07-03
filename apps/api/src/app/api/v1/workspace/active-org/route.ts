@@ -1,4 +1,4 @@
-import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
+import { withAuth, handleApiError, createRouteClient, createServiceClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { emitAuditEvent } from '@/lib/audit'
 import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
@@ -14,14 +14,29 @@ export const POST = withAuth(async (request, user) => {
     const parsed = bodySchema.safeParse(body)
     if (!parsed.success) throw new ApiError(400, 'Validation error', parsed.error.flatten().fieldErrors)
 
-    const supabase = await createRouteClient()
+    const admin = createServiceClient()
 
-    // Update user's active_org_id in their metadata
-    // Note: The actual session update happens client-side after this response
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({ active_org_id: parsed.data.org_id })
-      .eq('id', user.id)
+    const { data: membership, error: membershipError } = await admin
+      .from('organization_memberships')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('organization_id', parsed.data.org_id)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    if (membershipError) {
+      throw new ApiError(500, 'Failed to verify organization membership', membershipError.message)
+    }
+    if (!membership) {
+      throw new ApiError(403, 'You are not an active member of this organization')
+    }
+
+    const { error } = await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...user.user_metadata,
+        active_org_id: parsed.data.org_id,
+      },
+    })
 
     if (error) throw new ApiError(500, 'Failed to set active organization', error.message)
 

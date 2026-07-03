@@ -40,6 +40,22 @@ function badgeStyle(level: string | undefined): React.CSSProperties {
   }
 }
 
+// User-facing label per KEMS-001 §10 Retired Terms Registry. Enum values
+// (verification_status) are unchanged — this only maps them to display text.
+function verificationStatusLabel(status: string | undefined): string {
+  const labels: Record<string, string> = {
+    self_reported: 'Self reported',
+    evidence_submitted: 'Evidence submitted',
+    evidence_backed: 'Supported by evidence',
+    reference_pending: 'Reference pending',
+    reference_confirmed: 'Reference confirmed',
+    kadarn_verified: 'Externally confirmed',
+    rejected: 'Rejected',
+    expired: 'Expired',
+  }
+  return labels[status ?? ''] ?? (status ?? 'Unknown')
+}
+
 const cardStyle = {
   border: '1px solid rgba(148,163,184,.2)',
   borderRadius: 16,
@@ -197,7 +213,7 @@ export default function ContinuityOnboardingPage() {
               <strong>{claim.title}</strong>
               <div style={{ color: 'var(--txdd)', fontSize: 13 }}>{claim.category}</div>
               <div style={{ marginTop: 8, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 13 }}>
-                <span>Status: {claim.verification_status}</span>
+                <span>Status: {verificationStatusLabel(claim.verification_status)}</span>
                 <span>Confidence: {claim.confidence_score}</span>
                 <span>Evidence: {claim.continuity_evidence_items?.length ?? 0}</span>
                 <span>References: {claim.continuity_references?.length ?? 0}</span>

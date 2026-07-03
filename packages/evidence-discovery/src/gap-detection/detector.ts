@@ -19,7 +19,7 @@ import type {
   GapAnalysisReport,
   GapSeverity,
   GapCategory,
-} from './types.js';
+} from './types';
 
 // --------------------------------------------------------------------------
 // Gap Detector
