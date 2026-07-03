@@ -65,3 +65,21 @@ export type {
   SegmentationResult,
   SegmentationOptions,
 } from './segmentation/index.js'
+
+// Extraction
+export { StructuredExtractionEngine } from './extraction/index.js'
+export type {
+  ExtractedEntity,
+  EntityType,
+  EntityMention,
+  ExtractedRelationship,
+  RelationshipType,
+  ClaimCandidate,
+  ClaimType,
+  CapabilityCandidate,
+  CapabilityCategory,
+  ResearchAssetCandidate,
+  AssetType,
+  StructuredExtraction,
+  ExtractionContext,
+} from './extraction/index.js'
