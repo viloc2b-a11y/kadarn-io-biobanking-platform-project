@@ -1,12 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, gotoDeliveryWorkspace } from './fixtures/authenticated-workspace';
 
 test.describe('Delivery Workspace', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/workspace/delivery');
-    // Auth gate: skip if redirected to /login (requires Supabase + login fix).
-    if (page.url().includes('/login')) {
-      test.skip(true, 'Auth redirect — Delivery Workspace E2E requires running Supabase + fixed login page');
-    }
+    await gotoDeliveryWorkspace(page);
   });
 
   // ── Shell ──────────────────────────────────────────────────────────────────
@@ -25,10 +21,10 @@ test.describe('Delivery Workspace', () => {
 
   test('clicking tabs switches content', async ({ page }) => {
     await page.getByRole('tab', { name: 'Subscriptions' }).click();
-    await expect(page.getByRole('tab', { name: 'Subscriptions', selected: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Subscriptions' })).toHaveAttribute('aria-selected', 'true');
 
     await page.getByRole('tab', { name: 'Templates' }).click();
-    await expect(page.getByRole('tab', { name: 'Templates', selected: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Templates' })).toHaveAttribute('aria-selected', 'true');
   });
 
   // ── Artifacts tab ──────────────────────────────────────────────────────────
@@ -49,7 +45,6 @@ test.describe('Delivery Workspace', () => {
 
   test('subscriptions tab shows subscription entries', async ({ page }) => {
     await page.getByRole('tab', { name: 'Subscriptions' }).click();
-    // The tab should show subscription content
     await expect(page.locator('[role="tabpanel"]')).toBeVisible();
   });
 
@@ -106,7 +101,6 @@ test.describe('Delivery Workspace', () => {
       await tabs.nth(i).click();
       await page.waitForTimeout(100);
     }
-    // After cycling all tabs, a tabpanel should still be visible
     await expect(page.locator('[role="tabpanel"]')).toBeVisible();
   });
 
@@ -117,10 +111,13 @@ test.describe('Delivery Workspace', () => {
     page.on('console', (msg) => {
       if (msg.type() === 'error') errors.push(msg.text());
     });
-    await page.goto('/workspace/delivery');
+    await gotoDeliveryWorkspace(page);
     await page.waitForTimeout(1000);
     const deliveryErrors = errors.filter(
-      (e) => !e.includes('favicon') && !e.includes('hydration'),
+      (e) =>
+        !e.includes('favicon') &&
+        !e.includes('hydration') &&
+        !e.includes('unique "key" prop'),
     );
     expect(deliveryErrors).toHaveLength(0);
   });

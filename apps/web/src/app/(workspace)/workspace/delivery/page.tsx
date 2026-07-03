@@ -223,8 +223,9 @@ export default function DeliveryWorkspacePage() {
         {TABS.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             role="tab"
-            aria-selected={tab.id === activeTab}
+            aria-selected={tab.id === activeTab ? 'true' : 'false'}
             aria-controls={`delivery-panel-${tab.id}`}
             style={tabStyle(tab.id === activeTab)}
             onClick={() => { setActiveTab(tab.id); clearSelections() }}

@@ -13,6 +13,7 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@kadarn/ui', '@kadarn/types', '@kadarn/auth', '@kadarn/delivery-domain'],
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   turbopack: {
     root: path.resolve(__dirname, '..', '..'),
   },

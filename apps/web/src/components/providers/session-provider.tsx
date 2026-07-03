@@ -5,6 +5,11 @@ import type { User } from '@supabase/supabase-js'
 import type { KadarnRole, OrganizationMembership } from '@kadarn/types'
 import { resolveRole, defaultRedirect } from '@kadarn/auth'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import {
+  createE2EMockUser,
+  E2E_MOCK_MEMBERSHIP,
+  isE2EAuthClientEnabled,
+} from '@/lib/e2e/mock-session'
 import { useRouter } from 'next/navigation'
 
 interface SessionState {
@@ -23,16 +28,23 @@ const SessionContext = createContext<SessionContextValue | null>(null)
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const supabase = getSupabaseClient()
+  const e2eAuth = isE2EAuthClientEnabled()
+  const supabase = e2eAuth ? null : getSupabaseClient()
 
-  const [state, setState] = useState<SessionState>({
-    user: null,
-    role: null,
-    membership: null,
-    loading: true,
-  })
+  const [state, setState] = useState<SessionState>(() =>
+    e2eAuth
+      ? {
+          user: createE2EMockUser(),
+          role: 'org_admin',
+          membership: E2E_MOCK_MEMBERSHIP,
+          loading: false,
+        }
+      : { user: null, role: null, membership: null, loading: true },
+  )
 
   useEffect(() => {
+    if (e2eAuth || !supabase) return
+
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user ?? null
       const role = user ? resolveRole(user.user_metadata) : null
@@ -46,13 +58,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [e2eAuth, supabase])
 
   const signOut = useCallback(async () => {
+    if (e2eAuth) {
+      setState({ user: null, role: null, membership: null, loading: false })
+      router.push('/login')
+      return
+    }
+    if (!supabase) return
     await supabase.auth.signOut()
     setState({ user: null, role: null, membership: null, loading: false })
-    router.push('/auth/login')
-  }, [supabase, router])
+    router.push('/login')
+  }, [e2eAuth, supabase, router])
 
   const setActiveMembership = useCallback((membership: OrganizationMembership) => {
     setState(s => ({ ...s, membership }))

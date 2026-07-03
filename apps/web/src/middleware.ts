@@ -1,16 +1,37 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { checkRouteAccess, resolveRole } from '@kadarn/auth'
+import {
+  E2E_SESSION_COOKIE,
+  E2E_SESSION_VALUE,
+  isE2EAuthServerEnabled,
+} from '@/lib/e2e/mock-session'
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request })
   const { pathname } = request.nextUrl
+
+  if (pathname.startsWith('/auth/login')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  const response = NextResponse.next({ request })
 
   // Static assets and internal Next.js routes bypass middleware
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.match(/\.(ico|png|svg|jpg|jpeg|webp|css|js)$/)
+  ) {
+    return response
+  }
+
+  // RC-9.2: controlled E2E bypass — only when server flag + cookie (Playwright harness)
+  if (
+    isE2EAuthServerEnabled() &&
+    pathname.startsWith('/workspace') &&
+    request.cookies.get(E2E_SESSION_COOKIE)?.value === E2E_SESSION_VALUE
   ) {
     return response
   }

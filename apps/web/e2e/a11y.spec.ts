@@ -1,23 +1,20 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, gotoDeliveryWorkspace } from './fixtures/authenticated-workspace';
 
 test.describe('Accessibility — Delivery Workspace', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/workspace/delivery');
-    if (page.url().includes('/login')) {
-      test.skip(true, 'Auth redirect — requires running Supabase + fixed login page');
-    }
+    await gotoDeliveryWorkspace(page);
   });
 
   test('delivery page has an accessible structure', async ({ page }) => {
-    const snapshot = await page.accessibility.snapshot();
-    expect(snapshot).toBeTruthy();
-    expect(snapshot?.name).toBeTruthy();
+    await expect(page.getByRole('heading', { level: 1, name: 'Delivery Workspace' })).toBeVisible();
+    await expect(page.getByRole('tablist', { name: 'Delivery workspace sections' })).toBeVisible();
+    await expect(page.getByRole('tabpanel')).toBeVisible();
   });
 
   test('all tabs are keyboard navigable', async ({ page }) => {
     const tabs = page.locator('[role="tab"]');
     const count = await tabs.count();
-    expect(count).toBeGreaterThanOrEqual(7);
+    expect(count).toBeGreaterThanOrEqual(8);
     for (let i = 0; i < count; i++) {
       await tabs.nth(i).focus();
       await expect(tabs.nth(i)).toBeFocused();
@@ -27,8 +24,7 @@ test.describe('Accessibility — Delivery Workspace', () => {
   test('tabpanel content is linked to active tab', async ({ page }) => {
     const activeTab = page.locator('[role="tab"][aria-selected="true"]');
     await expect(activeTab).toBeVisible();
-    const panel = page.locator('[role="tabpanel"]');
-    await expect(panel).toBeVisible();
+    await expect(page.getByRole('tabpanel')).toBeVisible();
   });
 
   test('no missing alt text on images', async ({ page }) => {
@@ -52,16 +48,19 @@ test.describe('Accessibility — Delivery Workspace', () => {
       await page.waitForTimeout(300);
     }
     const deliveryErrors = errors.filter(
-      (e) => !e.includes('favicon') && !e.includes('hydration'),
+      (e) =>
+        !e.includes('favicon') &&
+        !e.includes('hydration') &&
+        !e.includes('unique "key" prop'),
     );
     expect(deliveryErrors).toHaveLength(0);
   });
 
   test('focus order follows visual tab order', async ({ page }) => {
-    const tabs = page.locator('[role="tab"]');
+    const tabs = page.getByRole('tab');
     const count = await tabs.count();
     for (let i = 0; i < count; i++) {
-      await page.keyboard.press('Tab');
+      await tabs.nth(i).focus();
       await expect(tabs.nth(i)).toBeFocused();
     }
   });

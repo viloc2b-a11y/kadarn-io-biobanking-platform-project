@@ -5,6 +5,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from '@/components/providers/session-provider'
 import { OrgSelector } from '@/components/auth/org-selector'
+import {
+  E2E_WORKSPACE_NAV,
+  E2E_WORKSPACE_PROFILE,
+  isE2EAuthClientEnabled,
+} from '@/lib/e2e/mock-session'
 import type { OrganizationMembership } from '@kadarn/types'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
@@ -27,14 +32,26 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  const [profile, setProfile]   = useState<WorkspaceProfile | null>(null)
-  const [navSections, setNav]   = useState<NavSection[]>([])
-  const [profileLoading, setPL] = useState(true)
+  const [profile, setProfile]   = useState<WorkspaceProfile | null>(
+    isE2EAuthClientEnabled() ? E2E_WORKSPACE_PROFILE : null,
+  )
+  const [navSections, setNav]   = useState<NavSection[]>(
+    isE2EAuthClientEnabled() ? E2E_WORKSPACE_NAV : [],
+  )
+  const [profileLoading, setPL] = useState(!isE2EAuthClientEnabled())
   const [orgMenuOpen, setOrgMenu] = useState(false)
 
   useEffect(() => {
     if (sessionLoading) return
-    if (!user) { router.push('/auth/login?next=/workspace'); return }
+
+    if (isE2EAuthClientEnabled()) {
+      setProfile(E2E_WORKSPACE_PROFILE)
+      setNav(E2E_WORKSPACE_NAV)
+      setPL(false)
+      return
+    }
+
+    if (!user) { router.push('/login?next=/workspace'); return }
 
     const token = (user as { access_token?: string }).access_token
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Fragment } from 'react'
 import type { AuditEntry, AuditEventType } from '@kadarn/delivery-domain'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -290,9 +290,8 @@ export function AuditViewer({ entries, artifactIds }: AuditViewerProps) {
             </thead>
             <tbody>
               {filtered.map(e => (
-                <>
+                <Fragment key={e.sequenceNumber}>
                   <tr
-                    key={e.sequenceNumber}
                     style={{ background: e.sequenceNumber === integrity.brokenAt ? '#FEE2E2' : expandedSeq === e.sequenceNumber ? 'var(--navy1)' : 'transparent' }}
                     onClick={() => setExpandedSeq(expandedSeq === e.sequenceNumber ? null : e.sequenceNumber)}
                   >
@@ -313,7 +312,7 @@ export function AuditViewer({ entries, artifactIds }: AuditViewerProps) {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
