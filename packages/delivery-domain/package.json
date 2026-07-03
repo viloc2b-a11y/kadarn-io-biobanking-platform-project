@@ -1,0 +1,20 @@
+{
+  "name": "@kadarn/delivery-domain",
+  "version": "0.1.0",
+  "description": "Kadarn Delivery Domain — canonical domain model for the Evidence Delivery Architecture (KEMS-007). Defines entities, value objects, domain events, and repository interfaces. No implementation.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}
