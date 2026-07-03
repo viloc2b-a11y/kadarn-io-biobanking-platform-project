@@ -1,6 +1,7 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { emitAuditEvent } from '@/lib/audit'
+import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic';
 const bodySchema = z.object({

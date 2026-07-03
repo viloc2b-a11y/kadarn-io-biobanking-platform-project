@@ -8,8 +8,9 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
 import { requireValidatedActiveOrg } from '@/lib/workspace'
 import { buildAllEngineOutputs } from '@/lib/dashboard-engines'
+import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
 
-export const GET = withAuth(async (request, user) => {
+export const GET = rateLimit(WORKSPACE_RATE_LIMIT, withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
     const organizationId = await requireValidatedActiveOrg(user)
@@ -86,4 +87,4 @@ export const GET = withAuth(async (request, user) => {
   } catch (err) {
     return handleApiError(err)
   }
-})
+}))

@@ -18,6 +18,7 @@
 import { withAuth, handleApiError, ApiError } from '@/lib/supabase-server'
 import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
 import { executeErasure } from '@/lib/gdpr'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/v1/account/erasure

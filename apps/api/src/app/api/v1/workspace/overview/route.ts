@@ -1,7 +1,8 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
+import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic';
-export const GET = withAuth(async (_request, user) => {
+export const GET = rateLimit(WORKSPACE_RATE_LIMIT, withAuth(async (_request, user) => {
   try {
     const supabase = await createRouteClient()
     const activeOrgId = user.user_metadata?.active_org_id as string | null
@@ -91,4 +92,4 @@ export const GET = withAuth(async (_request, user) => {
   } catch (err) {
     return handleApiError(err)
   }
-})
+}))

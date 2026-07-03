@@ -8,8 +8,9 @@
 
 import { withErrorHandling, createRouteClient } from '@/lib/auth-guards'
 import { buildAllEngineOutputs } from '@/lib/dashboard-engines'
+import { rateLimit, PUBLIC_RATE_LIMIT } from '@/lib/rate-limit'
 
-export const GET = withErrorHandling(async (_request: Request) => {
+export const GET = rateLimit(PUBLIC_RATE_LIMIT, withErrorHandling(async (_request: Request) => {
   const url = new URL(_request.url)
   const slug = url.pathname.split('/').pop()!
 
@@ -106,4 +107,4 @@ export const GET = withErrorHandling(async (_request: Request) => {
     },
     error: null,
   })
-})
+}))

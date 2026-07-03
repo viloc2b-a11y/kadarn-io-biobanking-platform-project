@@ -8,6 +8,7 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
 import { VisibilityPolicyEngine, CapabilityGraphEngine } from '@kadarn/evidence-discovery'
 import type { CapabilityQuery } from '@kadarn/evidence-discovery'
+import { rateLimit, PUBLIC_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const POST = withAuth(async (request) => {
   try {

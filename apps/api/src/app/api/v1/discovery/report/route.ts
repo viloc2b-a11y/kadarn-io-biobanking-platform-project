@@ -10,8 +10,9 @@ import { requireValidatedActiveOrg } from '@/lib/workspace'
 import { buildAllEngineOutputs } from '@/lib/dashboard-engines'
 import { InstitutionRecognitionReportGenerator } from '@kadarn/evidence-discovery'
 import type { ReportInput } from '@kadarn/evidence-discovery'
+import { rateLimit, COMPUTE_RATE_LIMIT } from '@/lib/rate-limit'
 
-export const GET = withAuth(async (request, user) => {
+export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
     const organizationId = await requireValidatedActiveOrg(user)
@@ -130,4 +131,4 @@ export const GET = withAuth(async (request, user) => {
   } catch (err) {
     return handleApiError(err)
   }
-})
+}))

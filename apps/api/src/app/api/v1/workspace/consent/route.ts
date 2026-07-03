@@ -1,8 +1,9 @@
 import { withAuth, requireOrgMembership, handleApiError } from '@/lib/auth-guards'
+import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withAuth(requireOrgMembership(async (_request, user, orgId) => {
+export const GET = rateLimit(WORKSPACE_RATE_LIMIT, withAuth(requireOrgMembership(async (_request, user, orgId) => {
   return Response.json({
     success: true,
     data: {
@@ -11,4 +12,4 @@ export const GET = withAuth(requireOrgMembership(async (_request, user, orgId) =
       items: [],
     },
   })
-}))
+})))

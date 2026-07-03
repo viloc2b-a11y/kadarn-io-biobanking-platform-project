@@ -1,4 +1,5 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/auth-guards'
+import { rateLimit, PUBLIC_RATE_LIMIT } from '@/lib/rate-limit'
 
 function verificationLabel(status: string): string {
   if (status === 'kadarn_verified') return 'Verified'
@@ -7,7 +8,7 @@ function verificationLabel(status: string): string {
   return 'Self-reported'
 }
 
-export const GET = withAuth(async (_request, user) => {
+export const GET = rateLimit(PUBLIC_RATE_LIMIT, withAuth(async (_request, user) => {
   // RC-0.3: Passport routes now require authentication.
   // Public passport data is still accessible to any authenticated user,
   // but requires auth to verify the requester's identity for consent tracking.
@@ -64,4 +65,4 @@ export const GET = withAuth(async (_request, user) => {
   } catch (error) {
     return handleApiError(error)
   }
-})
+}))

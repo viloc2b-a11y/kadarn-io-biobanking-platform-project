@@ -1,12 +1,13 @@
 import { withAuth, handleApiError, createRouteClient } from '@/lib/auth-guards'
 import { generateRecommendations } from '@/lib/continuity-claim-service'
+import { rateLimit, COMPUTE_RATE_LIMIT } from '@/lib/rate-limit'
 
 /**
  * GET /api/v1/continuity/passport/:slug/recommendations
  *
  * RC-0.3: Requires authentication.
  */
-export const GET = withAuth(async (_request, user) => {
+export const GET = rateLimit(COMPUTE_RATE_LIMIT, withAuth(async (_request, user) => {
   try {
     const url = new URL(_request.url)
     const pathSegments = url.pathname.split('/')
@@ -28,4 +29,4 @@ export const GET = withAuth(async (_request, user) => {
   } catch (error) {
     return handleApiError(error)
   }
-})
+}))
