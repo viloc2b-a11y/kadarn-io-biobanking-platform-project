@@ -242,7 +242,7 @@ export class CapabilityDetector {
     const classificationTypes = new Set(result.classifications.map(c => c.documentType));
     const classificationDocTypeValues = result.classifications.map(c => c.documentType);
     const entityValues = Array.from(entityMap.values()).map(e => e.value);
-    const entityTypes = new Set(entityMap.values().map(e => e.type));
+    const entityTypes = new Set(Array.from(entityMap.values()).map(e => e.type));
 
     // Build entity text for pattern matching
     const entityText = entityValues.join(' ').toLowerCase();

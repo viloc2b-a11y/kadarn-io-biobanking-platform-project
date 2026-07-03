@@ -8,7 +8,7 @@
 // A discovery summary that says "this is what Kadarn could reconstruct."
 // ==========================================================================
 
-import type { DiscoveryResult, DocumentClassification, Entity, Relationship } from '../orchestrator.js';
+import type { DiscoveryResult, DocumentClassification, Entity, Relationship } from './orchestrator.js';
 
 // --------------------------------------------------------------------------
 // Snapshot types

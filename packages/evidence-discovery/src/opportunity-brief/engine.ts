@@ -140,7 +140,7 @@ export class OpportunityBriefGenerator {
     const input = workspace.input
 
     const brief: OpportunityBrief = {
-      brief_id: `brief:${workspace.id.slice(3)}:${anonymousInstitutionId.slice(5, 13)}`,
+      brief_id: `brief:${(workspace.id ?? 'ws:unknown').slice(3)}:${(anonymousInstitutionId ?? 'anon:unknown').slice(5, 13)}`,
       workspace_id: workspace.id,
       anonymous_institution_id: anonymousInstitutionId,
       sponsor_display_mode: sponsorDisplayMode,

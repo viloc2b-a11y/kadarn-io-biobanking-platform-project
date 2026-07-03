@@ -430,11 +430,10 @@ describe('EvidenceGapDetector', () => {
 
   it('does not import from evidence-core', () => {
     // Verify the detector file doesn't reference evidence-core
-    const fs = require('fs');
-    const content = fs.readFileSync(
-      'packages/evidence-discovery/src/gap-detection/detector.ts',
-      'utf-8',
-    );
+    const fs = require('fs')
+    const path = require('path')
+    const detectorPath = path.resolve(__dirname, '../src/gap-detection/detector.ts')
+    const content = fs.readFileSync(detectorPath, 'utf-8')
     expect(content).not.toContain('evidence-core');
   });
 });

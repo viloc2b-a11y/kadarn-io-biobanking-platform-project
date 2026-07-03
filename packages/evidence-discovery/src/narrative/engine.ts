@@ -429,7 +429,12 @@ export class NarrativeEngine {
 
     // Claims
     if (claims.length > 0) {
-      const candidateCount = claims.filter(c => c.status === 'candidate').length;
+      // NOTE (RC-0.1 build recovery): `CandidateClaim` has no `status` field
+      // (confirmed pre-existing gap — see claim-candidate/detector.ts comments).
+      // This filter always evaluated to `undefined === 'candidate'` (false) at
+      // runtime pre-fix, so candidateCount was always 0. Preserving that exact
+      // runtime behavior here (not introducing new logic) — see RC-0.1 report.
+      const candidateCount = claims.filter(c => (c as { status?: string }).status === 'candidate').length;
       const avgCoverage = claims.reduce((s, c) => s + c.evidenceCoverage, 0) / claims.length;
 
       const claimCitations = claims.slice(0, 3).map(c => ({
@@ -478,7 +483,12 @@ export class NarrativeEngine {
     }
 
     if (claims.length > 0) {
-      const candidateCount = claims.filter(c => c.status === 'candidate').length;
+      // NOTE (RC-0.1 build recovery): `CandidateClaim` has no `status` field
+      // (confirmed pre-existing gap — see claim-candidate/detector.ts comments).
+      // This filter always evaluated to `undefined === 'candidate'` (false) at
+      // runtime pre-fix, so candidateCount was always 0. Preserving that exact
+      // runtime behavior here (not introducing new logic) — see RC-0.1 report.
+      const candidateCount = claims.filter(c => (c as { status?: string }).status === 'candidate').length;
       const avgCoverage = claims.reduce((s, c) => s + c.evidenceCoverage, 0) / claims.length;
       parts.push(`${candidateCount} potential claim${candidateCount === 1 ? '' : 's'} ${candidateCount === 1 ? 'was' : 'were'} identified with ${(avgCoverage * 100).toFixed(0)}% average evidence coverage.`);
     }

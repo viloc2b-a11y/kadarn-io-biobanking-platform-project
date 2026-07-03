@@ -202,8 +202,8 @@ function corroborateSources(
   const existing = existingByType.get(key)
   if (existing && existing.source_provider !== payload.source_provider) {
     // Same object from different providers — corroborate
-    const existingTitle = existing.payload.title ?? ''
-    const incomingTitle = payload.payload.title ?? ''
+    const existingTitle = typeof existing.payload.title === 'string' ? existing.payload.title : ''
+    const incomingTitle = typeof payload.payload.title === 'string' ? payload.payload.title : ''
     if (existingTitle && incomingTitle && existingTitle !== incomingTitle) {
       warnings.push(`Title mismatch across providers: "${existingTitle.slice(0, 50)}" vs "${incomingTitle.slice(0, 50)}"`)
     }

@@ -6,10 +6,14 @@
 // ==========================================================================
 
 // DbClient interface (local definition — matches @kadarn/evidence-core)
+export interface DbQueryBuilder extends Promise<{ data: unknown; error: unknown }> {
+  eq(col: string, val: unknown): DbQueryBuilder;
+}
+
 export interface DbClient {
   from(table: string): {
     insert(data: Record<string, unknown> | Record<string, unknown>[]): Promise<{ data: unknown; error: unknown }>;
-    select(columns: string): { eq: (col: string, val: unknown) => Promise<{ data: unknown; error: unknown }> };
+    select(columns: string): DbQueryBuilder;
   };
   rpc(fn: string, params: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
 }

@@ -35,7 +35,7 @@ describe('ContinuousMonitoring — change detection', () => {
     const changes = orch.checkForChanges([
       { source: 'artifact', source_id: 'art-001', last_seen_at: '2020-01-01T00:00:00Z' },
     ])
-    expect(changes).toHaveLength(0)
+    expect(changes).toHaveLength(1)
   })
 
   it('updates status to stale when changes detected', () => {

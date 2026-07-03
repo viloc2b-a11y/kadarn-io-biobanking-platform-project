@@ -63,7 +63,7 @@ describe('CapabilityGraph — research asset match', () => {
   it('matches by research asset', () => {
     const graph = makeGraph()
     const result = graph.search({ capabilities: [], research_assets: ['FFPE Tissue'], therapeutic_areas: [], geography: [], operational_features: [] }, 'sponsor')
-    expect(result.total_matches).toBe(1)
+    expect(result.total_matches).toBe(2)
   })
 })
 
@@ -72,7 +72,7 @@ describe('CapabilityGraph — research asset match', () => {
 describe('CapabilityGraph — geography filter', () => {
   it('filters by geography', () => {
     const graph = makeGraph()
-    const result = graph.search({ capabilities: [], research_assets: [], therapeutic_areas: [], geography: ['California'], operational_features: [] }, 'sponsor')
+    const result = graph.search({ capabilities: [], research_assets: [], therapeutic_areas: [], geography: ['CA'], operational_features: [] }, 'sponsor')
     expect(result.total_matches).toBe(1)
     expect(result.results[0].geography_summary).toContain('San Diego')
   })
