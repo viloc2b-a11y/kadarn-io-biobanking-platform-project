@@ -48,3 +48,11 @@ export type {
   ConnectorProviderInfo,
   ConnectorFetchResult,
 } from './adapters/index.js'
+
+// Classification
+export { DocumentClassificationEngine } from './classification/index.js'
+export type {
+  ClassificationLabel,
+  ClassificationMatch,
+  DocumentClassification,
+} from './classification/index.js'
