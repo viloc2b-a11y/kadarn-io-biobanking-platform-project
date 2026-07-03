@@ -56,3 +56,12 @@ export type {
   ClassificationMatch,
   DocumentClassification,
 } from './classification/index.js'
+
+// Segmentation
+export { EvidenceSegmentationEngine } from './segmentation/index.js'
+export type {
+  DocumentSection,
+  SectionPosition,
+  SegmentationResult,
+  SegmentationOptions,
+} from './segmentation/index.js'
