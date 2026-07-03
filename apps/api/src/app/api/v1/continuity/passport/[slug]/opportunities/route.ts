@@ -1,17 +1,17 @@
-import { createRouteClient, handleApiError } from '@/lib/supabase-server'
+import { withAuth, handleApiError, createRouteClient } from '@/lib/auth-guards'
 import { computeOpportunityReadiness } from '@/lib/continuity-claim-service'
 
 /**
  * GET /api/v1/continuity/passport/:slug/opportunities
  *
- * Returns opportunity readiness assessment.
+ * RC-0.3: Requires authentication. Returns opportunity readiness assessment.
  */
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ slug: string }> },
-) {
+export const GET = withAuth(async (_request, user) => {
   try {
-    const { slug } = await context.params
+    const url = new URL(_request.url)
+    const pathSegments = url.pathname.split('/')
+    const slug = pathSegments[pathSegments.indexOf('passport') + 1]
+
     const supabase = await createRouteClient()
 
     const { data: profile, error: profileError } = await supabase
@@ -28,4 +28,4 @@ export async function GET(
   } catch (error) {
     return handleApiError(error)
   }
-}
+})

@@ -6,6 +6,12 @@ import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-serv
  */
 export const GET = withAuth(async (_request, user) => {
   try {
+    // RC-0.3: KOC access restricted to kadarn_internal role
+    const userRole = user.user_metadata?.kadarn_role as string | undefined
+    if (userRole !== 'kadarn_internal') {
+      return Response.json({ error: { code: 403, message: 'KOC access restricted' } }, { status: 403 })
+    }
+
     const supabase = await createRouteClient()
 
     const now = new Date()

@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
-export async function GET(req: Request) {
-  // Org-scoped: active_org_id from auth context (simplified)
-  const orgId = req.headers.get('x-org-id') ?? 'org-default';
-  return NextResponse.json({
+import { withAuth, requireOrgMembership, handleApiError } from '@/lib/auth-guards'
+
+export const GET = withAuth(requireOrgMembership(async (_request, user, orgId) => {
+  return Response.json({
     success: true,
-    data: { orgId, message: 'Org-scoped data for ' + orgId, items: [] }
-  });
-}
+    data: {
+      orgId,
+      message: 'Organization-scoped data for ' + orgId,
+      items: [],
+    },
+  })
+}))

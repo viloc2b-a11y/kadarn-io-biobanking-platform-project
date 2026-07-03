@@ -1,4 +1,4 @@
-import { createRouteClient, handleApiError } from '@/lib/supabase-server'
+import { withAuth, handleApiError, createRouteClient } from '@/lib/auth-guards'
 
 function verificationLabel(status: string): string {
   if (status === 'kadarn_verified') return 'Verified'
@@ -7,15 +7,26 @@ function verificationLabel(status: string): string {
   return 'Self-reported'
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
+export const GET = withAuth(async (_request, user) => {
+  // RC-0.3: Passport routes now require authentication.
+  // Public passport data is still accessible to any authenticated user,
+  // but requires auth to verify the requester's identity for consent tracking.
   try {
-    const { slug } = await context.params
+    const { slug } = await _request.url
+      ? { slug: new URL(_request.url).pathname.split('/').pop()! }
+      : { slug: '' }
+
     const supabase = await createRouteClient()
+
+    // Use the request URL to extract slug from path params
+    const url = new URL(_request.url)
+    const pathSegments = url.pathname.split('/')
+    const slugFromPath = pathSegments[pathSegments.indexOf('passport') + 1]
 
     const { data: profile, error: profileError } = await supabase
       .from('site_continuity_profiles')
       .select('id, organization_id, headline, summary, public_slug, passport_visibility')
-      .eq('public_slug', slug)
+      .eq('public_slug', slugFromPath)
       .in('passport_visibility', ['public', 'shared_link'])
       .single()
 
@@ -28,19 +39,24 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
       .eq('is_public', true)
       .neq('verification_status', 'rejected')
       .order('confidence_score', { ascending: false })
-      .order('created_at', { ascending: false })
 
     if (claimsError) throw claimsError
 
     return Response.json({
       data: {
-        profile,
-        claims: (claims ?? []).map((claim) => ({
-          ...claim,
-          verification_label: verificationLabel(claim.verification_status),
-          sponsor_display: claim.sponsor_name_policy === 'public'
-            ? null
-            : claim.masked_sponsor_label ?? 'Masked sponsor',
+        profile: {
+          headline: profile.headline,
+          summary: profile.summary,
+          slug: profile.public_slug,
+        },
+        claims: (claims ?? []).map(c => ({
+          id: c.id,
+          type: c.claim_type,
+          category: c.category,
+          title: c.title,
+          description: c.description,
+          verification: verificationLabel(c.verification_status),
+          confidence: c.confidence_score,
         })),
       },
       error: null,
@@ -48,4 +64,4 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   } catch (error) {
     return handleApiError(error)
   }
-}
+})
