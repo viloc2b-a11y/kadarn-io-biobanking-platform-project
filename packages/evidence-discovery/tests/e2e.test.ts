@@ -25,10 +25,6 @@ import {
   createCandidate as persistCandidate,
   createTransitionEvent,
 
-  // Extraction
-  MarkItDownProvider,
-  DocumentExtractionRegistry,
-  DocumentExtractionService,
 
   // Preparation
   createRequest,
@@ -209,12 +205,6 @@ describe('Architecture gates', () => {
     await expect(service.curate({ targetType: 'CLASSIFICATION', targetId: 'c', action: 'ACCEPT', actorId: '' })).rejects.toThrow(CurationError);
   });
 
-  it('provider never creates Claims', () => {
-    const provider = new MarkItDownProvider();
-    expect((provider as any).createClaim).toBeUndefined();
-    expect((provider as any).createEvidenceCandidate).toBeUndefined();
-  });
-
   it('agents never promote Evidence Nodes', () => {
     for (const Agent of [DocumentClassifierAgent, EntityExtractorAgent, RelationshipExtractorAgent]) {
       const agent = new Agent();
@@ -233,19 +223,6 @@ describe('Architecture gates', () => {
 });
 
 // ==========================================================================
-// 5. Failed extraction
-// ==========================================================================
-
-describe('Failed extraction', () => {
-  it('non-existent file returns error', async () => {
-    const provider = new MarkItDownProvider();
-    await expect(provider.extract({
-      artifactId: 'a', filePath: '/nonexistent/file.pdf', filename: 'f.pdf',
-      mimeType: 'application/pdf', sizeBytes: 0, sha256: 'x',
-    })).rejects.toThrow();
-  });
-});
-
 // ==========================================================================
 // Helpers
 // ==========================================================================

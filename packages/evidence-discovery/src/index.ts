@@ -22,7 +22,8 @@ export { CapabilityDetector, CapabilityNormalizer, CapabilityGates, StopConditio
 
 export { ClaimCandidateDetector, ClaimMappingRegistry, ClaimGates, ClaimStopConditionEvaluator } from './claim-candidate/index.js';
 export { EvidenceGapDetector } from './gap-detection/index.js';
-export type { EvidenceGap, RecommendedEvidence, GapAnalysisResult, GapAnalysisReport, GapSeverity, GapCategory } from './gap-detection/index.js';
+export type { EvidenceGap, RecommendedEvidence, GapAnalysisResult, GapAnalysisReport } from './gap-detection/index.js';
+export type { GapSeverity as DetectionGapSeverity, GapCategory as DetectionGapCategory } from './gap-detection/index.js';
 export { NarrativeEngine } from './narrative/index.js';
 export type { InstitutionalNarrative, NarrativeSection, NarrativeParagraph, NarrativeCitation, NarrativeSectionType } from './narrative/index.js';
 export { ProfileBuilder } from './profile/index.js';
@@ -135,7 +136,7 @@ export type {
   IdentityState,
   IdentityTimelineEvent,
   ResolutionInput,
-  ReviewItem,
+  ReviewItem as IdentityReviewItem,
 } from './identity-resolution/index.js';
 
 // ==========================================================================
@@ -228,7 +229,7 @@ export type {
 export { InstitutionalConsentEngine } from './institutional-consent/index.js';
 export type {
   AuditEvent,
-  AuthorizationState,
+  AuthorizationState as ConsentAuthorizationState,
   ConsentPurpose,
   ConsentScope,
   InstitutionalConsent,
@@ -293,10 +294,8 @@ export { SnapshotBuilder } from './snapshot.js';
 export type { InstitutionalEvidenceSnapshot, SnapshotSummary, SnapshotDocumentInventoryItem, SnapshotEntityGroup, SnapshotRelationshipItem, SnapshotTimelineEvent, SnapshotUncertaintyItem, SnapshotNextBestAction } from './snapshot.js';
 export { DiscoveryOrchestrator } from './orchestrator.js';
 export type { DiscoveryResult, DiscoveryArtifactInfo, DocumentClassification, Entity, Relationship, OrchestratorStores } from './orchestrator.js';
-export { MarkItDownProvider, DocumentExtractionRegistry, DocumentExtractionService } from './extraction/index.js';
 export { AgentRegistry, AgentRunner, DocumentClassifierAgent, EntityExtractorAgent, RelationshipExtractorAgent } from './agents/index.js';
 export type { DiscoveryAgent, AgentContext, AgentResult, AgentProvenance, AgentResultStatus, DocumentType, ClassifierOutput } from './agents/index.js';
-export type { DocumentExtractionProvider, ExtractionInput, ExtractionResult, ExtractionMetadata, ExtractionWarning, ExtractionProviderName, SupportedDocumentType, Layer1Repository } from './extraction/index.js';
 export { createRequest, transitionRequest, InvalidRequestTransitionError, ALL_REQUEST_TYPES, ALLOWED_REQUEST_TRANSITIONS, insertRequest, updateRequestStatus, getPendingRequests, getRequestById, getRequestsByRun } from './preparation/index.js';
 export type { SemanticExtractionRequest, SemanticRequestType, SemanticRequestStatus, RequestPriority } from './preparation/index.js';
 export { ALLOWED_TRANSITIONS } from './types.js';
@@ -311,7 +310,7 @@ export type {
   ProvenanceEntry,
   ProvenanceStepType,
   EvidenceSnapshot,
-  TimelineEvent,
+  TimelineEvent as CoreTimelineEvent,
   ArtifactType,
   EvidenceClass,
 } from './types.js';
