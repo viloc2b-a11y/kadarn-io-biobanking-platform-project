@@ -394,7 +394,7 @@ export type ContinuitySourceType =
   | 'document_backed'
   | 'event_derived'
   | 'sponsor_confirmed'
-  | 'kadarn_verified';
+  ;
 
 export type ContinuityVerificationStatus =
   | 'unverified'
@@ -526,7 +526,7 @@ export type LegacyClaimVerificationStatus =
   | 'evidence_submitted'
   | 'reference_pending'
   | 'reference_confirmed'
-  | 'kadarn_verified'
+   
   | 'rejected'
   | 'expired';
 
@@ -612,7 +612,7 @@ export interface ContinuityClaimVerifiedPayload {
   actorId: string;
   occurredAt: string;
   payload: {
-    verificationStatus: 'kadarn_verified';
+    verificationStatus: string;
     confidenceScore: number;
   };
 }

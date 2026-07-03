@@ -12,7 +12,6 @@ const NAV = [
     items: [
       { id: 'overview',    label: 'Overview',       href: '/koc',                icon: '◎' },
       { id: 'health',      label: 'Network Health', href: '/koc/health',         icon: '⬡' },
-      { id: 'trust',       label: 'Trust Index',    href: '/koc/trust',          icon: '◈' },
       { id: 'exceptions',  label: 'Exceptions',     href: '/koc/exceptions',     icon: '▲' },
     ],
   },
@@ -62,22 +61,6 @@ export function KocShell({ children }: { children: React.ReactNode }) {
   const router  = useRouter()
   const pathname = usePathname()
 
-  useEffect(() => {
-    if (loading) return
-    if (!user) { router.push('/auth/login?next=/koc'); return }
-
-    const role = resolveRole(user.user_metadata ?? {})
-    if (role !== 'kadarn_internal') {
-      router.push('/workspace')
-    }
-  }, [user, loading, router])
-
-  if (loading || !user) return <KocSkeleton />
-
-  const currentLabel = NAV.flatMap(s => s.items).find(i =>
-    i.href === pathname || (i.href !== '/koc' && pathname.startsWith(i.href))
-  )?.label ?? 'KOC'
-
   // ── Notifications ──
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifData, setNotifData] = useState<any>(null)
@@ -89,6 +72,16 @@ export function KocShell({ children }: { children: React.ReactNode }) {
       .then(d => setNotifData(d.data))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (loading) return
+    if (!user) { router.push('/auth/login?next=/koc'); return }
+
+    const role = resolveRole(user.user_metadata ?? {})
+    if (role !== 'kadarn_internal') {
+      router.push('/workspace')
+    }
+  }, [user, loading, router])
 
   useEffect(() => { fetchNotifs() }, [fetchNotifs])
 
@@ -102,6 +95,12 @@ export function KocShell({ children }: { children: React.ReactNode }) {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [notifOpen])
+
+  if (loading || !user) return <KocSkeleton />
+
+  const currentLabel = NAV.flatMap(s => s.items).find(i =>
+    i.href === pathname || (i.href !== '/koc' && pathname.startsWith(i.href))
+  )?.label ?? 'KOC'
 
   const allNotifs = notifData ? [
     ...(notifData.activity ?? []).map((n: any) => ({ ...n, _type: 'activity', _time: n.created_at })),

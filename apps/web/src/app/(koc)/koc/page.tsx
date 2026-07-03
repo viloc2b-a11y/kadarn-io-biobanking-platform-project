@@ -7,7 +7,6 @@ type HealthData = {
   active_programs: number
   pending_requests: number
   shipments_in_transit: number
-  network_trust_avg: number | null
 }
 
 type ExceptionsData = {
@@ -36,11 +35,6 @@ type KpeData = {
   }>
 }
 
-type TrustData = {
-  network_trust_index: number
-  org_count: number
-  at_risk: number
-}
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -59,7 +53,6 @@ export default function KocPage() {
   const [health,     setHealth]     = useState<HealthData | null>(null)
   const [exceptions, setExceptions] = useState<ExceptionsData | null>(null)
   const [kpe,        setKpe]        = useState<KpeData | null>(null)
-  const [trust,      setTrust]      = useState<TrustData | null>(null)
   const [loading,    setLoading]    = useState(true)
   const [fetchError, setFetchError] = useState(false)
 
@@ -68,13 +61,11 @@ export default function KocPage() {
       get<HealthData>('/api/v1/operations/health'),
       get<ExceptionsData>('/api/v1/operations/exceptions'),
       get<KpeData>('/api/v1/operations/kpe'),
-      get<TrustData>('/api/v1/operations/trust'),
-    ]).then(([h, e, k, t]) => {
-      if (h.error && e.error && k.error && t.error) setFetchError(true)
+    ]).then(([h, e, k]) => {
+      if (h.error && e.error && k.error) setFetchError(true)
       setHealth(h.data)
       setExceptions(e.data)
       setKpe(k.data)
-      setTrust(t.data)
       setLoading(false)
     })
   }, [])
@@ -82,7 +73,6 @@ export default function KocPage() {
   if (loading) return <OverviewSkeleton />
   if (fetchError) return <FetchError onRetry={() => { setLoading(true); setFetchError(false) }} />
 
-  const trustScore    = trust?.network_trust_index ?? health?.network_trust_avg ?? null
   const criticalCount = exceptions?.critical ?? 0
 
   return (
@@ -104,35 +94,6 @@ export default function KocPage() {
 
       {/* Trust + KPE */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 22 }}>
-        <div style={{ padding: 24, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--navy2)' }}>
-          <div style={{ fontSize: 11, color: 'var(--txdd)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16 }}>
-            Network Trust Index
-          </div>
-          {trustScore !== null ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              <TrustRing score={trustScore} />
-              <div>
-                <div style={{ fontSize: 13, color: 'var(--txd)', marginBottom: 6 }}>
-                  <span style={{ fontWeight: 700, color: trustColor(trustScore) }}>{trustScore}</span>
-                  <span style={{ color: 'var(--txdd)' }}> / 100</span>
-                </div>
-                {trust && (
-                  <>
-                    <div style={{ fontSize: 12, color: 'var(--txdd)' }}>{trust.org_count} orgs tracked</div>
-                    {trust.at_risk > 0 && (
-                      <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 4, fontWeight: 600 }}>
-                        ▲ {trust.at_risk} at risk
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div style={{ color: 'var(--txdd)', fontSize: 13 }}>No trust data</div>
-          )}
-        </div>
-
         <div style={{ padding: 24, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--navy2)' }}>
           <div style={{ fontSize: 11, color: 'var(--txdd)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 16 }}>
             Kadarn Proof of Execution
@@ -224,21 +185,6 @@ function StatCard({ label, value, icon, color }: { label: string; value: number 
   )
 }
 
-function TrustRing({ score }: { score: number }) {
-  const r      = 38
-  const circ   = 2 * Math.PI * r
-  const offset = circ - (score / 100) * circ
-  const color  = trustColor(score)
-  return (
-    <svg width="96" height="96" viewBox="0 0 96 96">
-      <circle cx="48" cy="48" r={r} fill="none" stroke="var(--border)" strokeWidth="7" />
-      <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="7"
-        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-        transform="rotate(-90 48 48)" />
-      <text x="48" y="53" textAnchor="middle" fontSize="16" fontWeight="900" fill={color}>{score}</text>
-    </svg>
-  )
-}
 
 function OverviewSkeleton() {
   return (
@@ -256,9 +202,6 @@ function OverviewSkeleton() {
   )
 }
 
-function trustColor(score: number) {
-  return score >= 85 ? 'var(--teal)' : score >= 65 ? 'var(--amber)' : 'var(--red)'
-}
 
 function kpeColor(pct: number) {
   return pct >= 80 ? 'var(--teal)' : pct >= 50 ? 'var(--blue)' : 'var(--amber)'

@@ -30,7 +30,6 @@ export interface Organization {
   name: string
   type: OrgType
   capabilities: Capability[]
-  trust_score: number
   created_at: string
 }
 
@@ -38,15 +37,6 @@ export interface Organization {
 
 export type MarketplaceCategory = 'research' | 'services' | 'network'
 
-export interface NetworkTrustIndex {
-  overall: number
-  identity_assurance: number
-  consent_integrity: number
-  regulatory_standing: number
-  provenance_completeness: number
-  custody_reliability: number
-  data_integrity: number
-}
 
 // ─── KPE — Kadarn Proof of Execution ─────────────────────────────────────────
 

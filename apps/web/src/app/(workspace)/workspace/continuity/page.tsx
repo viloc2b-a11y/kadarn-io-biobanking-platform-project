@@ -28,7 +28,7 @@ function badgeStyle(level: string | undefined): React.CSSProperties {
     self_reported: '#6b7280',
     evidence_backed: '#f59e0b',
     reference_confirmed: '#3b82f6',
-    kadarn_verified: '#10b981',
+    // kadarn_verified badge retired per ADR-010; color retained for backward compat
   }
   return {
     background: (colors[level ?? 'self_reported'] ?? '#6b7280') + '22',

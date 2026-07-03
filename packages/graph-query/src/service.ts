@@ -51,18 +51,14 @@ export class GraphQueryService {
       ? await this.adapter.findOrganizationsByCapability(criteria.requiredCapabilities)
       : [];
 
-    // Phase 3: Get trust scores for candidates (Trust Graph)
+    // Note: Trust Score logic removed per ADR-010 (RC-0.2)
     const suppliers: SupplierMatch[] = [];
     const maxResults = criteria.maxResults ?? 20;
 
     for (const org of candidates) {
       if (suppliers.length >= maxResults) break;
 
-      const trust = await this.adapter.getOrganizationTrust(org.id);
 
-      // Filter by minimum trust score
-      if (criteria.minTrustScore && trust.overallScore < criteria.minTrustScore) {
-        continue;
       }
 
       const reasons: string[] = [];
@@ -72,19 +68,15 @@ export class GraphQueryService {
       if (expandedDiagnoses) {
         reasons.push(`Matches diagnoses: ${expandedDiagnoses.normalizedTerm}`);
       }
-      reasons.push(`Trust score: ${(trust.overallScore * 100).toFixed(0)}%`);
 
       suppliers.push({
         organizationId: org.id,
         name: org.name,
-        trustScore: trust.overallScore,
         capabilities: criteria.requiredCapabilities ?? [],
         matchReasons: reasons,
       });
     }
 
-    // Sort by trust score descending
-    suppliers.sort((a, b) => b.trustScore - a.trustScore);
 
     return suppliers;
   }

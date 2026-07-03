@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { TrustBadge } from '@/components/marketplace/trust-badge'
 import { RequestCta } from '@/components/marketplace/request-cta'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -304,7 +303,6 @@ function NetworkCard({ item }: { item: NetworkResult }) {
           {primary && <TypeBadge label={primary.name} color="var(--purple)" />}
           <CardTitle>{item.name}</CardTitle>
         </div>
-        <TrustBadge trust={item.trust ?? null} size="sm" />
       </div>
       {item.description && <CardDesc>{item.description}</CardDesc>}
       <TagRow>

@@ -63,12 +63,6 @@ function getRegionForCountry(country: string | null): string {
   return 'other'
 }
 
-function trustColor(riskLevel: string | null): string {
-  if (riskLevel === 'low') return 'var(--teal)'
-  if (riskLevel === 'medium') return 'var(--amber)'
-  if (riskLevel === 'high') return 'var(--red)'
-  return 'var(--txdd)'
-}
 
 // ─── Stat card ───────────────────────────────────────────────────────────────
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
@@ -83,7 +77,6 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
 // ─── Main component ──────────────────────────────────────────────────────────
 export default function NetworkPage() {
   const [ecosystemData, setEcosystemData] = useState<any>(null)
-  const [trustData, setTrustData] = useState<any>(null)
   const [analyticsData, setAnalyticsData] = useState<any>(null)
   const [logisticsData, setLogisticsData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -93,13 +86,11 @@ export default function NetworkPage() {
   useEffect(() => {
     Promise.all([
       fetch(`${API}/api/v1/koc/ecosystem`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: {} }),
-      fetch(`${API}/api/v1/operations/trust`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: { organizations: [] } }),
       fetch(`${API}/api/v1/koc/analytics`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: {} }),
       fetch(`${API}/api/v1/koc/logistics`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: { summary: {} } }),
     ])
-      .then(([eco, tr, an, log]) => {
+      .then(([eco, an, log]) => {
         setEcosystemData(eco.data)
-        setTrustData(tr.data)
         setAnalyticsData(an.data)
         setLogisticsData(log.data)
         setLoading(false)
@@ -109,7 +100,7 @@ export default function NetworkPage() {
 
   // ── Derive map markers from data ───────────────────────────────────────────
   const { markers, connections, regionCounts } = useMemo(() => {
-    const orgs = trustData?.organizations ?? []
+    const orgs: any[] = []
     const topBanks = ecosystemData?.top_biobanks ?? []
 
     // Build a lookup: org_name → details
@@ -130,8 +121,7 @@ export default function NetworkPage() {
         name: tb.name,
         program_count: tb.program_count,
         country,
-        risk_level: detail?.risk_level ?? null,
-        trust_overall: detail?.trust?.overall ?? null,
+        risk_level: 'low' as const,
         x: coords.x,
         y: coords.y,
       })
@@ -147,8 +137,7 @@ export default function NetworkPage() {
           name: o.org_name,
           program_count: 0,
           country: o.country,
-          risk_level: o.risk_level,
-          trust_overall: o.trust?.overall ?? null,
+          risk_level: 'low' as const,
           x: coords.x,
           y: coords.y,
         })
@@ -179,7 +168,7 @@ export default function NetworkPage() {
     }
 
     return { markers: matched, connections: conns, regionCounts: rc }
-  }, [trustData, ecosystemData])
+  }, [ecosystemData])
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
@@ -278,9 +267,9 @@ export default function NetworkPage() {
           {markerDots.map((m, i) => (
             <g key={m.org_id ?? i} style={{ cursor: 'pointer' }} onClick={() => setSelectedOrg(selectedOrg?.org_id === m.org_id ? null : m)}>
               {/* Glow */}
-              <circle cx={m.x} cy={m.y} r={m.radius * 2.5} fill={trustColor(m.risk_level)} opacity={0.08} />
+              <circle cx={m.x} cy={m.y} r={m.radius * 2.5} fill="var(--blue)" opacity={0.08} />
               {/* Dot */}
-              <circle cx={m.x} cy={m.y} r={m.radius} fill={trustColor(m.risk_level)} opacity={0.85}>
+              <circle cx={m.x} cy={m.y} r={m.radius} fill="var(--blue)" opacity={0.85}>
                 <animate attributeName="opacity" values="0.85;0.6;0.85" dur="3s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
               </circle>
               {/* Label for larger dots */}
@@ -340,25 +329,24 @@ export default function NetworkPage() {
       {selectedOrg && (
         <div style={{
           marginTop: 16, padding: 16, borderRadius: 12,
-          border: `1px solid ${trustColor(selectedOrg.risk_level)}30`,
-          background: `${trustColor(selectedOrg.risk_level)}05`,
+          border: `1px solid ${"var(--blue)"}30`,
+          background: `${"var(--blue)"}05`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: trustColor(selectedOrg.risk_level) }} />
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: "var(--blue)" }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedOrg.name}</div>
               <div style={{ fontSize: 11, color: 'var(--txdd)', marginTop: 2 }}>
                 {selectedOrg.country ?? '—'} · {selectedOrg.program_count ?? 0} programs
-                {selectedOrg.trust_overall !== null && ` · Trust: ${(selectedOrg.trust_overall * 100).toFixed(0)}%`}
               </div>
             </div>
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-              color: trustColor(selectedOrg.risk_level),
-              background: `${trustColor(selectedOrg.risk_level)}15`,
+              color: "var(--blue)",
+              background: `${"var(--blue)"}15`,
               textTransform: 'uppercase',
             }}>
-              {selectedOrg.risk_level ?? 'unknown'} risk
+              Active
             </span>
           </div>
         </div>

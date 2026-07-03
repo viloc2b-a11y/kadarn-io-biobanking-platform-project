@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { TrustBadge } from '@/components/marketplace/trust-badge'
 import { RequestCta } from '@/components/marketplace/request-cta'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
@@ -167,7 +166,6 @@ function OrgCard({ org, expanded, onToggle }: { org: Org; expanded: boolean; onT
 
         {/* Trust badge */}
         <div style={{ flexShrink: 0 }}>
-          <TrustBadge trust={org.trust} size="sm" />
         </div>
 
         {/* CTAs */}
@@ -186,7 +184,6 @@ function OrgCard({ org, expanded, onToggle }: { org: Org; expanded: boolean; onT
           <p style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--txdd)', marginBottom: 12, fontWeight: 700 }}>
             Trust Score Breakdown
           </p>
-          <TrustBadge trust={org.trust} size="md" />
         </div>
       )}
     </div>

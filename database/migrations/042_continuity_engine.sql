@@ -1,3 +1,5 @@
+-- RC-0.2: kadarn_verified and badge_level retired per ADR-010. 
+-- This migration is preserved as historical record only.
 -- ============================================================================
 -- KADARN PLATFORM — Sprint 15: Continuity Engine
 -- ============================================================================

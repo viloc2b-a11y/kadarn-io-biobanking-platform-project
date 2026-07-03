@@ -6,7 +6,6 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 const COMMANDS = [
   { id: 'go-overview',    label: 'Go to Overview',         href: '/koc',                icon: '◎', section: 'Navigate' },
   { id: 'go-activity',    label: 'Go to Activity Feed',    href: '/koc/activity',       icon: '⚡', section: 'Navigate' },
-  { id: 'go-trust',       label: 'Go to Trust Index',      href: '/koc/trust',          icon: '◈', section: 'Navigate' },
   { id: 'go-policy',      label: 'Go to Policy Dashboard', href: '/koc/policy',         icon: '○', section: 'Navigate' },
   { id: 'go-workflow',    label: 'Go to Workflow',         href: '/koc/workflow',       icon: '⇄', section: 'Navigate' },
   { id: 'go-twins',       label: 'Go to Digital Twins',    href: '/koc/twins',          icon: '◆', section: 'Navigate' },

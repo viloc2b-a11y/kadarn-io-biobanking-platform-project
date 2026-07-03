@@ -1,3 +1,7 @@
+// RC-0.2 NOTE: kadarn_verified references below are for claim verification workflow,
+// not institutional Trust/Verified labels. These persist per continuity engine design.
+// Future sprint may replace kadarn_verified with a non-Trust term.
+
 import type { KadarnEventType } from '@kadarn/domain-events'
 
 export type LegacyClaimStatus =
