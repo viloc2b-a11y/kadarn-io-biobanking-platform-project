@@ -2,6 +2,11 @@ import { withAuth, ApiError } from '@/lib/supabase-server';
 import { paginationSchema } from '@/lib/validation';
 
 export const GET = withAuth(async (request, user) => {
+  // RC-0.3: KOC access restricted
+  if (user.user_metadata?.kadarn_role !== 'kadarn_internal') {
+    return Response.json({ error: { code: 403, message: 'KOC access required' } }, { status: 403 })
+  }
+
   const supabase = await import('@/lib/supabase-server').then(m => m.createRouteClient());
   const url = new URL(request.url);
   const { limit, offset } = paginationSchema.parse({

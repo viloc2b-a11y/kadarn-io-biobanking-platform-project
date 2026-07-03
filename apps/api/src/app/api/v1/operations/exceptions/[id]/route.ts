@@ -9,6 +9,11 @@ import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/sup
  * Body: { action: "resolve" | "escalate" | "dismiss", note?: string }
  */
 export const PATCH = withAuth(async (request, user) => {
+  // RC-0.3: KOC role enforcement
+  if (user.user_metadata?.kadarn_role !== 'kadarn_internal') {
+    return Response.json({ error: { code: 403, message: 'KOC access required' } }, { status: 403 })
+  }
+
   try {
     // Extract id from URL path
     const url = new URL(request.url)
