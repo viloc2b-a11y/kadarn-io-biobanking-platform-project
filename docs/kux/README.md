@@ -35,9 +35,10 @@ docs/kux/
 | KUX-007 — Portfolio Intelligence Workspace | [workspaces/sponsor/kux-007-portfolio-intelligence.md](workspaces/sponsor/kux-007-portfolio-intelligence.md) | Ratified — gate passed |
 | KUX-008 — Institutional Passport Workspace | [workspaces/sponsor/kux-008-institutional-passport.md](workspaces/sponsor/kux-008-institutional-passport.md) | Ratified — gate passed |
 | KUX-009 — Feasibility Workspace | [workspaces/sponsor/kux-009-feasibility-workspace.md](workspaces/sponsor/kux-009-feasibility-workspace.md) | Gate pending: Feasibility Approved |
-| KUX-010 — Opportunity Discovery | workspaces/sponsor/ | Planned |
-| KUX-011 — Risk Monitoring | workspaces/sponsor/ | Planned |
-| KUX-012 — Notifications | workspaces/sponsor/ | Planned |
+| KUX-010 — Opportunity Discovery Workspace | [workspaces/sponsor/kux-010-opportunity-discovery.md](workspaces/sponsor/kux-010-opportunity-discovery.md) | Ratified (v1.0) — gate passed |
+| KUX-011 — Risk Monitoring Workspace | [workspaces/sponsor/kux-011-risk-monitoring.md](workspaces/sponsor/kux-011-risk-monitoring.md) | Ratified — gate passed |
+| KUX-012 — Notification & Attention Workspace | [workspaces/sponsor/kux-012-notification-attention.md](workspaces/sponsor/kux-012-notification-attention.md) | Ratified — gate passed |
+| KUX-1.0 — Sponsor Product Specification Freeze | [governance/kux-1.0-sponsor-product-specification-freeze.md](governance/kux-1.0-sponsor-product-specification-freeze.md) | **Frozen · Ratified · Ready for Engineering** |
 
 ## Design review gates
 

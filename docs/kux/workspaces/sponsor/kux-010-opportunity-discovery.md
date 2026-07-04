@@ -5,7 +5,7 @@
 | Series | KUX (Kadarn User Experience) |
 | Document | KUX-010 |
 | Sprint | UX-10 (Phase 10 — Sponsor Intelligence Workspace) |
-| Status | Draft for gate: Opportunity Discovery Approved |
+| Status | Ratified (v1.0) — Gate passed: Opportunity Discovery Approved |
 | Kind | **Product specification** |
 | Depends on | KUX-001 – KUX-009 (all ratified) |
 | Governs | The Opportunity Discovery workspace: how Kadarn proposes matches the sponsor has not asked for — origination, presentation, boundaries |
