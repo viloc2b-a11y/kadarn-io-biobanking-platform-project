@@ -1,6 +1,4 @@
-import { notFound } from 'next/navigation'
-import { PassportDetail } from '@/components/sponsor/passport/passport-detail'
-import { getPassportByInstitutionId } from '@/components/sponsor/passport/passport-mock-data'
+import { PassportDetailLoader } from '@/components/sponsor/passport/passport-detail-loader'
 
 interface PageProps {
   params: Promise<{ institutionId: string }>
@@ -8,11 +6,5 @@ interface PageProps {
 
 export default async function SponsorPassportDetailPage({ params }: PageProps) {
   const { institutionId } = await params
-  const passport = getPassportByInstitutionId(institutionId)
-
-  if (!passport) {
-    notFound()
-  }
-
-  return <PassportDetail passport={passport} />
+  return <PassportDetailLoader institutionId={institutionId} />
 }

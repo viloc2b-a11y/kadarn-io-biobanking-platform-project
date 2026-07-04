@@ -1,5 +1,6 @@
 import type { InstitutionalPassport, PassportInstitutionSummary } from './passport-types'
 
+/** E2E fallback fixtures — use passport-api.ts in normal runtime. */
 export const MOCK_PORTFOLIO_INSTITUTIONS: PassportInstitutionSummary[] = [
   {
     institutionId: 'inst-st-marys',
