@@ -27,10 +27,10 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // RC-9.2: controlled E2E bypass — only when server flag + cookie (Playwright harness)
+  // RC-9.2 / RC-10.0: controlled E2E bypass — only when server flag + cookie (Playwright harness)
   if (
     isE2EAuthServerEnabled() &&
-    pathname.startsWith('/workspace') &&
+    (pathname.startsWith('/workspace') || pathname.startsWith('/sponsor')) &&
     request.cookies.get(E2E_SESSION_COOKIE)?.value === E2E_SESSION_VALUE
   ) {
     return response
@@ -59,6 +59,18 @@ export async function middleware(request: NextRequest) {
   // Check org membership from user metadata (set on login by org selector)
   // Full membership details come from the API; middleware uses a lightweight flag
   const hasMembership = Boolean(user?.user_metadata?.active_org_id)
+
+  // RC-10.0: Sponsor workspace — authenticated org member (mirrors /workspace guard; packages/auth unchanged)
+  if (pathname.startsWith('/sponsor')) {
+    if (!role) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('next', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    if (!hasMembership) {
+      return NextResponse.redirect(new URL('/marketplace', request.url))
+    }
+  }
 
   const guard = checkRouteAccess(pathname, role, hasMembership)
 

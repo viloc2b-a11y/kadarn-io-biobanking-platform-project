@@ -1,23 +1,41 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from '@/components/providers/session-provider'
+import {
+  E2E_WORKSPACE_PROFILE,
+  isE2EAuthClientEnabled,
+} from '@/lib/e2e/mock-session'
 import { findSurfaceByPath, KUX_MOVEMENTS, SPONSOR_SURFACES } from './sponsor-nav'
 
 export function SponsorShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { user, signOut } = useSession()
+  const router = useRouter()
+  const { user, loading: sessionLoading, signOut } = useSession()
   const surface = findSurfaceByPath(pathname)
+  const e2eAuth = isE2EAuthClientEnabled()
+
+  useEffect(() => {
+    if (sessionLoading || e2eAuth) return
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`)
+    }
+  }, [user, sessionLoading, e2eAuth, router, pathname])
+
+  if (!sessionLoading && !user && !e2eAuth) return null
+  if (sessionLoading) return <SponsorSkeleton />
 
   const displayName =
     user?.user_metadata?.full_name ??
     user?.email ??
+    E2E_WORKSPACE_PROFILE.user.full_name ??
     'Sponsor user'
 
-  const orgName =
-    (user?.user_metadata?.active_org_name as string | undefined) ??
-    'Sponsor organization'
+  const orgName = e2eAuth
+    ? (E2E_WORKSPACE_PROFILE.active_org?.org_name ?? 'Sponsor organization')
+    : ((user?.user_metadata?.active_org_name as string | undefined) ?? 'Sponsor organization')
 
   return (
     <div style={rootStyle}>
@@ -464,4 +482,17 @@ const verbButtonStyle: React.CSSProperties = {
   color: 'var(--txdd)',
   cursor: 'not-allowed',
   opacity: 0.6,
+}
+
+function SponsorSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--navy)' }}>
+      <div style={{ height: 52, borderBottom: '1px solid var(--border)', background: 'var(--navy2)' }} />
+      <div style={{ height: 40, borderBottom: '1px solid var(--border)', background: 'var(--navy)' }} />
+      <div style={{ flex: 1, padding: 28 }}>
+        <div style={{ height: 32, width: 240, borderRadius: 8, background: 'var(--navy2)', marginBottom: 16 }} />
+        <div style={{ height: 120, borderRadius: 12, background: 'var(--navy2)' }} />
+      </div>
+    </div>
+  )
 }
