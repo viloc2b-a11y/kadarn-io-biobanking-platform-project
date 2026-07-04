@@ -8,13 +8,25 @@ import {
   E2E_WORKSPACE_PROFILE,
   isE2EAuthClientEnabled,
 } from '@/lib/e2e/mock-session'
+import { PassportReasoningPanel } from './passport/passport-reasoning-panel'
+import { SponsorPassportProvider, useSponsorPassportContextOptional } from './passport/passport-context'
 import { findSurfaceByPath, KUX_MOVEMENTS, SPONSOR_SURFACES } from './sponsor-nav'
 
 export function SponsorShell({ children }: { children: React.ReactNode }) {
+  return (
+    <SponsorPassportProvider>
+      <SponsorShellInner>{children}</SponsorShellInner>
+    </SponsorPassportProvider>
+  )
+}
+
+function SponsorShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, loading: sessionLoading, signOut } = useSession()
   const surface = findSurfaceByPath(pathname)
+  const passportCtx = useSponsorPassportContextOptional()
+  const onPassportDetail = pathname.startsWith('/sponsor/passports/') && pathname !== '/sponsor/passports'
   const e2eAuth = isE2EAuthClientEnabled()
 
   useEffect(() => {
@@ -71,10 +83,23 @@ export function SponsorShell({ children }: { children: React.ReactNode }) {
           <span style={contextValueStyle}>{surface?.label ?? 'Sponsor Workspace'}</span>
         </div>
         <span style={contextSepStyle} aria-hidden="true">·</span>
-        <div style={contextPrimaryStyle}>
-          <span style={contextLabelStyle}>Lens</span>
-          <span style={contextValueStyle}>Portfolio view</span>
-        </div>
+        {onPassportDetail && passportCtx?.activePassport ? (
+          <>
+            <span style={contextSepStyle} aria-hidden="true">·</span>
+            <div style={contextPrimaryStyle}>
+              <span style={contextLabelStyle}>Institution</span>
+              <span style={contextValueStyle}>{passportCtx.activePassport.displayName}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <span style={contextSepStyle} aria-hidden="true">·</span>
+            <div style={contextPrimaryStyle}>
+              <span style={contextLabelStyle}>Lens</span>
+              <span style={contextValueStyle}>Portfolio view</span>
+            </div>
+          </>
+        )}
         <span style={contextSepStyle} aria-hidden="true">·</span>
         <div style={contextPrimaryStyle}>
           <span style={contextLabelStyle}>Moment</span>
@@ -131,14 +156,18 @@ export function SponsorShell({ children }: { children: React.ReactNode }) {
         </main>
 
         <aside style={rightPanelStyle} role="complementary" aria-label="Reasoning context">
-          <div style={panelHeaderStyle}>Reasoning context</div>
-          <p style={panelBodyStyle}>
-            Select an evidence-bearing item in the work area to inspect provenance,
-            supporting and contradicting evidence, and rationale — without leaving this surface.
-          </p>
-          <p style={panelHintStyle}>
-            Institution remains the persistent object; the Passport is its living representation at this moment.
-          </p>
+          {onPassportDetail ? <PassportReasoningPanel /> : (
+            <>
+              <div style={panelHeaderStyle}>Reasoning context</div>
+              <p style={panelBodyStyle}>
+                Select an evidence-bearing item in the work area to inspect provenance,
+                supporting and contradicting evidence, and rationale — without leaving this surface.
+              </p>
+              <p style={panelHintStyle}>
+                Institution remains the persistent object; the Passport is its living representation at this moment.
+              </p>
+            </>
+          )}
         </aside>
       </div>
 
@@ -147,13 +176,19 @@ export function SponsorShell({ children }: { children: React.ReactNode }) {
         <div style={nextActionStyle}>
           <span style={nextActionLabelStyle}>One next action</span>
           <span style={nextActionTextStyle}>
-            {surface?.id === 'dashboard'
-              ? 'Review open reasoning sessions or define a study requirements profile'
-              : `Continue ${surface?.label ?? 'workspace'} work with evidence in view`}
+            {onPassportDetail && passportCtx?.activePassport
+              ? (passportCtx.activePassport.recommendations.find((r) => r.isNextAction)?.action
+                ?? 'Review claims and select one to inspect provenance')
+              : surface?.id === 'dashboard'
+                ? 'Review open reasoning sessions or define a study requirements profile'
+                : `Continue ${surface?.label ?? 'workspace'} work with evidence in view`}
           </span>
         </div>
         <div style={verbsStyle}>
-          {['Review', 'Investigate', 'Compare', 'Trace', 'Share'].map((verb) => (
+          {(onPassportDetail
+            ? ['Accept', 'Challenge', 'Request evidence', 'Trace', 'Compare']
+            : ['Review', 'Investigate', 'Compare', 'Trace', 'Share']
+          ).map((verb) => (
             <button key={verb} type="button" style={verbButtonStyle} disabled>
               {verb}
             </button>
