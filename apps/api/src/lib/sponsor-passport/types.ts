@@ -1,4 +1,10 @@
-/** RC-10.3 — Sponsor Institutional Passport API types (RC-10.2 contract). */
+/**
+ * RC-10.5 — Sponsor Institutional Passport API types (RC-10.2 contract).
+ *
+ * Canonical wire DTOs for sponsor passport endpoints.
+ * Web mirror: apps/web/src/components/sponsor/passport/passport-types.ts
+ * Keep in sync until packages/types extraction (RC-10.6+).
+ */
 
 export type StabilityIndicator =
   | 'Stable'

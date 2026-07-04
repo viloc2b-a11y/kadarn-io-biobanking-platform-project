@@ -253,9 +253,9 @@ The detail endpoint MUST remain usable without calling this sub-resource (RC-10.
 
 ## 6. DTO types (contract-only)
 
-These types are defined in this document only. Shared extraction to `packages/types` is deferred to RC-10.3 or RC-10.4.
+These types are defined in this document and implemented in code. Shared extraction to `packages/types` is deferred to RC-10.6+.
 
-> **Alignment rule:** Field names, nesting, and enum values MUST match RC-10.1 `apps/web/src/components/sponsor/passport/passport-types.ts` exactly.
+> **Alignment rule (RC-10.5):** Canonical wire DTOs live in `apps/api/src/lib/sponsor-passport/types.ts`. The web module `apps/web/src/components/sponsor/passport/passport-types.ts` mirrors them field-for-field. `PassportSectionId` is a **web-only UI extension** (section nav) and is not part of the API wire schema.
 
 ### 6.1 Enums
 

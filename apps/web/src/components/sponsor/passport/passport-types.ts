@@ -1,4 +1,9 @@
-/** RC-10.1 — Sponsor Institutional Passport mock types (KUX-008 aligned, web-local). */
+/**
+ * RC-10.5 — Sponsor Institutional Passport web types.
+ *
+ * Mirror of apps/api/src/lib/sponsor-passport/types.ts (canonical wire DTOs).
+ * Keep field names, nesting, and enum values in sync until packages/types (RC-10.6+).
+ */
 
 export type StabilityIndicator =
   | 'Stable'
@@ -8,6 +13,9 @@ export type StabilityIndicator =
 
 export type ConfidenceLevel = 'High' | 'Moderate' | 'Low' | 'Insufficient'
 
+export type CapabilityTemporalState = 'fresh' | 'aging' | 'decayed'
+
+/** UI-only — section nav anchors; not part of API wire schema. */
 export type PassportSectionId =
   | 'identity'
   | 'capabilities'
@@ -25,10 +33,16 @@ export interface PassportInstitutionSummary {
   summary: string
 }
 
+export interface PassportIdentityField {
+  label: string
+  value: string
+  source: string
+}
+
 export interface PassportIdentity {
-  names: Array<{ label: string; value: string; source: string }>
-  locations: Array<{ label: string; value: string; source: string }>
-  relationships: Array<{ label: string; value: string; source: string }>
+  names: PassportIdentityField[]
+  locations: PassportIdentityField[]
+  relationships: PassportIdentityField[]
 }
 
 export interface PassportCapability {
@@ -37,8 +51,15 @@ export interface PassportCapability {
   label: string
   candidateStatement: string
   confidence: ConfidenceLevel
-  temporalState: 'fresh' | 'aging' | 'decayed'
+  temporalState: CapabilityTemporalState
   supportingClaimIds: string[]
+}
+
+export interface PassportClaimProvenanceMinimal {
+  documentTitle: string
+  documentDate: string
+  evidenceClass: string
+  excerpt: string
 }
 
 export interface PassportClaim {
@@ -49,12 +70,7 @@ export interface PassportClaim {
   confidenceExplanation: string
   contested: boolean
   asOf: string
-  provenance: {
-    documentTitle: string
-    documentDate: string
-    evidenceClass: string
-    excerpt: string
-  }
+  provenance: PassportClaimProvenanceMinimal
 }
 
 export interface PassportRecommendation {
@@ -84,4 +100,38 @@ export interface InstitutionalPassport {
   claims: PassportClaim[]
   recommendations: PassportRecommendation[]
   history: PassportHistoryEvent[]
+}
+
+export interface PassportPortfolioIndexResponse {
+  items: PassportInstitutionSummary[]
+}
+
+export interface PassportEvidenceNode {
+  id: string
+  evidenceClass: string
+  label: string
+  sourceDocumentId?: string
+  supportsClaim: boolean
+  excerpt?: string
+}
+
+export interface PassportSourceDocument {
+  id: string
+  title: string
+  documentDate: string
+  evidenceClass: string
+}
+
+export interface PassportClaimProvenanceDetail {
+  claimId: string
+  institutionId: string
+  statement: string
+  confidence: ConfidenceLevel
+  confidenceExplanation: string
+  contested: boolean
+  asOf: string
+  minimal: PassportClaimProvenanceMinimal
+  evidenceNodes: PassportEvidenceNode[]
+  sourceDocuments: PassportSourceDocument[]
+  contradictingNodeIds?: string[]
 }

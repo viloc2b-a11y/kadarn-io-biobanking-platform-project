@@ -3,11 +3,11 @@
 import { apiGet, ApiClientError } from '@/lib/api-client'
 import { isE2EAuthClientEnabled } from '@/lib/e2e/mock-session'
 import { getPassportByInstitutionId, getPortfolioInstitutions } from './passport-mock-data'
-import type { InstitutionalPassport, PassportInstitutionSummary } from './passport-types'
-
-interface PassportPortfolioIndexResponse {
-  items: PassportInstitutionSummary[]
-}
+import type {
+  InstitutionalPassport,
+  PassportInstitutionSummary,
+  PassportPortfolioIndexResponse,
+} from './passport-types'
 
 /**
  * RC-10.4 — Sponsor passport data access.
