@@ -1,9 +1,10 @@
 /**
- * RC-11.3 — Evidence Core passport store (claims runtime; other sections stubbed).
+ * RC-11.3+ — Evidence Core passport store (claims + provenance runtime).
  */
 
 import type { DbClient } from '@kadarn/evidence-core'
 import { mapClaimsToPassportClaims } from './adapter/map-claim'
+import { mapClaimProvenanceDetail } from './adapter/map-provenance-detail'
 import { readInstitutionEvidence } from './adapter/queries'
 import type { PassportStore } from './store'
 import type {
@@ -16,9 +17,6 @@ import type {
 export const EVIDENCE_CORE_PORTFOLIO_NOT_IMPLEMENTED =
   'EvidenceCorePassportStore portfolio methods not implemented (RC-11.5)'
 
-export const EVIDENCE_CORE_PROVENANCE_NOT_IMPLEMENTED =
-  'EvidenceCorePassportStore provenance sub-resource not implemented (RC-11.4)'
-
 const STUB_STABILITY: StabilityIndicator = 'Under Review'
 
 type DbResolver = () => Promise<DbClient>
@@ -30,10 +28,6 @@ async function defaultDbResolver(): Promise<DbClient> {
 
 function portfolioNotImplemented(): never {
   throw new Error(EVIDENCE_CORE_PORTFOLIO_NOT_IMPLEMENTED)
-}
-
-function provenanceNotImplemented(): never {
-  throw new Error(EVIDENCE_CORE_PROVENANCE_NOT_IMPLEMENTED)
 }
 
 export class EvidenceCorePassportStore implements PassportStore {
@@ -83,11 +77,20 @@ export class EvidenceCorePassportStore implements PassportStore {
   }
 
   async getClaimProvenanceDetail(
-    _sponsorOrgId: string,
-    _institutionId: string,
-    _claimId: string,
+    sponsorOrgId: string,
+    institutionId: string,
+    claimId: string,
   ): Promise<PassportClaimProvenanceDetail | undefined> {
-    provenanceNotImplemented()
+    const db = await this.resolveDb()
+    const read = await readInstitutionEvidence(db, institutionId)
+
+    return mapClaimProvenanceDetail({
+      read,
+      institutionId,
+      claimId,
+      actorId: sponsorOrgId || 'sponsor-passport-adapter',
+      correlationId: crypto.randomUUID(),
+    })
   }
 
   async isInstitutionInPortfolio(_sponsorOrgId: string, _institutionId: string): Promise<boolean> {

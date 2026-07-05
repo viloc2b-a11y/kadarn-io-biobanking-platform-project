@@ -11,7 +11,6 @@ import {
 } from '../../apps/api/src/lib/sponsor-passport/factory'
 import {
   EVIDENCE_CORE_PORTFOLIO_NOT_IMPLEMENTED,
-  EVIDENCE_CORE_PROVENANCE_NOT_IMPLEMENTED,
   EvidenceCorePassportStore,
 } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
 import { MockPassportStore } from '../../apps/api/src/lib/sponsor-passport/mock-passport-store'
@@ -48,20 +47,16 @@ describe('PassportStore factory (RC-11.1)', () => {
     expect(getPassportStore()).toBeInstanceOf(EvidenceCorePassportStore)
   })
 
-  it('EvidenceCorePassportStore defers portfolio and provenance methods (RC-11.4/11.5)', async () => {
+  it('EvidenceCorePassportStore defers portfolio methods (RC-11.5)', async () => {
     const store = new EvidenceCorePassportStore(async () => {
       throw new Error('db should not be called')
     })
     const sponsorOrgId = 'org-test'
     const institutionId = 'inst-st-marys'
-    const claimId = 'claim-pbmc-001'
 
     await expect(store.getPortfolioIndex(sponsorOrgId)).rejects.toThrow(
       EVIDENCE_CORE_PORTFOLIO_NOT_IMPLEMENTED,
     )
-    await expect(
-      store.getClaimProvenanceDetail(sponsorOrgId, institutionId, claimId),
-    ).rejects.toThrow(EVIDENCE_CORE_PROVENANCE_NOT_IMPLEMENTED)
     await expect(store.isInstitutionInPortfolio(sponsorOrgId, institutionId)).rejects.toThrow(
       EVIDENCE_CORE_PORTFOLIO_NOT_IMPLEMENTED,
     )
