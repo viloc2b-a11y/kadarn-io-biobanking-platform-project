@@ -15,7 +15,12 @@ import {
   checkInstitutionInPortfolio,
   resolvePortfolioEntry,
 } from './adapter/map-portfolio-index'
-import { readInstitutionEvidence, readOrganization } from './adapter/queries'
+import { mapAuditEventsToPassportHistory } from './adapter/map-history'
+import {
+  readInstitutionAuditEvents,
+  readInstitutionEvidence,
+  readOrganization,
+} from './adapter/queries'
 import type { PassportStore } from './store'
 import type {
   InstitutionalPassport,
@@ -69,6 +74,8 @@ export class EvidenceCorePassportStore implements PassportStore {
 
     const capabilities = mapCapabilitiesFromClaims({ read, passportClaims: claims })
     const identity = mapOrganizationToPassportIdentity({ organization, allowlistEntry })
+    const auditEvents = await readInstitutionAuditEvents(db, institutionId)
+    const history = mapAuditEventsToPassportHistory(auditEvents)
 
     const asOf =
       read.claims
@@ -86,7 +93,7 @@ export class EvidenceCorePassportStore implements PassportStore {
       capabilities,
       claims,
       recommendations: [],
-      history: [],
+      history,
     }
   }
 

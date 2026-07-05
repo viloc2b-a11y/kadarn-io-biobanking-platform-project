@@ -71,3 +71,40 @@ export async function readOrganization(
   const row = (data as Record<string, unknown>[])?.[0]
   return row ? mapOrganizationRow(row) : null
 }
+
+export interface AuditEventRecord {
+  id: string
+  action: string
+  actorId: string | null
+  actorEmail: string | null
+  organizationId: string
+  resourceType: string
+  resourceId: string | null
+  summary: string
+  createdAt: string
+}
+
+function mapAuditEventRow(row: Record<string, unknown>): AuditEventRecord {
+  return {
+    id: String(row.id),
+    action: String(row.action),
+    actorId: row.actor_id ? String(row.actor_id) : null,
+    actorEmail: row.actor_email ? String(row.actor_email) : null,
+    organizationId: String(row.organization_id),
+    resourceType: String(row.resource_type ?? ''),
+    resourceId: row.resource_id ? String(row.resource_id) : null,
+    summary: String(row.summary ?? ''),
+    createdAt: String(row.created_at ?? new Date().toISOString()),
+  }
+}
+
+export async function readInstitutionAuditEvents(
+  db: DbClient,
+  institutionId: string,
+): Promise<AuditEventRecord[]> {
+  const { data, error } = await db.from('audit_events').select('*').eq('organization_id', institutionId)
+  if (error) throw new Error(`Failed to read audit events: ${error}`)
+
+  const rows = (data as Record<string, unknown>[]) ?? []
+  return rows.map(mapAuditEventRow)
+}
