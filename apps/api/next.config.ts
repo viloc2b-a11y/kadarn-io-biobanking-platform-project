@@ -32,10 +32,6 @@ const nextConfig = {
     '@kadarn/platform-services',
   ],
   pageExtensions: ['ts', 'tsx'],
-  typescript: {
-    // Legacy withAuth/requireOrgMembership wrappers vs dynamic sponsor routes — follow-up RC-10.7b.
-    ignoreBuildErrors: true,
-  },
   // Satisfies Next.js 16 when a legacy webpack hook remains for monorepo TS resolution.
   turbopack: {},
   async headers() {

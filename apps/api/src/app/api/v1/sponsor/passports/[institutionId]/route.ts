@@ -6,19 +6,20 @@
 import { withAuth, requireOrgMembership } from '@/lib/auth-guards'
 import { notFound, successResponse } from '@/lib/api-response'
 import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
-import { getInstitutionalPassport } from '@/lib/sponsor-passport/mock-store'
+import { getPassportStore } from '@/lib/sponsor-passport/factory'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = rateLimit(
   WORKSPACE_RATE_LIMIT,
-  withAuth(requireOrgMembership(async (_request, _user, params) => {
+  withAuth(requireOrgMembership(async (_request, _user, sponsorOrgId, params) => {
     const institutionId = params?.institutionId
     if (!institutionId) {
       return notFound('Institution id required')
     }
 
-    const passport = getInstitutionalPassport(institutionId)
+    const store = getPassportStore()
+    const passport = await store.getInstitutionalPassport(sponsorOrgId, institutionId)
     if (!passport) {
       return notFound(`Passport not found for institution ${institutionId}`)
     }

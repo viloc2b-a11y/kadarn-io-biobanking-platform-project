@@ -64,9 +64,18 @@ export function requireRole(
  * optionally verifies it against the active-org lookup.
  */
 export function requireOrgMembership(
-  handler: (request: Request, user: NonNullable<Awaited<ReturnType<typeof getAuthUser>>>, orgId: string) => Promise<Response>,
+  handler: (
+    request: Request,
+    user: NonNullable<Awaited<ReturnType<typeof getAuthUser>>>,
+    orgId: string,
+    params?: Record<string, string>,
+  ) => Promise<Response>,
 ) {
-  return async (request: Request, user: NonNullable<Awaited<ReturnType<typeof getAuthUser>>>): Promise<Response> => {
+  return async (
+    request: Request,
+    user: NonNullable<Awaited<ReturnType<typeof getAuthUser>>>,
+    params?: Record<string, string>,
+  ): Promise<Response> => {
     const activeOrgId = (user.user_metadata?.active_org_id as string) || null
 
     if (!activeOrgId) {
@@ -86,7 +95,7 @@ export function requireOrgMembership(
       throw new ApiError(403, 'You are not a member of this organization.')
     }
 
-    return handler(request, user, activeOrgId)
+    return handler(request, user, activeOrgId, params)
   }
 }
 

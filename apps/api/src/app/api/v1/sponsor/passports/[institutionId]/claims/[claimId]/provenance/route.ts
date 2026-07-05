@@ -6,13 +6,13 @@
 import { withAuth, requireOrgMembership } from '@/lib/auth-guards'
 import { notFound, successResponse } from '@/lib/api-response'
 import { rateLimit, WORKSPACE_RATE_LIMIT } from '@/lib/rate-limit'
-import { getClaimProvenanceDetail } from '@/lib/sponsor-passport/mock-store'
+import { getPassportStore } from '@/lib/sponsor-passport/factory'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = rateLimit(
   WORKSPACE_RATE_LIMIT,
-  withAuth(requireOrgMembership(async (_request, _user, params) => {
+  withAuth(requireOrgMembership(async (_request, _user, sponsorOrgId, params) => {
     const institutionId = params?.institutionId
     const claimId = params?.claimId
 
@@ -20,7 +20,8 @@ export const GET = rateLimit(
       return notFound('Institution id and claim id required')
     }
 
-    const provenance = getClaimProvenanceDetail(institutionId, claimId)
+    const store = getPassportStore()
+    const provenance = await store.getClaimProvenanceDetail(sponsorOrgId, institutionId, claimId)
     if (!provenance) {
       return notFound(`Provenance not found for claim ${claimId}`)
     }
