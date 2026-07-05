@@ -210,3 +210,116 @@ describe('Persistence — Append-only invariant', () => {
     expect((repo as any).updateEvidenceNode).toBeUndefined();
   });
 });
+
+describe('Persistence — Organization read queries (RC-11.2)', () => {
+  it('getClaimsByOrganizationId returns mapped claims for one org', async () => {
+    const db = createFakeDb();
+    const provenance = {
+      createdByActorId: 'actor-1',
+      createdByOrganizationId: 'org-site-1',
+      correlationId: 'corr-org-1',
+      summary: 'Claim A',
+    };
+
+    await insertClaim(db, {
+      claimTypeId: 'biospecimen.processing.pbmc',
+      name: 'PBMC processing',
+      description: 'On-site PBMC isolation',
+      organizationId: 'org-site-1',
+      domain: 'biospecimen',
+      validEvidenceClasses: ['B'] as any,
+      requiredEvidenceClasses: ['B'] as any,
+      decays: true,
+      decayPeriodMonths: 6,
+      provenance,
+    });
+
+    await insertClaim(db, {
+      claimTypeId: 'logistics.cold_chain.storage',
+      name: 'Cold-chain storage',
+      description: 'Monitored storage',
+      organizationId: 'org-site-1',
+      domain: 'logistics',
+      validEvidenceClasses: ['B', 'C'] as any,
+      requiredEvidenceClasses: ['B'] as any,
+      decays: true,
+      decayPeriodMonths: 12,
+      provenance: { ...provenance, correlationId: 'corr-org-2', summary: 'Claim B' },
+    });
+
+    await insertClaim(db, {
+      claimTypeId: 'experience.oncology.phase_ii',
+      name: 'Oncology experience',
+      description: 'Other org claim',
+      organizationId: 'org-site-2',
+      domain: 'experience',
+      validEvidenceClasses: ['A'] as any,
+      requiredEvidenceClasses: ['A'] as any,
+      decays: false,
+      decayPeriodMonths: null,
+      provenance: { ...provenance, createdByOrganizationId: 'org-site-2', summary: 'Other org' },
+    });
+
+    const { getClaimsByOrganizationId } = await import('../src/repository.js');
+    const claims = await getClaimsByOrganizationId(db, 'org-site-1');
+
+    expect(claims).toHaveLength(2);
+    expect(claims.every((c) => c.organizationId === 'org-site-1')).toBe(true);
+    expect(claims.map((c) => c.claimTypeId).sort()).toEqual([
+      'biospecimen.processing.pbmc',
+      'logistics.cold_chain.storage',
+    ]);
+  });
+
+  it('getOrganizationEvidenceRead returns claims and evidence nodes for org', async () => {
+    const db = createFakeDb();
+    const provenance = createProvenance({
+      actorId: 'actor-1',
+      organizationId: 'org-site-1',
+      correlationId: 'corr-read-1',
+      summary: 'Seed claim',
+    });
+
+    const claim = await insertClaim(db, {
+      claimTypeId: 'biospecimen.processing.pbmc',
+      name: 'PBMC processing',
+      description: 'On-site PBMC isolation',
+      organizationId: 'org-site-1',
+      domain: 'biospecimen',
+      validEvidenceClasses: ['B'] as any,
+      requiredEvidenceClasses: ['B'] as any,
+      decays: true,
+      decayPeriodMonths: 6,
+      provenance,
+    });
+
+    const claimId = (claim as { id: string }).id;
+
+    await insertEvidenceNode(db, {
+      claimId,
+      evidenceClass: 'B' as any,
+      content: 'SOP excerpt',
+      source: 'site-submission',
+      date: '2026-07-01',
+      weight: 0.5,
+      provenance,
+      visibility: siteVisibility('org-site-1'),
+    });
+
+    const { getOrganizationEvidenceRead } = await import('../src/repository.js');
+    const read = await getOrganizationEvidenceRead(db, 'org-site-1');
+
+    expect(read.organizationId).toBe('org-site-1');
+    expect(read.claims).toHaveLength(1);
+    expect(read.claims[0].id).toBe(claimId);
+    expect(read.evidenceNodes).toHaveLength(1);
+    expect(read.evidenceNodes[0].claimId).toBe(claimId);
+    expect(read.evidenceNodes[0].content).toBe('SOP excerpt');
+  });
+
+  it('getEvidenceNodesByClaimIds returns empty array for no claim ids', async () => {
+    const db = createFakeDb();
+    const { getEvidenceNodesByClaimIds } = await import('../src/repository.js');
+    await expect(getEvidenceNodesByClaimIds(db, [])).resolves.toEqual([]);
+  });
+});

@@ -12,14 +12,88 @@ import type { DbClient } from './db.js';
 import { EvidenceClass } from './evidence-class.js';
 import type {
   Claim,
+  ClaimStatus,
   EvidenceNode,
+  EvidenceNodeStatus,
   EvidenceRelationship,
   CounterEvidence,
   RightOfResponse,
   ProvenanceMetadata,
   VisibilityMetadata,
-  TemporalMetadata,
+  VisibilityScope,
 } from './types.js';
+
+// --------------------------------------------------------------------------
+// Row mappers (read path — snake_case DB → domain types)
+// --------------------------------------------------------------------------
+
+function mapClaimRow(row: Record<string, unknown>): Claim {
+  return {
+    id: String(row.id),
+    claimTypeId: String(row.claim_type_id),
+    name: String(row.name),
+    description: String(row.description),
+    organizationId: String(row.organization_id),
+    status: (row.status as ClaimStatus) ?? 'active',
+    domain: String(row.domain),
+    decays: Boolean(row.decays),
+    decayPeriodMonths: row.decay_period_months == null ? null : Number(row.decay_period_months),
+    validEvidenceClasses: (row.valid_evidence_classes as EvidenceClass[]) ?? [],
+    requiredEvidenceClasses: (row.required_evidence_classes as EvidenceClass[]) ?? [],
+    temporal: {
+      createdAt: String(row.created_at ?? ''),
+      updatedAt: String(row.updated_at ?? ''),
+      decayPeriodMonths: row.decay_period_months == null ? null : Number(row.decay_period_months),
+    },
+    provenance: {
+      createdByActorId: String(row.created_by_actor_id ?? ''),
+      createdByOrganizationId: String(row.created_by_org_id ?? row.organization_id ?? ''),
+      correlationId: String(row.correlation_id ?? ''),
+      summary: String(row.provenance_summary ?? ''),
+      sourceEventId: row.source_event_id ? String(row.source_event_id) : undefined,
+    },
+    visibility: {
+      owningOrganizationId: String(row.owning_org_id ?? row.organization_id ?? ''),
+      scope: (row.visibility_scope as VisibilityScope) ?? 'site',
+      authorizedSponsorIds: (row.authorized_sponsor_ids as string[]) ?? [],
+    },
+  };
+}
+
+function mapEvidenceNodeRow(row: Record<string, unknown>): EvidenceNode {
+  const provenanceJson = row.provenance as Partial<ProvenanceMetadata> | undefined;
+  const visibilityJson = row.visibility as Partial<VisibilityMetadata> | undefined;
+
+  return {
+    id: String(row.id),
+    claimId: String(row.claim_id),
+    evidenceClass: row.evidence_class as EvidenceClass,
+    content: String(row.content),
+    source: String(row.source),
+    date: String(row.node_date ?? row.date ?? ''),
+    status: (row.status as EvidenceNodeStatus) ?? 'active',
+    weight: Number(row.weight),
+    provenance: {
+      createdByActorId: provenanceJson?.createdByActorId ?? String(row.created_by_actor_id ?? ''),
+      createdByOrganizationId:
+        provenanceJson?.createdByOrganizationId ?? String(row.created_by_org_id ?? ''),
+      correlationId: provenanceJson?.correlationId ?? String(row.correlation_id ?? ''),
+      summary: provenanceJson?.summary ?? String(row.provenance_summary ?? ''),
+      sourceEventId: provenanceJson?.sourceEventId,
+    },
+    visibility: {
+      owningOrganizationId:
+        visibilityJson?.owningOrganizationId ?? String(row.owning_org_id ?? ''),
+      scope: visibilityJson?.scope ?? 'site',
+      authorizedSponsorIds: visibilityJson?.authorizedSponsorIds ?? [],
+    },
+    temporal: {
+      createdAt: String(row.created_at ?? ''),
+      updatedAt: String(row.updated_at ?? ''),
+      decayPeriodMonths: null,
+    },
+  };
+}
 
 // --------------------------------------------------------------------------
 // Claim repository
@@ -69,7 +143,36 @@ export async function insertClaim(db: DbClient, input: CreateClaimInput): Promis
 export async function getClaimById(db: DbClient, claimId: string): Promise<Claim | null> {
   const { data, error } = await db.from('claims').select('*').eq('id', claimId);
   if (error) throw new Error(`Failed to get claim: ${error}`);
-  return (data as unknown as Claim[])?.at(0) ?? null;
+  const row = (data as Record<string, unknown>[])?.at(0);
+  return row ? mapClaimRow(row) : null;
+}
+
+export async function getClaimsByOrganizationId(
+  db: DbClient,
+  organizationId: string,
+): Promise<Claim[]> {
+  const { data, error } = await db.from('claims').select('*').eq('organization_id', organizationId);
+  if (error) throw new Error(`Failed to get claims by organization: ${error}`);
+  const rows = (data as Record<string, unknown>[]) ?? [];
+  return rows.map(mapClaimRow);
+}
+
+export interface OrganizationEvidenceRead {
+  organizationId: string;
+  claims: Claim[];
+  evidenceNodes: EvidenceNode[];
+}
+
+export async function getOrganizationEvidenceRead(
+  db: DbClient,
+  organizationId: string,
+): Promise<OrganizationEvidenceRead> {
+  const claims = await getClaimsByOrganizationId(db, organizationId);
+  const evidenceNodes = await getEvidenceNodesByClaimIds(
+    db,
+    claims.map((claim) => claim.id),
+  );
+  return { organizationId, claims, evidenceNodes };
 }
 
 // --------------------------------------------------------------------------
@@ -116,7 +219,22 @@ export async function getEvidenceNodesByClaim(
 ): Promise<EvidenceNode[]> {
   const { data, error } = await db.from('evidence_nodes').select('*').eq('claim_id', claimId);
   if (error) throw new Error(`Failed to get evidence nodes: ${error}`);
-  return (data as unknown as EvidenceNode[]) ?? [];
+  const rows = (data as Record<string, unknown>[]) ?? [];
+  return rows.map(mapEvidenceNodeRow);
+}
+
+export async function getEvidenceNodesByClaimIds(
+  db: DbClient,
+  claimIds: string[],
+): Promise<EvidenceNode[]> {
+  if (claimIds.length === 0) return [];
+
+  const nodes: EvidenceNode[] = [];
+  for (const claimId of claimIds) {
+    const claimNodes = await getEvidenceNodesByClaim(db, claimId);
+    nodes.push(...claimNodes);
+  }
+  return nodes;
 }
 
 // --------------------------------------------------------------------------

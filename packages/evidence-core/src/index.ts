@@ -97,8 +97,11 @@ export type { DbClient, DbClientFactory } from './db.js';
 export {
   insertClaim,
   getClaimById,
+  getClaimsByOrganizationId,
+  getOrganizationEvidenceRead,
   insertEvidenceNode,
   getEvidenceNodesByClaim,
+  getEvidenceNodesByClaimIds,
   insertCounterEvidence,
   insertRightOfResponse,
   insertRelationship,
@@ -109,6 +112,7 @@ export type {
   CreateCounterEvidenceInput,
   CreateRightOfResponseInput,
   CreateRelationshipInput,
+  OrganizationEvidenceRead,
 } from './repository.js';
 
 // API Contracts (Sprint 17.5)
