@@ -92,7 +92,7 @@ export const GET = withAuth(async (request, user) => {
       return (data as string | null) ?? 'warning'
     }
 
-    // Fetch edge counts for each node in bulk — two safe queries instead of string-interpolated .or()
+    // Fetch edge counts for each node in bulk â€” two safe queries instead of string-interpolated .or()
     const { data: edgesFromSource } = await supabase
       .from('provenance_edges')
       .select('source_node_id, target_node_id, edge_type')

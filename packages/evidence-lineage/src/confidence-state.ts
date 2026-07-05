@@ -1,4 +1,4 @@
-// Sprint 28F — Confidence State Evolution
+// Sprint 28F â€” Confidence State Evolution
 // Confidence is computed from Evidence Graph, never stored as permanent truth.
 export interface EvidenceGraphNode { nodeId: string; type: 'claim' | 'evidence' | 'entity'; weight: number }
 export interface EvidenceGraphEdge { edgeId: string; fromId: string; toId: string; relationship: 'supports' | 'contradicts' | 'references'; weight: number }

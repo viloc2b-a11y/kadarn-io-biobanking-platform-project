@@ -1,4 +1,4 @@
-// Sprint 28K — Hybrid Indexing
+// Sprint 28K â€” Hybrid Indexing
 // PostgreSQL BTREE + GIN + materialized edge tables. No Neo4j. No Graph DB.
 export interface IndexConfig { tableName: string; columns: string[]; indexType: 'btree' | 'gin' | 'gist'; where?: string }
 export interface MaterializedEdge { edgeId: string; fromType: string; fromId: string; toType: string; toId: string; relationship: string; weight: number; updatedAt: string }

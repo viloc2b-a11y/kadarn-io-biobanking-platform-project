@@ -1,4 +1,4 @@
-// Sprint 28J — Systems Integration Layer
+// Sprint 28J â€” Systems Integration Layer
 // Kadarn enriches, never replaces. CTMS, LIMS, EDC, eTMF, EMR contracts.
 export type IntegrationSystem = 'ctms' | 'lims' | 'edc' | 'etmf' | 'emr' | 'vilo_os'
 export interface IntegrationContract { contractId: string; system: IntegrationSystem; direction: 'inbound' | 'outbound' | 'bidirectional'; authMethod: 'api_key' | 'hmac' | 'oauth2'; rateLimitRpm: number; sla: string; status: 'active' | 'degraded' | 'inactive' }

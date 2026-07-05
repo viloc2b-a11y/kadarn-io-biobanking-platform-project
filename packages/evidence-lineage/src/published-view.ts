@@ -1,4 +1,4 @@
-// Sprint 28G — Published View Architecture
+// Sprint 28G â€” Published View Architecture
 // Consumers never access Claims directly. All access through Published Views.
 export type ViewType = 'canonical' | 'sponsor' | 'institution' | 'public'
 export interface PublishedView { viewId: string; claimId: string; viewType: ViewType; content: Record<string, unknown>; filteredFields: string[]; publishedAt: string; policyVersion: string }

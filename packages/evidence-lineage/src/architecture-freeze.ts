@@ -1,4 +1,4 @@
-// Sprint 28L — Architecture Freeze AF-3.0
+// Sprint 28L â€” Architecture Freeze AF-3.0
 // Ratifies Phase 8 architecture. Freezes KEMS-004/005/006.
 export interface ArchitectureFreezeRecord { freezeId: string; version: string; artifacts: string[]; ratifiedAt: string; supersedes: string }
 export class ArchitectureFreezeEngine {

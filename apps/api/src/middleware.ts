@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+function newRequestId(): string {
+  return globalThis.crypto.randomUUID()
+}
 const WINDOW_MS = 60_000
 const MAX_REQUESTS = 120
 const MAX_BUCKETS = 10_000
@@ -71,6 +74,28 @@ function rateLimitResponse(): NextResponse {
  * maintains its own in-memory Map, so per-IP counts are approximate
  * (acceptable for rate limiting, not for billing).
  */
+function attachInstrumentationHeaders(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  const requestId = request.headers.get('x-request-id')?.slice(0, 128) ?? newRequestId()
+  const correlationId = request.headers.get('x-correlation-id')?.slice(0, 128) ?? requestId
+  response.headers.set('x-request-id', requestId)
+  response.headers.set('x-correlation-id', correlationId)
+  const traceId = request.headers.get('traceparent')?.split('-')[1]
+  if (traceId) response.headers.set('x-trace-id', traceId.slice(0, 32))
+  return response
+}
+
+function forwardInstrumentationHeaders(request: NextRequest): Headers {
+  const headers = new Headers(request.headers)
+  const requestId = headers.get('x-request-id')?.slice(0, 128) ?? newRequestId()
+  const correlationId = headers.get('x-correlation-id')?.slice(0, 128) ?? requestId
+  headers.set('x-request-id', requestId)
+  headers.set('x-correlation-id', correlationId)
+  return headers
+}
+
 export function middleware(request: NextRequest) {
   // Handle CORS preflight — respond immediately without rate limiting
   if (request.method === 'OPTIONS') {
@@ -78,12 +103,13 @@ export function middleware(request: NextRequest) {
     const response = new NextResponse(null, { status: 204 })
     response.headers.set('Access-Control-Allow-Origin', origin)
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Correlation-Id')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Correlation-Id, X-Request-Id, Traceparent')
+    response.headers.set('Access-Control-Expose-Headers', 'X-Kadarn-Api-Version, X-Request-Id, X-Correlation-Id, X-Trace-Id')
     response.headers.set('Access-Control-Max-Age', '86400')
     if (origin !== '*') {
       response.headers.set('Vary', 'Origin')
     }
-    return response
+    return attachInstrumentationHeaders(request, response)
   }
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -101,14 +127,14 @@ export function middleware(request: NextRequest) {
     return rateLimitResponse()
   }
 
-  const response = NextResponse.next()
+  const response = NextResponse.next({ request: { headers: forwardInstrumentationHeaders(request) } })
 
   // CORS headers — permissive during alpha; tighten for production
   const origin = request.headers.get('origin') ?? '*'
   response.headers.set('Access-Control-Allow-Origin', origin)
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Correlation-Id')
-  response.headers.set('Access-Control-Expose-Headers', 'X-Kadarn-Api-Version')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Correlation-Id, X-Request-Id, Traceparent')
+  response.headers.set('Access-Control-Expose-Headers', 'X-Kadarn-Api-Version, X-Request-Id, X-Correlation-Id, X-Trace-Id')
   if (origin !== '*') {
     response.headers.set('Vary', 'Origin')
   }
@@ -120,7 +146,7 @@ export function middleware(request: NextRequest) {
     response.headers.set('Link', '</api/v1>; rel="successor-version"')
   }
 
-  return response
+  return attachInstrumentationHeaders(request, response)
 }
 
 export const config = {

@@ -1,5 +1,5 @@
-// Sprint 28E — Review & Evidence Lifecycle
-// Event-based review model. Claims never modified — only events.
+// Sprint 28E â€” Review & Evidence Lifecycle
+// Event-based review model. Claims never modified â€” only events.
 export type ReviewEventType = 'review_requested' | 'review_approved' | 'review_rejected' | 'counter_evidence' | 'right_of_response' | 'expired' | 'republished'
 export interface ReviewEvent { eventId: string; claimId: string; eventType: ReviewEventType; actor: string; justification?: string; timestamp: string }
 export class ReviewLifecycleEngine {

@@ -1,4 +1,4 @@
-// Sprint 28I — Schema Evolution Framework
+// Sprint 28I â€” Schema Evolution Framework
 // Versioned schemas, migration rules, read adapters. Never break historical Claims.
 export interface ClaimTypeDefinition { definitionId: string; claimType: string; schemaVersion: number; schema: Record<string, unknown>; validFrom: string; validTo?: string; migration?: MigrationRule; deprecatedFields: string[]; addedFields: string[] }
 export interface MigrationRule { fromVersion: number; toVersion: number; transform: (oldClaim: Record<string, unknown>) => Record<string, unknown>; reversible: boolean; automated: boolean }

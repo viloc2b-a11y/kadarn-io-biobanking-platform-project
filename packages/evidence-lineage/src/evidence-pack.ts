@@ -1,4 +1,4 @@
-// Sprint 28H — Evidence Pack Engine
+// Sprint 28H â€” Evidence Pack Engine
 // Auto-generated explainability packs for every Claim.
 export interface EvidencePack { packId: string; claimId: string; claimStatement: string; supportingFacts: Array<{ id: string; content: unknown }>; evidenceGraph: { nodes: number; edges: number }; confidence: { value: number; level: string }; timeline: string[]; reviewHistory: string[]; sources: string[]; generatedAt: string }
 export class EvidencePackEngine {
