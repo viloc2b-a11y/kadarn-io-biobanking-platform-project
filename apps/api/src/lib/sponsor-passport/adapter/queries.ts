@@ -40,3 +40,34 @@ export async function readInstitutionEvidence(
     evidenceByClaimId,
   }
 }
+
+export interface OrganizationRecord {
+  id: string
+  name: string
+  legalName: string | null
+  city: string | null
+  region: string | null
+  country: string
+}
+
+function mapOrganizationRow(row: Record<string, unknown>): OrganizationRecord {
+  return {
+    id: String(row.id),
+    name: String(row.name ?? ''),
+    legalName: row.legal_name ? String(row.legal_name) : null,
+    city: row.city ? String(row.city) : null,
+    region: row.region ? String(row.region) : null,
+    country: String(row.country ?? ''),
+  }
+}
+
+export async function readOrganization(
+  db: DbClient,
+  organizationId: string,
+): Promise<OrganizationRecord | null> {
+  const { data, error } = await db.from('organizations').select('*').eq('id', organizationId)
+  if (error) throw new Error(`Failed to read organization: ${error}`)
+
+  const row = (data as Record<string, unknown>[])?.[0]
+  return row ? mapOrganizationRow(row) : null
+}

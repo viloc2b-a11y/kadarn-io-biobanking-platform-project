@@ -134,7 +134,7 @@ describe('Sponsor passport claim mapping (RC-11.3)', () => {
     const db = createFakeDb()
     const institutionId = 'org-site-store-1'
     setPortfolioAllowlistForTests({
-      [storeSponsorOrg]: [{ institutionId }],
+      [storeSponsorOrg]: [{ institutionId, displayName: 'Cold-chain Site' }],
     })
     const provenance = createProvenance({
       actorId: 'actor-1',
@@ -173,8 +173,9 @@ describe('Sponsor passport claim mapping (RC-11.3)', () => {
     expect(passport).toBeDefined()
     expect(passport!.claims).toHaveLength(1)
     expect(passport!.claims[0].statement).toMatch(/^Evidence suggests/)
-    expect(passport!.identity.names).toEqual([])
-    expect(passport!.capabilities).toEqual([])
+    expect(passport!.identity.names.length).toBeGreaterThan(0)
+    expect(passport!.identity.relationships).toEqual([])
+    expect(passport!.capabilities.length).toBeGreaterThan(0)
     expect(passport!.recommendations).toEqual([])
     expect(passport!.history).toEqual([])
   })
