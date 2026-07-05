@@ -16,6 +16,7 @@ import {
   resolvePortfolioEntry,
 } from './adapter/map-portfolio-index'
 import { mapAuditEventsToPassportHistory } from './adapter/map-history'
+import { mapRecommendationsFromPassport } from './adapter/map-recommendations'
 import {
   readInstitutionAuditEvents,
   readInstitutionEvidence,
@@ -83,6 +84,12 @@ export class EvidenceCorePassportStore implements PassportStore {
         .sort()
         .at(-1) ?? new Date().toISOString()
 
+    const recommendations = mapRecommendationsFromPassport({
+      read,
+      passportClaims: claims,
+      referenceDate: new Date(asOf),
+    })
+
     return {
       passportId: `passport-${institutionId}`,
       institutionId,
@@ -92,7 +99,7 @@ export class EvidenceCorePassportStore implements PassportStore {
       identity,
       capabilities,
       claims,
-      recommendations: [],
+      recommendations,
       history,
     }
   }

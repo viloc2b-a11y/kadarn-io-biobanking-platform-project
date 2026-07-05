@@ -72,6 +72,7 @@ export interface PassportRecommendation {
   reason: string
   expectedImpact: string
   isNextAction: boolean
+  supportingClaimIds?: string[]
 }
 
 export interface PassportHistoryEvent {

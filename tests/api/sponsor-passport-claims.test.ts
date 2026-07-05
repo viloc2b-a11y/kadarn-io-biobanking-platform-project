@@ -161,7 +161,7 @@ describe('Sponsor passport claim mapping (RC-11.3)', () => {
       evidenceClass: 'C' as never,
       content: 'Calibration log excerpt',
       source: 'Equipment maintenance log',
-      date: '2024-11-02',
+      date: '2026-04-01',
       weight: 0.4,
       provenance,
       visibility: siteVisibility(institutionId),

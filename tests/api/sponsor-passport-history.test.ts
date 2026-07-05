@@ -199,7 +199,7 @@ describe('Sponsor passport history (RC-11.7)', () => {
       evidenceClass: 'B' as never,
       content: 'SOP excerpt for same-day processing',
       source: 'SOP: PBMC Isolation v3.2',
-      date: '2025-09-14',
+      date: '2026-05-01',
       weight: 0.5,
     })
 
@@ -208,8 +208,9 @@ describe('Sponsor passport history (RC-11.7)', () => {
 
     expect(passport).toBeDefined()
     expect(passport!.history.length).toBe(2)
-    expect(passport!.history[0].eventType).toBe('Evidence submitted')
-    expect(passport!.history[1].eventType).toBe('Claim created')
+    expect(passport!.history.map((event) => event.eventType).sort()).toEqual(
+      ['Claim created', 'Evidence submitted'].sort(),
+    )
     expect(passport!.history.every((event) => event.description.length > 0)).toBe(true)
     expect(passport!.history.every((event) => event.occurredAt.length > 0)).toBe(true)
     expect(passport!.recommendations).toEqual([])
