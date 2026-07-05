@@ -2,7 +2,7 @@
  * RC-11.3 — Sponsor passport claim mapping unit tests (no HTTP, no DB).
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
   createProvenance,
   insertClaim,
@@ -13,6 +13,7 @@ import type { DbClient } from '../../packages/evidence-core/src/db.js'
 import { mapClaimToPassportClaim, mapClaimsToPassportClaims } from '../../apps/api/src/lib/sponsor-passport/adapter/map-claim'
 import { mapConfidenceLevel } from '../../apps/api/src/lib/sponsor-passport/adapter/map-confidence'
 import { toCandidateStatement } from '../../apps/api/src/lib/sponsor-passport/adapter/map-statement'
+import { setPortfolioAllowlistForTests } from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { readInstitutionEvidence } from '../../apps/api/src/lib/sponsor-passport/adapter/queries'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
 
@@ -48,6 +49,11 @@ function createFakeDb(): DbClient {
 }
 
 describe('Sponsor passport claim mapping (RC-11.3)', () => {
+  afterEach(() => {
+    setPortfolioAllowlistForTests(null)
+  })
+
+  const storeSponsorOrg = 'org-sponsor-claims-test'
   it('maps core confidence levels to passport enum without numeric scores', () => {
     expect(mapConfidenceLevel('high')).toBe('High')
     expect(mapConfidenceLevel('moderate')).toBe('Moderate')
@@ -127,6 +133,9 @@ describe('Sponsor passport claim mapping (RC-11.3)', () => {
   it('EvidenceCorePassportStore returns claims-only passport with stubbed sections', async () => {
     const db = createFakeDb()
     const institutionId = 'org-site-store-1'
+    setPortfolioAllowlistForTests({
+      [storeSponsorOrg]: [{ institutionId }],
+    })
     const provenance = createProvenance({
       actorId: 'actor-1',
       organizationId: institutionId,
@@ -159,7 +168,7 @@ describe('Sponsor passport claim mapping (RC-11.3)', () => {
     })
 
     const store = new EvidenceCorePassportStore(async () => db)
-    const passport = await store.getInstitutionalPassport('org-sponsor-1', institutionId)
+    const passport = await store.getInstitutionalPassport(storeSponsorOrg, institutionId)
 
     expect(passport).toBeDefined()
     expect(passport!.claims).toHaveLength(1)

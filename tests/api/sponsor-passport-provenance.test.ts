@@ -2,7 +2,7 @@
  * RC-11.4 — Sponsor passport provenance sub-resource unit tests (no HTTP, no DB).
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
   createProvenance,
   insertClaim,
@@ -12,6 +12,7 @@ import {
 } from '../../packages/evidence-core/src/index.js'
 import type { DbClient } from '../../packages/evidence-core/src/db.js'
 import { mapClaimProvenanceDetail } from '../../apps/api/src/lib/sponsor-passport/adapter/map-provenance-detail'
+import { setPortfolioAllowlistForTests } from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { readInstitutionEvidence } from '../../apps/api/src/lib/sponsor-passport/adapter/queries'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
 
@@ -47,6 +48,11 @@ function createFakeDb(): DbClient {
 }
 
 describe('Sponsor passport provenance mapping (RC-11.4)', () => {
+  afterEach(() => {
+    setPortfolioAllowlistForTests(null)
+  })
+
+  const storeSponsorOrg = 'org-sponsor-provenance-test'
   it('returns undefined when claim is not found for institution', async () => {
     const db = createFakeDb()
     const read = await readInstitutionEvidence(db, 'org-empty')
@@ -189,6 +195,9 @@ describe('Sponsor passport provenance mapping (RC-11.4)', () => {
   it('EvidenceCorePassportStore.getClaimProvenanceDetail delegates to adapter', async () => {
     const db = createFakeDb()
     const institutionId = 'org-site-store-prov'
+    setPortfolioAllowlistForTests({
+      [storeSponsorOrg]: [{ institutionId }],
+    })
     const provenance = createProvenance({
       actorId: 'actor-1',
       organizationId: institutionId,
@@ -223,7 +232,7 @@ describe('Sponsor passport provenance mapping (RC-11.4)', () => {
     })
 
     const store = new EvidenceCorePassportStore(async () => db)
-    const detail = await store.getClaimProvenanceDetail('org-sponsor', institutionId, claimId)
+    const detail = await store.getClaimProvenanceDetail(storeSponsorOrg, institutionId, claimId)
 
     expect(detail).toBeDefined()
     expect(detail!.claimId).toBe(claimId)
