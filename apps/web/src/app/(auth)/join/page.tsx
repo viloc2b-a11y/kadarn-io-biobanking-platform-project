@@ -20,9 +20,7 @@ export default function JoinPage() {
           roles.
         </p>
         <p style={noticeStyle}>
-          This step only selects the future organization type. Registration,
-          account creation, provisioning, permissions, marketplace visibility,
-          and passport sharing are not active yet.
+          Choose your organization type to begin. Your full workspace will be provisioned after you complete onboarding.
         </p>
 
         <div style={gridStyle}>

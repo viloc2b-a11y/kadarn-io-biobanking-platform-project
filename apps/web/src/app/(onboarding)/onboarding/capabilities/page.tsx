@@ -15,7 +15,7 @@ export default function CapabilitiesPage() {
   return (
     <div className="max-w-3xl mx-auto py-8">
       <div className="mb-8">
-        <div className="text-sm text-gray-400 mb-2">First Derived Result / Capabilities</div>
+        <div className="text-sm text-gray-400 mb-2">Evidence-Backed Capabilities</div>
         <h1 className="text-3xl font-bold text-gray-900 mb-3">Derived Capabilities</h1>
         <p className="text-lg text-gray-600">
           We analyzed the information you&apos;ve provided and identified the capabilities your institution can currently demonstrate.

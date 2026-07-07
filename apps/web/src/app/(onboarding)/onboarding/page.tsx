@@ -100,7 +100,7 @@ export default function OnboardingPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-600 mt-0.5">✓</span>
-              <span className="font-semibold">Your Institution Passport — ready to share with sponsors and partners.</span>
+              <span className="font-semibold">Your Institution Passport — the evidence-backed profile of everything you have built, ready for sponsors and partners.</span>
             </li>
           </ul>
         </div>

@@ -105,9 +105,9 @@ export default function DocumentsPage() {
       >
         <div className="text-4xl mb-3">📄</div>
         <div className="text-lg font-medium text-gray-700 mb-1">
-          {dragOver ? 'Drop files here' : 'Drag & drop files here'}
+          {dragOver ? 'Drop evidence here' : 'Drag & drop evidence here'}
         </div>
-        <div className="text-sm text-gray-400">or click to browse. PDF, DOCX, XLSX, PPTX, HTML, CSV, TXT, and MD accepted.</div>
+        <div className="text-sm text-gray-400">or click to browse. PDF, DOCX, XLSX, PPTX, HTML, CSV, TXT, and MD accepted. Each upload becomes evidence in your Institution Passport.</div>
       </div>
 
       {error && (
@@ -119,7 +119,7 @@ export default function DocumentsPage() {
       {/* Uploaded files */}
       {state.uploadedDocs.length > 0 && (
         <div className="mb-8">
-          <h3 className="font-semibold text-gray-900 mb-3">Uploaded Documents ({state.uploadedDocs.length})</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">Your Evidence ({state.uploadedDocs.length})</h3>
           <div className="space-y-2">
             {state.uploadedDocs.map((doc, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
@@ -162,7 +162,7 @@ export default function DocumentsPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
         <h3 className="font-semibold text-gray-900 mb-2">Canonical Institutional Evidence Taxonomy</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Upload documents by domain. Kadarn will later link evidence to institutions, locations, people, labs, equipment, capabilities, readiness, and the Passport.
+          Upload documents by domain. Kadarn links evidence to institutions, locations, people, labs, equipment, capabilities, readiness, and the Passport.
         </p>
         <div className="space-y-3">
           {DOCUMENT_TAXONOMY.map((domain) => (
