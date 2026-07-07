@@ -6,7 +6,7 @@ import { COMPLETION_STATUS_LABELS } from '@/lib/onboarding/completion-gate'
 import { usePathname } from 'next/navigation'
 
 export function OnboardingSidebar() {
-  const { state } = useOnboarding()
+  const { state, onboardingCompleted } = useOnboarding()
   const completion = useCompletionGate()
   const pathname = usePathname()
   const currentDomain = getDomainFromPath(pathname)
@@ -33,11 +33,13 @@ export function OnboardingSidebar() {
       {/* OCP-1 Completion status */}
       <div
         className={`mb-5 p-3 rounded-lg ${
-          isReady
-            ? 'bg-green-50 border border-green-200'
-            : needsEvidence
-              ? 'bg-amber-50 border border-amber-200'
-              : 'bg-blue-50'
+          onboardingCompleted
+            ? 'bg-green-100 border border-green-300'
+            : isReady
+              ? 'bg-green-50 border border-green-200'
+              : needsEvidence
+                ? 'bg-amber-50 border border-amber-200'
+                : 'bg-blue-50'
         }`}
       >
         <div className="flex items-center justify-between mb-1">
@@ -86,6 +88,16 @@ export function OnboardingSidebar() {
           className="block w-full text-center px-3 py-2 bg-amber-100 text-amber-800 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors mb-4 border border-amber-300"
         >
           View Draft Passport →
+        </a>
+      )}
+
+      {/* Workspace link when completed */}
+      {onboardingCompleted && (
+        <a
+          href="/workspace"
+          className="block w-full text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors mb-4"
+        >
+          Go to Workspace →
         </a>
       )}
 

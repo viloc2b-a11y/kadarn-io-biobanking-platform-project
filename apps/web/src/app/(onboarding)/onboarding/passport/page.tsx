@@ -2,12 +2,13 @@
 
 import { type ReactNode } from 'react'
 import { useOnboarding, useDerivedReadModel, useCompletionGate } from '@/lib/onboarding/onboarding-context'
+import { useState } from 'react'
 import { COMPLETION_STATUS_LABELS } from '@/lib/onboarding/completion-gate'
 import type { PassportData, PassportDocument } from '@/lib/passport/passport-assembler'
 import { normalizeLocations, type InstitutionalLocation } from '@/lib/onboarding/institutional-locations'
 
 export default function PassportPage() {
-  const { state } = useOnboarding()
+  const { state, completeOnboarding, onboardingCompleted } = useOnboarding()
   const passport = useDerivedReadModel()
   const completion = useCompletionGate()
 

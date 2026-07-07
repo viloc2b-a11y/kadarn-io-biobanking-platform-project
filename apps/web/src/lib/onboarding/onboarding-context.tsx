@@ -40,6 +40,8 @@ export interface OnboardingState {
   institutionName: string
   uploadedDocs: UploadedDoc[]
   updatedAt: string
+  onboardingCompleted: boolean
+  onboardingCompletedAt: string | null
 }
 
 export interface UploadedDoc {
@@ -73,6 +75,8 @@ interface OnboardingContextType {
   removeDocument: (label: string) => void
   fastTrack: FastTrackProgress
   progress: OnboardingProgressSummary
+  onboardingCompleted: boolean
+  completeOnboarding: () => void
   reset: () => void
 }
 
@@ -275,6 +279,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         uploadedDocs: prev.uploadedDocs.filter((d) => d.label !== label),
       })
     })
+  }
+
+  const completeOnboarding = () => {
+    setState((prev) => createNextState(prev, {
+      onboardingCompleted: true,
+      onboardingCompletedAt: new Date().toISOString(),
+    }))
   }
 
   const reset = () => {
