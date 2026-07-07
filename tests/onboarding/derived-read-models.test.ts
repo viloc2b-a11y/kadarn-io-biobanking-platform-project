@@ -13,6 +13,7 @@ import {
   deriveRoadmapReadModel,
 } from '../../apps/web/src/lib/onboarding/derived-read-models'
 import type {
+  KnowledgeContext,
   ClaimReference,
   EvidenceReference,
   ProvenanceReference,
@@ -737,9 +738,7 @@ describe('ORP-1.3 invariants', () => {
           institutionName: 'Test',
           answers: basicAnswerSet(),
           uploadedDocs: [],
-          claims: [],
-          evidence: [],
-          provenance: [],
+          knowledge: { claims: [], evidence: [] },
         })
         expect(without).toEqual(withEmpty)
       })
@@ -750,9 +749,7 @@ describe('ORP-1.3 invariants', () => {
           institutionName: 'Test',
           answers: basicAnswerSet(),
           uploadedDocs: [],
-          claims: [sampleClaim],
-          evidence: [sampleEvidence],
-          provenance: [sampleProvenance],
+          knowledge: { claims: [sampleClaim], evidence: [sampleEvidence], provenance: [sampleProvenance] },
         })
         expect(result.enrichment).toBeDefined()
         expect(result.enrichment.claimCount).toBe(1)
@@ -769,8 +766,7 @@ describe('ORP-1.3 invariants', () => {
           infrastructure: [makeInfrastructure({ laboratoryPresent: true })],
           labCertifications: ['CLIA'],
           shippingCapability: 'both',
-          claims: [sampleClaim],
-          evidence: [sampleEvidence],
+          knowledge: { claims: [sampleClaim], evidence: [sampleEvidence] },
         })
         const labCaps = capabilities.filter(function(c: any) { return c.name === 'Sample Processing' })
         if (labCaps.length > 0) {
@@ -793,7 +789,7 @@ describe('ORP-1.3 invariants', () => {
           hasTemperatureMonitoring: false,
           hasDigitalCustody: false,
           hasPriorStudies: false,
-          claims: [sampleClaim],
+          knowledge: { claims: [sampleClaim] },
         })
         const withoutClaims = deriveReadinessReadModel({
           capabilities: [],
@@ -819,9 +815,7 @@ describe('ORP-1.3 invariants', () => {
           institutionName: 'Test',
           answers: basicAnswerSet(),
           uploadedDocs: [],
-          claims: [sampleClaim],
-          evidence: [sampleEvidence],
-          provenance: [sampleProvenance],
+          knowledge: { claims: [sampleClaim], evidence: [sampleEvidence], provenance: [sampleProvenance] },
         })
         const json = JSON.stringify(result)
         expect(json).not.toContain('publicationId')
@@ -833,6 +827,6 @@ describe('ORP-1.3 invariants', () => {
 
       it('buildEnrichment returns null when no references provided', () => {
         expect(buildEnrichment()).toBeNull()
-        expect(buildEnrichment([], [])).toBeNull()
+        expect(buildEnrichment({})).toBeNull()
       })
     })
