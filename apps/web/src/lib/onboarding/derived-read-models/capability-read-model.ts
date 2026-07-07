@@ -23,7 +23,9 @@ export interface CapabilityReadModelInput {
 /**
  * Derives capabilities exclusively from canonical objects.
  *
- * Design contract (ORP-1.3):
+ * @frozen ORP-1.6 — public interface will not change.
+ *
+ * Design contract (ORP-1.5):
  * - Pure function: same input → same output
  * - Stateless: no side effects, no state mutation
  * - Deterministic: no Date.now(), no randomness
