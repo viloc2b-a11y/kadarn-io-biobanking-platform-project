@@ -7,7 +7,14 @@ export {
   getSynonyms,
   expandQuery,
   getHierarchy,
-} from './engine.js';
+} from './engine.js'
+
+// Taxonomy enrichment (KTP-1.5A — consumes Capability Intelligence types)
+export {
+  normalizeCapabilityName,
+  getRelatedCapabilities,
+  suggestMissingCapabilities,
+} from './taxonomy.js'
 
 export type {
   OntologyTerm,
@@ -19,4 +26,4 @@ export type {
   CodingSystem,
   KnowledgeAdapter,
   HierarchyResult,
-} from './types.js';
+} from './types.js'

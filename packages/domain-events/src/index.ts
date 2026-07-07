@@ -659,6 +659,53 @@ export interface ClaimConfidenceScoreUpdatedPayload {
 }
 
 // --------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // Readiness Evaluation events (KTP-1.2)
+    // --------------------------------------------------------------------------
+    export interface ReadinessEvaluationStartedPayload {
+      evaluationId: string;
+      organizationId: string;
+      programId: string;
+      programTypeKey: string;
+      triggeredBy: string;
+    }
+
+    export interface ReadinessEvaluationCompletedPayload {
+      evaluationId: string;
+      organizationId: string;
+      programId: string;
+      programTypeKey: string;
+      previousStatus: string | null;
+      newStatus: string;
+      overallConfidence: number;
+      mandatoryCapsMet: number;
+      mandatoryCapsTotal: number;
+      optionalCapsMet: number;
+      optionalCapsTotal: number;
+      evaluatedAt: string;
+    }
+
+    export interface ReadinessEvaluationPublishedPayload {
+      evaluationId: string;
+      organizationId: string;
+      programId: string;
+      programTypeKey: string;
+      readinessStatus: string;
+      publishedBy: string;
+      publishedAt: string;
+    }
+
+    export interface ReadinessEvaluationStatusChangedPayload {
+      evaluationId: string;
+      organizationId: string;
+      programId: string;
+      programTypeKey: string;
+      fromStatus: string;
+      toStatus: string;
+      changedBy: string;
+      reason: string | null;
+    }
+
 // Event registry — maps event types to their payloads
 // --------------------------------------------------------------------------
 export interface KadarnEventMap {
@@ -720,6 +767,10 @@ export interface KadarnEventMap {
   ContinuityClaimPromotedToLedger: ContinuityClaimPromotedToLedgerPayload;
   ContinuityClaimRejected: ContinuityClaimRejectedPayload;
   ClaimConfidenceScoreUpdated: ClaimConfidenceScoreUpdatedPayload;
+      ReadinessEvaluationStarted: ReadinessEvaluationStartedPayload;
+      ReadinessEvaluationCompleted: ReadinessEvaluationCompletedPayload;
+      ReadinessEvaluationPublished: ReadinessEvaluationPublishedPayload;
+      ReadinessEvaluationStatusChanged: ReadinessEvaluationStatusChangedPayload;
 }
 
 /** Union of all known domain event types */

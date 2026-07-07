@@ -110,6 +110,8 @@ export const FORBIDDEN_CORE_OPERATIONS = [
   'evaluateTrust',
   'assessQuality',
   'rateOrganization',
+      'evaluateClaim',
+      'evaluateEvidenceGraph',
 ] as const;
 
 export type ForbiddenCoreOperation = typeof FORBIDDEN_CORE_OPERATIONS[number];

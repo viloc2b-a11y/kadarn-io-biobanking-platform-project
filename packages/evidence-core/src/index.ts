@@ -189,11 +189,11 @@ export type {
   IdentifierHistoryEvent,
 } from './identity/index.js';
 
-// Explainable Output (Sprint 18.4)
-export { evaluateClaim, evaluateEvidenceGraph } from './output.js';
-export type { ConfidenceReport, ContributionBreakdownItem } from './output.js';
-
-// Evaluation Policy (Sprint 19.2a)
+    // Explainable Output — MOVED to @kadarn/readiness-engine (AMB-3 / ADR-011)
+    // @deprecated Import from @kadarn/readiness-engine instead.
+    // These re-exports will be removed in Mission 3.
+    export { evaluateClaim, evaluateEvidenceGraph } from '@kadarn/readiness-engine';
+    export type { ConfidenceReport, ContributionBreakdownItem } from '@kadarn/readiness-engine';
 export { DEFAULT_EVALUATION_POLICY, getClassContribution, getClassPolicy } from './policy.js';
 export type { ClassContributionPolicy } from './policy.js';
 
