@@ -8,6 +8,7 @@
 
 import type { LocationInfrastructure } from '../location-infrastructure'
 import type { PassportCapability, ContributionItem } from '../../passport/passport-assembler'
+import type { EvidenceSupport } from './types'
 import type { KnowledgeContext } from './types'
 
 export interface CapabilityReadModelInput {
@@ -16,6 +17,8 @@ export interface CapabilityReadModelInput {
   infrastructure: LocationInfrastructure[]
   labCertifications: string[]
   shippingCapability: string | null
+  /** OCP-3: Uploaded document labels for evidence-awareness */
+  uploadedDocLabels?: string[]
   /** ORP-1.5: Unified knowledge context. FROZEN. */
   knowledge?: KnowledgeContext
 }
@@ -353,5 +356,26 @@ export function deriveCapabilityReadModel(input: CapabilityReadModelInput): Pass
     if (claimIds.length > 0) cap.supportingClaimIds = claimIds
     if (evidenceIds.length > 0) cap.supportingEvidenceIds = evidenceIds
   }
+  // OCP-3: Compute evidence support for each capability
+  const docLabels = (input.uploadedDocLabels ?? []).map(function(l: string) { return l.toLowerCase() })
+  for (const cap of capabilities) {
+    const hasSupportingEvidence = (cap.supportingEvidence ?? []).some(
+      function(e: ContributionItem) { return e.impact === 'positive' },
+    )
+    const hasMatchingDoc = docLabels.some(function(l: string) {
+      return cap.name.toLowerCase().includes(l) || l.includes(cap.name.toLowerCase())
+    }) || docLabels.length >= 3 // 3+ docs = general evidence coverage
+
+    if (hasSupportingEvidence && hasMatchingDoc) {
+      cap.evidenceSupport = 'SUPPORTED_BY_EVIDENCE'
+    } else if (hasSupportingEvidence) {
+      cap.evidenceSupport = 'DECLARED_ONLY'
+    } else if (cap.level === 'Not available') {
+      cap.evidenceSupport = 'UNKNOWN'
+    } else {
+      cap.evidenceSupport = 'NEEDS_EVIDENCE'
+    }
+  }
+
   return capabilities
 }

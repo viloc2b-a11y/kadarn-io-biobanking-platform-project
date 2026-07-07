@@ -28,5 +28,12 @@ export type {
   LimitationContext,
   QualityContext,
   ReadModelEnrichment,
+  EvidenceSupport,
+  ConditionalRequirement,
 } from './types'
-export { buildEnrichment } from './types'
+export {
+  buildEnrichment,
+  EVIDENCE_SUPPORT_LABELS,
+  CONDITIONAL_REQUIREMENTS,
+  getActiveConditionalRequirements,
+} from './types'

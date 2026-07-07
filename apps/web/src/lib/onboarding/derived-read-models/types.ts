@@ -139,6 +139,121 @@ export interface QualityContext {
 }
 
 // ==========================================================================
+// OCP-3 Evidence Support Levels
+// ==========================================================================
+
+export type EvidenceSupport =
+  | 'SUPPORTED_BY_EVIDENCE'
+  | 'DECLARED_ONLY'
+  | 'NEEDS_EVIDENCE'
+  | 'PARTIALLY_SUPPORTED'
+  | 'UNKNOWN'
+  | 'NOT_APPLICABLE'
+  | 'NEEDS_REVIEW'
+  | 'EXPIRED_OR_OUTDATED'
+
+export const EVIDENCE_SUPPORT_LABELS: Record<EvidenceSupport, string> = {
+  SUPPORTED_BY_EVIDENCE: 'Supported by evidence',
+  DECLARED_ONLY: 'Declared',
+  NEEDS_EVIDENCE: 'Needs evidence',
+  PARTIALLY_SUPPORTED: 'Partially supported',
+  UNKNOWN: 'Not yet collected',
+  NOT_APPLICABLE: 'Not applicable',
+  NEEDS_REVIEW: 'Needs review',
+  EXPIRED_OR_OUTDATED: 'Expired or outdated',
+}
+
+export interface ConditionalRequirement {
+  condition: string
+  requirement: string
+  description: string
+  evidenceClass: 'A' | 'B' | 'C' | 'D'
+}
+
+export const CONDITIONAL_REQUIREMENTS: ConditionalRequirement[] = [
+  {
+    condition: 'Laboratory or testing capability declared',
+    requirement: 'CLIA Certificate (or CAP, COLA equivalent)',
+    description: 'Required when the institution operates a clinical or research laboratory.',
+    evidenceClass: 'A',
+  },
+  {
+    condition: 'Biospecimen shipping or dangerous goods declared',
+    requirement: 'IATA Dangerous Goods Certification',
+    description: 'Required when the institution ships biospecimens or dangerous goods.',
+    evidenceClass: 'B',
+  },
+  {
+    condition: 'Investigational product handling declared',
+    requirement: 'Pharmacy license or IP management SOP',
+    description: 'Required when the institution handles investigational products.',
+    evidenceClass: 'A',
+  },
+  {
+    condition: 'Early phase capability declared',
+    requirement: 'Overnight/stay capacity documentation',
+    description: 'Required when the institution declares early phase trial capability.',
+    evidenceClass: 'B',
+  },
+  {
+    condition: 'Biospecimen operations declared',
+    requirement: 'Chain of custody documentation',
+    description: 'Required when biospecimen collection, processing, or storage is declared.',
+    evidenceClass: 'B',
+  },
+]
+
+export function getActiveConditionalRequirements(params: {
+  infrastructure: unknown[]
+  uploadedDocLabels: string[]
+}): { requirement: ConditionalRequirement; active: boolean; satisfied: boolean }[] {
+  const { infrastructure, uploadedDocLabels } = params
+  const hasLab = infrastructure.some(
+    (item: any) => item.laboratoryPresent === true,
+  )
+  const hasBiospecimen = infrastructure.some(
+    (item: any) =>
+      Array.isArray(item.biospecimenOperations) &&
+      item.biospecimenOperations.some((op: string) => op !== 'None'),
+  )
+  const hasShipping = infrastructure.some(
+    (item: any) =>
+      item.shippingCapability === 'both' || item.shippingCapability === 'international',
+  )
+  const hasEarlyPhase = infrastructure.some(
+    (item: any) =>
+      item.facilityType === 'Early Phase Unit' || item.overnightEarlyPhaseCapacity === true,
+  )
+
+  const labels = uploadedDocLabels.map((l: string) => l.toLowerCase())
+
+  return CONDITIONAL_REQUIREMENTS.map((req) => {
+    let active = false
+    if (req.requirement.includes('CLIA')) active = hasLab
+    else if (req.requirement.includes('IATA')) active = hasBiospecimen || hasShipping
+    else if (req.requirement.includes('Pharmacy')) active = hasBiospecimen
+    else if (req.requirement.includes('Overnight')) active = hasEarlyPhase
+    else if (req.requirement.includes('Chain of custody')) active = hasBiospecimen
+
+    const satisfied = active
+      ? labels.some(
+          (l: string) =>
+            l.includes('clia') ||
+            l.includes('cap') ||
+            l.includes('cola') ||
+            l.includes('iata') ||
+            l.includes('pharmacy') ||
+            l.includes('custody') ||
+            l.includes('overnight') ||
+            l.includes('sop'),
+        )
+      : true
+
+    return { requirement: req, active, satisfied }
+  })
+}
+
+// ==========================================================================
 // Read Model Enrichment (unchanged output shape from ORP-1.4)
 // ==========================================================================
 

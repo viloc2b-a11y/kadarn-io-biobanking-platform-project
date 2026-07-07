@@ -114,6 +114,7 @@ export function derivePassportReadModel(input: PassportReadModelInput): Passport
     shippingCapability: infrastructure.length > 0
       ? infrastructure[0].shippingCapability || null
       : null,
+        uploadedDocLabels: docs.map(function(d) { return d.label }),
   })
 
   // Derive readiness from canonical objects + capabilities + evidence
