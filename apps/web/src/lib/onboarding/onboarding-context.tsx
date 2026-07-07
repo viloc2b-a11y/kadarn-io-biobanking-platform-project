@@ -15,6 +15,7 @@ import { getPrimaryLocation } from '@/lib/onboarding/institutional-locations'
 import { LEGACY_GEOGRAPHIC_REACH_BY_COVERAGE } from '@/lib/onboarding/operational-footprint-taxonomy'
 import { derivePassportReadModel } from '@/lib/onboarding/derived-read-models'
 import type { PassportData } from '@/lib/onboarding/derived-read-models'
+import { computeCompletionGate, type CompletionGateResult } from '@/lib/onboarding/completion-gate'
 
 // ==========================================================================
 // FIX CR-1: Shared state across all onboarding pages
@@ -353,3 +354,26 @@ export function useDerivedReadModel(): PassportData {
     ],
   )
 }
+
+    /**
+     * OCP-1 Completion Gate hook.
+     *
+     * Computes the deterministic completion status from onboarding state.
+     * Exposes: status, percentage, missing items, next best action, Passport readiness.
+     */
+    export function useCompletionGate(): CompletionGateResult {
+      const { state } = useOnboarding()
+
+      return useMemo(
+        () =>
+          computeCompletionGate({
+            answers: state.answers,
+            uploadedDocs: state.uploadedDocs,
+            completedDomains: state.completedDomains,
+            institutionName: state.institutionName,
+            passportGenerated: false,
+          }),
+        [state.answers, state.uploadedDocs, state.completedDomains, state.institutionName],
+      )
+    }
+

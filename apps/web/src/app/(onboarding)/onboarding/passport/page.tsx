@@ -1,13 +1,19 @@
 'use client'
 
 import { type ReactNode } from 'react'
-import { useOnboarding, useDerivedReadModel } from '@/lib/onboarding/onboarding-context'
+import { useOnboarding, useDerivedReadModel, useCompletionGate } from '@/lib/onboarding/onboarding-context'
+import { COMPLETION_STATUS_LABELS } from '@/lib/onboarding/completion-gate'
 import type { PassportData, PassportDocument } from '@/lib/passport/passport-assembler'
 import { normalizeLocations, type InstitutionalLocation } from '@/lib/onboarding/institutional-locations'
 
 export default function PassportPage() {
   const { state } = useOnboarding()
   const passport = useDerivedReadModel()
+  const completion = useCompletionGate()
+
+  const isReady = completion.status === 'READY_FOR_PASSPORT' || completion.status === 'PASSPORT_GENERATED'
+  const isDraft = completion.canGenerateDraftPassport && !isReady
+  const statusLabel = COMPLETION_STATUS_LABELS[completion.status]
 
   const { institution, evidence, capabilities, readiness, nextSteps } = passport
   const locations = Array.isArray(state.answers['org_locations'])

@@ -1,51 +1,91 @@
 'use client'
 
 import { ONBOARDING_JOURNEY, type OnboardingDomain } from '@/lib/onboarding/onboarding-journey'
-import { PASSPORT_LEVELS } from '@/lib/onboarding/fast-track'
-import { useOnboarding } from '@/lib/onboarding/onboarding-context'
+import { useOnboarding, useCompletionGate } from '@/lib/onboarding/onboarding-context'
+import { COMPLETION_STATUS_LABELS } from '@/lib/onboarding/completion-gate'
 import { usePathname } from 'next/navigation'
 
 export function OnboardingSidebar() {
-  const { state, fastTrack, progress } = useOnboarding()
+  const { state } = useOnboarding()
+  const completion = useCompletionGate()
   const pathname = usePathname()
   const currentDomain = getDomainFromPath(pathname)
   const currentIndex = ONBOARDING_JOURNEY.findIndex((step) => step.domain === currentDomain)
-  const levelInfo = PASSPORT_LEVELS[fastTrack.currentLevel]
-  const canGenerate = fastTrack.canGeneratePassport
+
+  const statusLabel = COMPLETION_STATUS_LABELS[completion.status]
+  const isReady = completion.status === 'READY_FOR_PASSPORT' || completion.status === 'PASSPORT_GENERATED'
+  const needsEvidence = completion.status === 'NEEDS_EVIDENCE'
+  const isNotStarted = completion.status === 'NOT_STARTED'
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 p-5 overflow-y-auto">
       <div className="mb-5">
         <h2 className="text-base font-semibold text-gray-900">Institution Setup</h2>
         <p className="text-xs text-gray-500 mt-1">
-          {canGenerate ? 'Passport ready!' : `~${fastTrack.estimatedMinutesToNextLevel} min to first Passport`}
+          {isReady
+            ? '✅ Passport ready for review'
+            : isNotStarted
+              ? 'Start building your profile'
+              : `${completion.overallPercentage}% complete · ${statusLabel}`}
         </p>
       </div>
 
-      {/* Fast-track progress */}
-      <div className="mb-5 p-3 bg-blue-50 rounded-lg">
+      {/* OCP-1 Completion status */}
+      <div
+        className={`mb-5 p-3 rounded-lg ${
+          isReady
+            ? 'bg-green-50 border border-green-200'
+            : needsEvidence
+              ? 'bg-amber-50 border border-amber-200'
+              : 'bg-blue-50'
+        }`}
+      >
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-blue-600 font-medium">Progress</span>
-          <span className="text-xs text-blue-600 font-bold">{levelInfo.label}</span>
+          <span
+            className={`text-xs font-medium ${
+              isReady ? 'text-green-700' : needsEvidence ? 'text-amber-700' : 'text-blue-600'
+            }`}
+          >
+            {statusLabel}
+          </span>
+          <span className="text-xs font-bold text-gray-600">{completion.overallPercentage}%</span>
         </div>
-        <div className="h-1.5 bg-blue-200 rounded-full mb-2">
+        <div className={`h-1.5 rounded-full mb-2 ${isReady ? 'bg-green-200' : 'bg-blue-200'}`}>
           <div
-            className="h-full bg-blue-600 rounded-full transition-all"
-            style={{ width: `${Math.round((fastTrack.criticalCompleted / fastTrack.criticalTotal) * 100)}%` }}
+            className={`h-full rounded-full transition-all ${isReady ? 'bg-green-600' : 'bg-blue-600'}`}
+            style={{ width: `${completion.overallPercentage}%` }}
           />
         </div>
-        <div className="text-[10px] text-blue-500">
-          {progress.criticalCompleted}/{progress.criticalTotal} critical · {progress.answeredCount} answers · {progress.documentCount} docs
+        <div className="text-[10px] text-gray-500">
+          {completion.criticalCompleted}/{completion.criticalTotal} critical · {completion.completedDomains.length} domains done
         </div>
+        {completion.nextBestAction && (
+          <a
+            href={completion.nextBestAction.href}
+            className="block mt-2 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
+          >
+            → {completion.nextBestAction.action}
+          </a>
+        )}
       </div>
 
       {/* Generate Passport CTA */}
-      {canGenerate && (
+      {isReady && (
         <a
           href="/onboarding/passport"
           className="block w-full text-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors mb-4"
         >
-          View Your Passport →
+          Review Your Passport →
+        </a>
+      )}
+
+      {/* Draft Passport CTA */}
+      {completion.canGenerateDraftPassport && !isReady && (
+        <a
+          href="/onboarding/passport"
+          className="block w-full text-center px-3 py-2 bg-amber-100 text-amber-800 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors mb-4 border border-amber-300"
+        >
+          View Draft Passport →
         </a>
       )}
 
@@ -68,13 +108,15 @@ export function OnboardingSidebar() {
                 ${step.isDerived && isFuture ? 'italic' : ''}
               `}
             >
-              <div className={`
-                w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
-                ${isPast ? 'bg-green-500 text-white' : ''}
-                ${isCurrent ? 'bg-blue-600 text-white' : ''}
-                ${isFuture && step.isDerived ? 'bg-purple-100 text-purple-400 border border-purple-200' : ''}
-                ${isFuture && !step.isDerived ? 'bg-gray-100 text-gray-400' : ''}
-              `}>
+              <div
+                className={`
+                    w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+                    ${isPast ? 'bg-green-500 text-white' : ''}
+                    ${isCurrent ? 'bg-blue-600 text-white' : ''}
+                    ${isFuture && step.isDerived ? 'bg-purple-100 text-purple-400 border border-purple-200' : ''}
+                    ${isFuture && !step.isDerived ? 'bg-gray-100 text-gray-400' : ''}
+                  `}
+              >
                 {isPast ? '✓' : step.isDerived ? '⟐' : idx}
               </div>
 
