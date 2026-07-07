@@ -12,9 +12,10 @@ function env(key: string): string {
 // ─── Browser client (client components) ──────────────────────────────────────
 
 export function createKadarnBrowserClient() {
+  // Static property access — required for Next.js to inline NEXT_PUBLIC_* in client bundles.
   return createBrowserClient(
-    env('NEXT_PUBLIC_SUPABASE_URL'),
-    env('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )
 }
 
@@ -77,12 +78,12 @@ export function checkRouteAccess(
 
   // Workspace: requires authenticated org member
   if (pathname.startsWith('/workspace')) {
-    if (!role) return { allowed: false, redirectTo: '/auth/login?next=/workspace' }
+    if (!role) return { allowed: false, redirectTo: '/login?next=/workspace' }
     if (!hasMembership) return { allowed: false, redirectTo: '/marketplace' }
   }
 
   // Auth routes: redirect authenticated users away
-  if (pathname.startsWith('/auth/login') && role) {
+  if ((pathname.startsWith('/login') || pathname.startsWith('/auth/login')) && role) {
     return { allowed: false, redirectTo: defaultRedirect(role, hasMembership) }
   }
 

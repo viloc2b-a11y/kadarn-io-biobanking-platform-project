@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { defaultRedirect, resolveRole } from '@kadarn/auth'
@@ -138,7 +139,24 @@ function LoginForm() {
           </button>
         </form>
 
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
+        <div style={{ marginTop: 14, textAlign: 'center' }}>
+          <Link href="/forgot-password" style={{ fontSize: 12, color: 'var(--txd)', fontWeight: 600 }}>
+            Forgot password?
+          </Link>
+        </div>
+
+        <div style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid var(--border)',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}>
+          <Link href="/join" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 800 }}>
+            Register your organization
+          </Link>
           <a href="/marketplace" style={{ fontSize: 12, color: 'var(--txdd)' }}>
             Browse marketplace without signing in →
           </a>
