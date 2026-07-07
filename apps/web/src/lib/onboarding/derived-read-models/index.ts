@@ -1,9 +1,9 @@
 // ==========================================================================
-// ORP-1.3 / ORP-1.4 Derived Read Models — Public API
+// ORP-1.5 Derived Read Models — Public API (FROZEN)
 // ==========================================================================
 // All exports are pure, deterministic, non-persistent read-model builders.
 // They derive projections exclusively from canonical objects.
-// ORP-1.4: Optional claim/evidence/provenance references accepted as extension points.
+// KnowledgeContext is the single enrichment point (ORP-1.5, FROZEN).
 // No publication metadata. No A10 concepts. No Package Definitions.
 // ==========================================================================
 
@@ -20,9 +20,13 @@ export { deriveRoadmapReadModel } from './roadmap-read-model'
 export type { RoadmapReadModelInput } from './roadmap-read-model'
 
 export type {
+  KnowledgeContext,
   ClaimReference,
   EvidenceReference,
   ProvenanceReference,
+  ConfidenceContext,
+  LimitationContext,
+  QualityContext,
   ReadModelEnrichment,
 } from './types'
 export { buildEnrichment } from './types'

@@ -20,7 +20,7 @@ import type {
   PassportReadinessDimension,
   PassportEvidence,
 } from '../../passport/passport-assembler'
-import type { ClaimReference, EvidenceReference } from './types'
+import type { KnowledgeContext } from './types'
 
 export interface ReadinessReadModelInput {
   capabilities: PassportCapability[]
@@ -49,8 +49,9 @@ export interface ReadinessReadModelInput {
  * detail explaining what canonical objects are missing.
  */
 export function deriveReadinessReadModel(input: ReadinessReadModelInput): PassportReadiness {
-  const claimContributions = (input.claims ?? []).length > 0
-    ? (input.claims ?? []).map(function(c: ClaimReference) { return {
+  const claims = input.knowledge?.claims ?? []
+  const claimContributions = claims.length > 0
+    ? claims.map(function(c) { return {
         label: c.statement.slice(0, 80),
         impact: (c.confidence === 'High' || c.confidence === 'Medium' ? 'positive' : 'pending') as 'positive' | 'negative' | 'pending',
         points: c.confidence === 'High' ? 15 : c.confidence === 'Medium' ? 10 : 5,

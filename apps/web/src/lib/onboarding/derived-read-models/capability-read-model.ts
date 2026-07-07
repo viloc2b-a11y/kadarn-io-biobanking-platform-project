@@ -8,7 +8,7 @@
 
 import type { LocationInfrastructure } from '../location-infrastructure'
 import type { PassportCapability, ContributionItem } from '../../passport/passport-assembler'
-import type { ClaimReference, EvidenceReference } from './types'
+import type { KnowledgeContext } from './types'
 
 export interface CapabilityReadModelInput {
   researchFocus: string[]
@@ -16,10 +16,8 @@ export interface CapabilityReadModelInput {
   infrastructure: LocationInfrastructure[]
   labCertifications: string[]
   shippingCapability: string | null
-  /** ORP-1.4: Optional claim references for capability enrichment */
-  claims?: ClaimReference[]
-  /** ORP-1.4: Optional evidence references for capability enrichment */
-  evidence?: EvidenceReference[]
+  /** ORP-1.5: Unified knowledge context. FROZEN. */
+  knowledge?: KnowledgeContext
 }
 
 /**
@@ -36,8 +34,8 @@ export interface CapabilityReadModelInput {
  * This is intentional — no capabilities without evidence.
  */
 export function deriveCapabilityReadModel(input: CapabilityReadModelInput): PassportCapability[] {
-  const claimIds = (input.claims ?? []).map(function(c: ClaimReference) { return c.id })
-  const evidenceIds = (input.evidence ?? []).map(function(e: EvidenceReference) { return e.id })
+  const claimIds = (input.knowledge?.claims ?? []).map(function(c) { return c.id })
+  const evidenceIds = (input.knowledge?.evidence ?? []).map(function(e) { return e.id })
   const capabilities: PassportCapability[] = []
   const infra = input.infrastructure
 

@@ -1,95 +1,180 @@
 // ==========================================================================
-// ORP-1.4 Derived Read Models — Claim, Evidence & Provenance References
+// ORP-1.5 Knowledge Boundary — Unified Knowledge Context
 // ==========================================================================
-// These are EXTENSION POINTS only. Read models accept optional references
-// but do NOT implement Claim Engine, Evidence Engine, or Confidence Engine.
-// When references are absent, output is identical to ORP-1.3 baseline.
+// FROZEN CONTRACT. The KnowledgeContext is the single enrichment point
+// between the Canonical Layer and Read Models. Read Models will not change
+// their enrichment interface after ORP-1.5.
 //
-// No publication metadata. No package ids. No disclosure. No delivery.
+// No Claim Engine, Evidence Engine, or Confidence Engine is implemented here.
+// These are extension points only.
+// ==========================================================================
+
+/**
+ * Knowledge Context — the single enrichment contract between the Canonical
+ * Layer and Read Models (ORP-1.5, FROZEN).
+ *
+ * Replaces loose claims/evidence/provenance parameters with a unified
+ * envelope. Read Models consume `knowledge?: KnowledgeContext` and produce
+ * identical output when absent.
+ *
+ * Reserved slots (confidence, limitations, quality) are declared but not
+ * implemented. They will be populated by future engines (ORP-1.x+).
+ */
+export interface KnowledgeContext {
+  /** Claim references from Claim Engine (future) */
+  claims?: ClaimReference[]
+  /** Evidence references from Evidence Engine (future) */
+  evidence?: EvidenceReference[]
+  /** Provenance references from Evidence Lineage / Published View */
+  provenance?: ProvenanceReference[]
+
+  // ── Reserved slots (not implemented — ORP-1.x+) ──
+
+  /**
+   * @reserved Confidence model references from Confidence Engine (future).
+   * Not populated in ORP-1.5. Read Models must treat absence as neutral.
+   */
+  confidence?: ConfidenceContext
+
+  /**
+   * @reserved Known limitations of the current knowledge state.
+   * Not populated in ORP-1.5. Read Models must treat absence as neutral.
+   */
+  limitations?: LimitationContext[]
+
+  /**
+   * @reserved Quality assessment references from Quality Engine (future).
+   * Not populated in ORP-1.5. Read Models must treat absence as neutral.
+   */
+  quality?: QualityContext
+
+  /** Timestamp of the last knowledge refresh. Set by the Knowledge Layer. */
+  refreshedAt?: string
+}
+
+// ==========================================================================
+// Reference Types (unchanged from ORP-1.4)
 // ==========================================================================
 
 /**
  * Reference to a claim that may support or challenge a capability.
- * Claims are produced by the Claim Engine (future — ORP-1.5+).
+ * Claims are produced by the Claim Engine (future).
  */
 export interface ClaimReference {
-  /** Stable claim identifier from the Claim Engine */
   id: string
-  /** Claim type classification */
   claimType: string
-  /** The claim statement text */
   statement: string
-  /** Claim confidence level, when available from Confidence Engine */
   confidence?: 'High' | 'Medium' | 'Low' | 'Insufficient'
-  /** Claim lifecycle status */
   status?: 'active' | 'under_review' | 'superseded' | 'withdrawn'
-  /** Subject of the claim (capability, person, location, etc.) */
   subjectType?: string
-  /** Subject identifier */
   subjectId?: string
 }
 
 /**
  * Reference to an evidence object that supports or contradicts a claim.
- * Evidence is produced by the Evidence Engine (future — ORP-1.5+).
+ * Evidence is produced by the Evidence Engine (future).
  */
 export interface EvidenceReference {
-  /** Stable evidence identifier from the Evidence Engine */
   id: string
-  /** Evidence classification */
   evidenceType: 'document' | 'observation' | 'attestation' | 'measurement' | 'audit'
-  /** Evidence class (A-D) per Kadarn evidence taxonomy */
   evidenceClass?: 'A' | 'B' | 'C' | 'D'
-  /** Source of the evidence */
   source?: string
-  /** Evidence freshness indicator */
   freshness?: 'current' | 'aging' | 'expired'
-  /** When the evidence was last validated */
   lastValidatedAt?: string
-  /** When the evidence expires, if applicable */
   expiresAt?: string
 }
 
 /**
  * Reference to provenance information linking claims and evidence.
- * Provenance is produced by the Evidence Lineage / Published View engine.
  */
 export interface ProvenanceReference {
-  /** Stable provenance identifier */
   id: string
-  /** Source claim identifier */
   sourceClaimId?: string
-  /** Source evidence identifier */
   sourceEvidenceId?: string
-  /** Relationship type between linked entities */
   relationshipType?: 'supports' | 'contradicts' | 'derives_from' | 'supersedes'
-  /** Provenance chain depth */
   depth?: number
 }
 
+// ==========================================================================
+// Reserved Context Types (not implemented — ORP-1.x+)
+// ==========================================================================
+
 /**
- * Read model enrichment produced when optional references are present.
- * Always a subset of the full reference — never exposes internal engine state.
+ * @reserved Confidence context from Confidence Engine (future).
+ * Structure is provisional and subject to change when the engine is built.
+ */
+export interface ConfidenceContext {
+  /** Overall confidence level for the knowledge snapshot */
+  level?: 'High' | 'Medium' | 'Low' | 'Insufficient'
+  /** Confidence engine version that produced this assessment */
+  engineVersion?: string
+}
+
+/**
+ * @reserved A known limitation in the current knowledge state.
+ * Read Models may surface these as caveats when present.
+ */
+export interface LimitationContext {
+  /** Limitation identifier */
+  id: string
+  /** Human-readable description of the limitation */
+  description: string
+  /** What is affected by this limitation */
+  affects: string[]
+  /** Severity of the limitation */
+  severity?: 'info' | 'warning' | 'blocker'
+}
+
+/**
+ * @reserved Quality assessment context from Quality Engine (future).
+ * Structure is provisional and subject to change when the engine is built.
+ */
+export interface QualityContext {
+  /** Overall quality score (0-100) */
+  score?: number
+  /** Quality dimensions assessed */
+  dimensions?: string[]
+  /** Quality engine version */
+  engineVersion?: string
+}
+
+// ==========================================================================
+// Read Model Enrichment (unchanged output shape from ORP-1.4)
+// ==========================================================================
+
+/**
+ * Read model enrichment produced when KnowledgeContext is present.
+ * Always a lightweight summary — never exposes internal engine state.
  */
 export interface ReadModelEnrichment {
   claimIds: string[]
   evidenceIds: string[]
   claimCount: number
   evidenceCount: number
-  /** Claims grouped by confidence level (only when claims present) */
   claimsByConfidence?: Record<string, number>
-  /** Evidence grouped by freshness (only when evidence present) */
   evidenceByFreshness?: Record<string, number>
 }
 
+// ==========================================================================
+// Enrichment Builder (ORP-1.5 — accepts KnowledgeContext)
+// ==========================================================================
+
 /**
- * Extracts a lightweight enrichment summary from optional claim/evidence references.
- * Returns null when no references are provided — preserving ORP-1.3 identical output.
+ * Extracts a lightweight enrichment summary from a KnowledgeContext.
+ * Returns null when knowledge is absent or has no claims/evidence —
+ * preserving ORP-1.3 identical output.
+ *
+ * FROZEN after ORP-1.5. New knowledge dimensions added to KnowledgeContext
+ * must not change this function's return type.
  */
 export function buildEnrichment(
-  claims?: ClaimReference[],
-  evidence?: EvidenceReference[],
+  knowledge?: KnowledgeContext,
 ): ReadModelEnrichment | null {
+  if (!knowledge) return null
+
+  const claims = knowledge.claims
+  const evidence = knowledge.evidence
+
   if (!claims?.length && !evidence?.length) return null
 
   const enrichment: ReadModelEnrichment = {
