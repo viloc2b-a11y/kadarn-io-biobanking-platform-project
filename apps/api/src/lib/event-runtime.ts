@@ -1,5 +1,5 @@
 // ==========================================================================
-// Domain Event Runtime — API integration layer
+// Domain Event Runtime - API integration layer
 // ==========================================================================
 // Publishes domain events via the publish_domain_event RPC, falling back to
 // a simple in-memory no-op when Postgres is unavailable (tests/dev).
@@ -8,6 +8,7 @@
 import type { KadarnEventType, KadarnEventPayload } from '@kadarn/domain-events';
 import { getEventVersion } from '@kadarn/domain-events';
 import { createRouteClient } from '@/lib/supabase-server';
+import { logger } from '@/lib/logger';
 
 export interface PublishContext {
   actorId: string;
@@ -25,6 +26,43 @@ export interface EmittedEvent {
   correlationId: string;
 }
 
+export class DomainEventPublishError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'DomainEventPublishError'
+  }
+}
+
+function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
+function isDomainEventFallbackAllowed(): boolean {
+  return process.env.KADARN_ALLOW_DOMAIN_EVENT_FALLBACK === 'true'
+}
+
+function createFallbackEventId(type: string, ctx: PublishContext, error: unknown): string {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+
+  if (isProductionRuntime() && !isDomainEventFallbackAllowed()) {
+    throw new DomainEventPublishError(
+      `Domain event publish failed for ${type}; fallback IDs are disabled in production`,
+      { cause: error },
+    )
+  }
+
+  const fallbackEventId = crypto.randomUUID()
+  logger.warn('domain_event_publish_fallback', {
+    event_type: type,
+    fallback_event_id: fallbackEventId,
+    correlation_id: ctx.correlationId,
+    organization_id: ctx.organizationId ?? null,
+    error_code: errorMessage,
+  })
+
+  return fallbackEventId
+}
+
 /** Reset runtime state (tests only) */
 export function resetDomainEventRuntime(): void {
   // no-op for now
@@ -35,6 +73,8 @@ export async function publishDomainEvent<T extends KadarnEventType>(
   payload: KadarnEventPayload<T>,
   ctx: PublishContext,
 ): Promise<string> {
+  let publishError: unknown = new DomainEventPublishError(`Domain event publish did not return an event id for ${type}`)
+
   try {
     const supabase = await createRouteClient();
     const { data, error } = await supabase.rpc('publish_domain_event', {
@@ -48,15 +88,31 @@ export async function publishDomainEvent<T extends KadarnEventType>(
       p_event_version: getEventVersion(type),
     });
 
+    if (error) {
+      publishError = error
+      logger.error('domain_event_publish_rpc_error', {
+        event_type: type,
+        correlation_id: ctx.correlationId,
+        organization_id: ctx.organizationId ?? null,
+        error_code: error.message,
+      })
+      return createFallbackEventId(type, ctx, publishError)
+    }
+
     if (!error && data && typeof data === 'object' && 'event_id' in data) {
       return (data as { event_id: string }).event_id;
     }
-  } catch (_err: unknown) {
-    const msg = _err instanceof Error ? _err.message : String(_err);
-    console.warn('[domain-events] RPC publish failed:', msg);
+  } catch (err: unknown) {
+    publishError = err
+    logger.error('domain_event_publish_exception', {
+      event_type: type,
+      correlation_id: ctx.correlationId,
+      organization_id: ctx.organizationId ?? null,
+      error_code: err instanceof Error ? err.message : String(err),
+    })
   }
 
-  return crypto.randomUUID();
+  return createFallbackEventId(type, ctx, publishError);
 }
 
 export function publishDomainEventFireAndForget<T extends KadarnEventType>(

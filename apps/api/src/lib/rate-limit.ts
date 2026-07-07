@@ -1,7 +1,7 @@
 // ==========================================================================
-// Kadarn API — Rate Limiter
+// Kadarn API - Rate Limiter
 // ==========================================================================
-// RC-0.4A — Lightweight in-memory rate limiter. No external dependencies.
+// RC-0.4A - Lightweight in-memory rate limiter. No external dependencies.
 //
 // Usage:
 //   import { rateLimit } from '@/lib/rate-limit'
@@ -26,8 +26,43 @@ interface RateLimitEntry {
   resetAt: number
 }
 
+const ALLOW_IN_MEMORY_RATE_LIMIT_ENV_KEY = 'KADARN_ALLOW_IN_MEMORY_RATE_LIMIT'
+
+function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
+export function isInMemoryRateLimitAllowed(): boolean {
+  if (!isProductionRuntime()) return true
+  return process.env[ALLOW_IN_MEMORY_RATE_LIMIT_ENV_KEY] === 'true'
+}
+
+function inMemoryRateLimitDisabledResponse(request: Request): Response {
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      error: {
+        code: 'RATE_LIMIT_STORE_NOT_CONFIGURED',
+        message: 'Production rate limiting requires an explicit shared-store rollout or in-memory opt-in.',
+        details: {
+          required_env: ALLOW_IN_MEMORY_RATE_LIMIT_ENV_KEY,
+        },
+      },
+      request_id: request.headers.get('x-request-id') ?? 'unknown',
+      generated_at: new Date().toISOString(),
+    }),
+    {
+      status: 503,
+      headers: {
+        'content-type': 'application/json',
+        'x-ratelimit-store': 'memory-disabled',
+      },
+    },
+  )
+}
+
 // ---------------------------------------------------------------------------
-// Store — in-memory, per-process
+// Store - in-memory, per-process
 // ---------------------------------------------------------------------------
 
 const store = new Map<string, RateLimitEntry>()
@@ -42,7 +77,7 @@ const rateLimitCleanupTimer = setInterval(() => {
 if (typeof rateLimitCleanupTimer?.unref === 'function') rateLimitCleanupTimer.unref()
 
 // ---------------------------------------------------------------------------
-// Default key generator — IP + route
+// Default key generator - IP + route
 // ---------------------------------------------------------------------------
 
 function defaultKeyGenerator(request: Request): string {
@@ -69,6 +104,10 @@ export function rateLimit(
   const keyGen = options.keyGenerator ?? defaultKeyGenerator
 
   return async (request: Request, ...args: any[]): Promise<Response> => {
+    if (!isInMemoryRateLimitAllowed()) {
+      return inMemoryRateLimitDisabledResponse(request)
+    }
+
     const key = keyGen(request)
     const now = Date.now()
 
@@ -91,7 +130,7 @@ export function rateLimit(
         JSON.stringify({
           ok: false,
           error: {
-            code: 429,
+            code: 'API_RATE_LIMITED',
             message: 'Too many requests. Please try again later.',
             details: {
               retry_after_seconds: resetSeconds,
@@ -107,6 +146,7 @@ export function rateLimit(
           headers: {
             'content-type': 'application/json',
             'retry-after': String(resetSeconds),
+            'x-ratelimit-store': 'memory',
             'x-ratelimit-limit': String(options.max),
             'x-ratelimit-remaining': String(remaining),
             'x-ratelimit-reset': String(Math.ceil(entry.resetAt / 1000)),
@@ -115,11 +155,12 @@ export function rateLimit(
       )
     }
 
-    // Forward to handler — inject rate limit headers into response
+    // Forward to handler - inject rate limit headers into response
     const response = await handler(request, ...args)
 
     // Clone and add rate limit headers
     const headers = new Headers(response.headers)
+    headers.set('x-ratelimit-store', 'memory')
     headers.set('x-ratelimit-limit', String(options.max))
     headers.set('x-ratelimit-remaining', String(remaining))
     headers.set('x-ratelimit-reset', String(Math.ceil(entry.resetAt / 1000)))
@@ -136,25 +177,25 @@ export function rateLimit(
 // Preset limits
 // ---------------------------------------------------------------------------
 
-/** Public/sponsor endpoints — generous but bounded */
+/** Public/sponsor endpoints - generous but bounded */
 export const PUBLIC_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,  // 1 minute
   max: 30,           // 30 req/min
 }
 
-/** Workspace endpoints — authenticated users */
+/** Workspace endpoints - authenticated users */
 export const WORKSPACE_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
   max: 60,
 }
 
-/** Expensive compute endpoints — tightly restricted */
+/** Expensive compute endpoints - tightly restricted */
 export const COMPUTE_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
   max: 10,
 }
 
-/** Auth-sensitive endpoints — tightly restricted */
+/** Auth-sensitive endpoints - tightly restricted */
 export const AUTH_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
   max: 5,

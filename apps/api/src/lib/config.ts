@@ -1,7 +1,7 @@
 // ==========================================================================
-// Kadarn API — Runtime Config Validation
+// Kadarn API - Runtime Config Validation
 // ==========================================================================
-// RC-0.4 — Validates required environment variables at startup.
+// RC-0.4 - Validates required environment variables at startup.
 // Missing production secrets fail fast. Optional providers degrade gracefully.
 // ==========================================================================
 
@@ -18,16 +18,22 @@ interface EnvVar {
 }
 
 const ENV_VARS: EnvVar[] = [
-  // ── Core (required everywhere) ──
+  // Core (required everywhere)
   { key: 'SUPABASE_URL', class: 'required', description: 'Supabase project URL' },
   { key: 'SUPABASE_ANON_KEY', class: 'required', description: 'Supabase anonymous key' },
   { key: 'SUPABASE_SERVICE_ROLE_KEY', class: 'required', description: 'Supabase service role key (server-side only)' },
   { key: 'NEXT_PUBLIC_API_URL', class: 'required', description: 'Public API base URL' },
 
-  // ── Auth ──
+  // Auth
   { key: 'SUPABASE_JWT_SECRET', class: 'production-only', description: 'JWT signing secret' },
 
-  // ── Connector providers (optional — degrade gracefully) ──
+  // PCP-1.1 production safety gates
+  { key: 'SPONSOR_PASSPORT_DATA_SOURCE', class: 'production-only', description: 'Sponsor Passport runtime source' },
+  { key: 'LEGACY_PASSPORT_ENABLED', class: 'production-only', description: 'Phase 8 cutover selector' },
+  { key: 'KADARN_ALLOW_DOMAIN_EVENT_FALLBACK', class: 'production-only', description: 'Emergency domain-event fallback selector' },
+  { key: 'KADARN_ALLOW_IN_MEMORY_RATE_LIMIT', class: 'production-only', description: 'Emergency in-memory rate-limit selector' },
+
+  // Connector providers (optional - degrade gracefully)
   { key: 'PUBMED_API_KEY', class: 'optional', description: 'NCBI E-utilities API key' },
   { key: 'CLINICALTRIALS_API_KEY', class: 'optional', description: 'ClinicalTrials.gov API key' },
   { key: 'CROSSREF_API_KEY', class: 'optional', description: 'Crossref API key' },
@@ -35,18 +41,18 @@ const ENV_VARS: EnvVar[] = [
   { key: 'ORCID_API_KEY', class: 'optional', description: 'ORCID API key' },
   { key: 'ROR_API_KEY', class: 'optional', description: 'ROR API key' },
 
-  // ── AI/LLM (optional) ──
+  // AI/LLM (optional)
   { key: 'OPENAI_API_KEY', class: 'optional', description: 'OpenAI API key for discovery agents' },
   { key: 'OPENROUTER_API_KEY', class: 'optional', description: 'OpenRouter API key' },
   { key: 'ANTHROPIC_API_KEY', class: 'optional', description: 'Anthropic API key' },
 
-  // ── Email/Notifications (optional) ──
+  // Email/Notifications (optional)
   { key: 'SMTP_HOST', class: 'optional', description: 'SMTP server host' },
   { key: 'SMTP_PORT', class: 'optional', description: 'SMTP server port' },
   { key: 'SMTP_USER', class: 'optional', description: 'SMTP username' },
   { key: 'SMTP_PASS', class: 'optional', description: 'SMTP password (redacted in logs)' },
 
-  // ── Development ──
+  // Development
   { key: 'NODE_ENV', class: 'required', description: 'Runtime environment' },
   { key: 'NEXT_PUBLIC_APP_URL', class: 'development-only', description: 'Frontend URL for local dev' },
   { key: 'DATABASE_URL', class: 'development-only', description: 'Direct database URL (dev only)' },
@@ -86,11 +92,11 @@ export function validateConfig(): ConfigValidationResult {
       }
     } else if (v.class === 'optional') {
       if (!value) {
-        warnings.push(`${v.key}: not set — ${v.description} (provider may be unavailable)`)
+        warnings.push(`${v.key}: not set - ${v.description} (provider may be unavailable)`)
       }
     } else if (v.class === 'development-only') {
       if (!isProd && !value) {
-        warnings.push(`${v.key}: not set — ${v.description} (local dev may be affected)`)
+        warnings.push(`${v.key}: not set - ${v.description} (local dev may be affected)`)
       }
     }
   }
@@ -104,7 +110,7 @@ export function validateConfig(): ConfigValidationResult {
 }
 
 /**
- * Fail-fast check — call at app startup.
+ * Fail-fast check - call at app startup.
  * Throws if required production config is missing.
  */
 export function assertConfig(): void {
