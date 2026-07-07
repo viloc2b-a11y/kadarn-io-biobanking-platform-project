@@ -1,0 +1,64 @@
+openapi: 3.1.0
+info:
+  title: Kadarn API v1
+  version: 1.0.0
+  description: Phase 8 external surfaces + health/metrics
+servers:
+  - url: http://localhost:3001
+paths:
+  /api/health:
+    get:
+      summary: Liveness
+      responses:
+        '200':
+          description: OK
+  /api/health/ready:
+    get:
+      summary: Readiness
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Not ready
+  /api/metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: text/plain metrics
+  /api/v1/institution/public/{slug}:
+    get:
+      summary: Public institution profile
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+  /api/v1/continuity/passport/{slug}:
+    get:
+      summary: Public site passport
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+  /api/v1/discovery/dashboard:
+    get:
+      summary: Discovery dashboard
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
+  /api/v1/discovery/report:
+    get:
+      summary: Institution recognition report
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string

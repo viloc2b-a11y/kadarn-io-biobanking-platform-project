@@ -1,0 +1,8 @@
+{
+  "title": "Kadarn — API",
+  "panels": [
+    { "title": "Request rate", "targets": [{ "expr": "rate(kadarn_http_requests_total[5m])" }] },
+    { "title": "Error rate", "targets": [{ "expr": "rate(kadarn_http_errors_total[5m])" }] },
+    { "title": "P95 latency", "targets": [{ "expr": "histogram_quantile(0.95, rate(kadarn_http_request_duration_seconds_bucket[5m]))" }] }
+  ]
+}

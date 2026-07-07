@@ -1,0 +1,12 @@
+{
+  "name": "Kadarn Dev",
+  "dockerComposeFile": "../docker-compose.dev.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint"]
+    }
+  },
+  "postCreateCommand": "npm ci && npx supabase start || true"
+}

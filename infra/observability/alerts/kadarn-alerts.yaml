@@ -1,0 +1,29 @@
+groups:
+  - name: kadarn
+    rules:
+      - alert: KadarnHighErrorRate
+        expr: |
+          sum(rate(kadarn_http_errors_total[5m]))
+          / sum(rate(kadarn_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Kadarn API error rate above 5%
+
+      - alert: KadarnHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, rate(kadarn_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Kadarn API p95 latency above 2s
+
+      - alert: KadarnReadinessFail
+        expr: kadarn_health_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Kadarn API readiness check failing

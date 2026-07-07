@@ -1,0 +1,7 @@
+{
+  "title": "Kadarn — Health",
+  "panels": [
+    { "title": "Readiness", "targets": [{ "expr": "up{job=\"kadarn-api\"}" }] },
+    { "title": "Heap MB", "targets": [{ "expr": "kadarn_process_heap_mb" }] }
+  ]
+}

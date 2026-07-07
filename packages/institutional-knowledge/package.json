@@ -1,0 +1,13 @@
+{
+  "name": "@kadarn/institutional-knowledge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Institutional Knowledge Acquisition Runtime — the layer sitting BEFORE Evidence Core",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@kadarn/types": "*",
+    "@kadarn/evidence-validation": "*"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "title": "Kadarn — Published View",
+  "panels": [
+    { "title": "View reads", "targets": [{ "expr": "rate(kadarn_published_view_reads_total[5m])" }] },
+    { "title": "Legacy adapter", "targets": [{ "expr": "kadarn_published_view_legacy_enabled" }] }
+  ]
+}

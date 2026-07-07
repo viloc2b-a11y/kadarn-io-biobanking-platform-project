@@ -1,0 +1,13 @@
+name: Architecture Compliance
+
+on:
+  pull_request:
+
+jobs:
+  arch-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/arch-gate.sh
+      - run: bash scripts/terminology-lint.sh
+      - run: bash scripts/cross-doc-consistency.sh

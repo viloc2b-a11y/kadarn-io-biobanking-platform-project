@@ -1,0 +1,12 @@
+{
+  "name": "@kadarn/sponsor-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sponsor Intelligence Runtime — transforms institutional knowledge into sponsor-usable intelligence",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@kadarn/readiness-engine": "*",
+    "@kadarn/types": "*"
+  }
+}

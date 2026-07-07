@@ -1,0 +1,10 @@
+services:
+  dev:
+    image: node:20-bookworm
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    command: sleep infinity

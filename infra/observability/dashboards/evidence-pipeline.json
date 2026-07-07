@@ -1,0 +1,7 @@
+{
+  "title": "Kadarn — Evidence Pipeline",
+  "panels": [
+    { "title": "Discovery runs", "targets": [{ "expr": "rate(kadarn_discovery_runs_total[5m])" }] },
+    { "title": "Agent outputs", "targets": [{ "expr": "rate(kadarn_discovery_agent_outputs_total[5m])" }] }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@kadarn/sdk",
+  "version": "0.1.0",
+  "description": "Kadarn TypeScript SDK — generated from OpenAPI v1",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kadarn/types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
