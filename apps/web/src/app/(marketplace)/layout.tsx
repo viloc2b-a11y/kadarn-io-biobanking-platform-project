@@ -74,7 +74,7 @@ export default function MarketplaceLayout({ children }: { children: React.ReactN
           }}>
             Workspace
           </Link>
-          <Link href="/auth/login" style={{
+          <Link href="/login" style={{
             fontSize: 12,
             padding: '5px 14px',
             borderRadius: 7,

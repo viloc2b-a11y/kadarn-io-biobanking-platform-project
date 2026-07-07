@@ -70,7 +70,7 @@ export default function RequestsPage() {
         <p style={{ fontSize: 13, color: 'var(--txd)', marginBottom: 24 }}>
           Access requests and feasibility studies require a Kadarn account.
         </p>
-        <Link href="/auth/login?next=/marketplace/requests" style={{
+        <Link href="/login?next=/marketplace/requests" style={{
           display: 'inline-block', padding: '10px 24px', borderRadius: 10,
           background: 'var(--teal)', color: 'var(--navy)', fontWeight: 800, fontSize: 14,
         }}>

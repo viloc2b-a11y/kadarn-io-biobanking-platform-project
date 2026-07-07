@@ -1,11 +1,11 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 export default function ActivityPage() {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    fetch(`${API}/api/v1/feed`, { credentials: 'include' })
+    kocFetch(`/api/v1/feed`)
       .then(r => r.json()).then(d => { setEvents(Array.isArray(d.data) ? d.data : d.data?.events ?? []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])

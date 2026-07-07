@@ -152,3 +152,8 @@ export interface ApiError {
 
 export * as phase8 from './phase8/index.js'
 export type * from './phase8/index.js'
+
+// ─── AF-4.0 Instrumentation ───────────────────────────────────────────────────
+
+export * from './errors.js'
+export * from './events/platform-events.js'

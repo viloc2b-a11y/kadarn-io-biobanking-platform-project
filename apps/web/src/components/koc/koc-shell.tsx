@@ -4,7 +4,9 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from '@/components/providers/session-provider'
+import { AuthenticatedShellFrame, KadarnBrandLink } from '@/components/shell/application-shell'
 import { resolveRole } from '@kadarn/auth'
+import { kocFetch } from '@/lib/koc-api'
 
 const NAV = [
   {
@@ -48,6 +50,7 @@ const NAV = [
     items: [
           { id: 'logistics',    label: 'Logistics',        href: '/koc/logistics',      icon: '▱' },
           { id: 'platform-health', label: 'Platform Health',  href: '/koc/platform-health', icon: '⬡' },
+      { id: 'phase8-cutover', label: 'Phase 8 Cutover', href: '/koc/phase8-cutover', icon: '◈' },
       { id: 'activity',    label: 'Activity',       href: '/koc/activity',       icon: '⬡' },
       { id: 'events',      label: 'Event Stream',    href: '/koc/events',               icon: '⇄' },
       { id: 'network',     label: 'Network Map',     href: '/koc/network',        icon: '◎' },
@@ -67,7 +70,7 @@ export function KocShell({ children }: { children: React.ReactNode }) {
   const notifRef = useRef<HTMLDivElement>(null)
 
   const fetchNotifs = useCallback(() => {
-    fetch('/api/v1/notifications', { credentials: 'include' })
+    kocFetch('/api/v1/notifications')
       .then(r => r.json())
       .then(d => setNotifData(d.data))
       .catch(() => {})
@@ -75,7 +78,7 @@ export function KocShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return
-    if (!user) { router.push('/auth/login?next=/koc'); return }
+    if (!user) { router.push('/login?next=/koc'); return }
 
     const role = resolveRole(user.user_metadata ?? {})
     if (role !== 'kadarn_internal') {
@@ -110,10 +113,8 @@ export function KocShell({ children }: { children: React.ReactNode }) {
 
   const totalNotifs = allNotifs.length
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside style={{
+  const sidebar = (
+    <aside style={{
         width: 228,
         borderRight: '1px solid var(--border)',
         background: 'var(--navy2)',
@@ -126,10 +127,7 @@ export function KocShell({ children }: { children: React.ReactNode }) {
       }}>
         {/* Header */}
         <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid var(--border)' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <KadarnDots />
-            <span style={{ fontWeight: 900, fontSize: 15 }}>Kadarn</span>
-          </Link>
+          <KadarnBrandLink href="/" gradientId="lgkoc" style={{ marginBottom: 14 }} />
           <div style={{
             padding: '8px 12px',
             borderRadius: 9,
@@ -189,11 +187,10 @@ export function KocShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
+  )
 
-      {/* Main */}
-      <main style={{ marginLeft: 228, flex: 1, minHeight: '100vh', background: 'var(--navy)' }}>
-        {/* Top bar */}
-        <div style={{
+  const topbar = (
+    <div style={{
           height: 52,
           borderBottom: '1px solid var(--border)',
           display: 'flex',
@@ -283,29 +280,12 @@ export function KocShell({ children }: { children: React.ReactNode }) {
             {user.email}
           </span>
         </div>
-
-        <div style={{ padding: 28 }}>{children}</div>
-      </main>
-    </div>
   )
-}
 
-function KadarnDots() {
   return (
-    <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
-      <circle cx="28" cy="30" r="8" fill="#0CC5C1" />
-      <circle cx="28" cy="60" r="8" fill="#4467F2" />
-      <circle cx="62" cy="20" r="8" fill="#4467F2" />
-      <circle cx="72" cy="50" r="7" fill="#7B44FF" />
-      <circle cx="62" cy="78" r="7" fill="#8B44FF" />
-      <circle cx="45" cy="50" r="5" fill="url(#lgkoc)" />
-      <defs>
-        <linearGradient id="lgkoc" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0CC5C1" />
-          <stop offset="100%" stopColor="#8B44FF" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <AuthenticatedShellFrame sidebar={sidebar} topbar={topbar} mainStyle={{ background: 'var(--navy)' }}>
+      {children}
+    </AuthenticatedShellFrame>
   )
 }
 

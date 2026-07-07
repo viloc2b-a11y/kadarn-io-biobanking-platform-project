@@ -9,6 +9,12 @@ import type {
   ValidationNote,
 } from './types'
 
+export async function fetchDiscoveryReport(sessionId: string) {
+  return apiGet<import('./types').InstitutionRecognitionReportData>(
+    `/api/v1/discovery/report?sessionId=${encodeURIComponent(sessionId)}`,
+  )
+}
+
 export async function listDiscoverySessions(): Promise<DiscoverySession[]> {
   return apiGet<DiscoverySession[]>('/api/v1/discovery/session')
 }

@@ -1,8 +1,7 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
-
 const COMMANDS = [
   { id: 'go-overview',    label: 'Go to Overview',         href: '/koc',                icon: '◎', section: 'Navigate' },
   { id: 'go-activity',    label: 'Go to Activity Feed',    href: '/koc/activity',       icon: '⚡', section: 'Navigate' },
@@ -34,7 +33,7 @@ export default function CommandPalette() {
     if (query.length < 2) { setSearchResults([]); setSearching(false); return }
     setSearching(true)
     const timer = setTimeout(() => {
-      fetch(`${API}/api/v1/search?q=${encodeURIComponent(query)}`, { credentials: 'include' })
+      kocFetch(`/api/v1/search?q=${encodeURIComponent(query)}`)
         .then(r => r.json())
         .then(d => { setSearchResults(d.data?.results ?? []); setSearching(false) })
         .catch(() => { setSearching(false) })

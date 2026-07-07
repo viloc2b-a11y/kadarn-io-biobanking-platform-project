@@ -1,7 +1,6 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect, useCallback } from 'react'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 const ACTION_COLORS: Record<string, string> = {
   create: 'var(--teal)', read: 'var(--blue)', update: 'var(--amber)',
@@ -34,7 +33,7 @@ export default function EventsPage() {
     if (actionFilter) params.set('action', actionFilter)
     if (typeFilter) params.set('resource_type', typeFilter)
 
-    fetch(`${API}/api/v1/koc/events?${params}`, { credentials: 'include' })
+    kocFetch(`/api/v1/koc/events?${params}`)
       .then(r => { if (!r.ok) throw Error(); return r.json() })
       .then(d => { setEvents(d.data.events ?? []); setFilters(d.data.filters); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })

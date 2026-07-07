@@ -1,7 +1,6 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect, useMemo } from 'react'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 // ─── Country → approximate SVG coordinates (x%, y%) ─────────────────────────
 const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
@@ -85,9 +84,9 @@ export default function NetworkPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/v1/koc/ecosystem`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: {} }),
-      fetch(`${API}/api/v1/koc/analytics`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: {} }),
-      fetch(`${API}/api/v1/koc/logistics`, { credentials: 'include' }).then(r => r.ok ? r.json() : { data: { summary: {} } }),
+      kocFetch(`/api/v1/koc/ecosystem`).then(r => r.ok ? r.json() : { data: {} }),
+      kocFetch(`/api/v1/koc/analytics`).then(r => r.ok ? r.json() : { data: {} }),
+      kocFetch(`/api/v1/koc/logistics`).then(r => r.ok ? r.json() : { data: { summary: {} } }),
     ])
       .then(([eco, an, log]) => {
         setEcosystemData(eco.data)

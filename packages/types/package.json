@@ -7,7 +7,9 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./phase8": "./src/phase8/index.ts"
+    "./phase8": "./src/phase8/index.ts",
+    "./errors": "./src/errors.ts",
+    "./events/platform-events": "./src/events/platform-events.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" }
 }

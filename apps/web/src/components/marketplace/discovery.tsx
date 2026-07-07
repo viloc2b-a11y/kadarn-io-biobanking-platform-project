@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { RequestCta } from '@/components/marketplace/request-cta'
+import { normalizeMarketplaceSearchResponse } from './discovery-response'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -77,8 +78,9 @@ export function MarketplaceDiscovery({ initialTab = 'research' as Tab }: { initi
       const json = await res.json()
 
       if (json.error) throw new Error(json.error.message)
-      setResults(json.data.results)
-      setTotal(json.data.total)
+      const normalized = normalizeMarketplaceSearchResponse<SpecimenResult | ServiceResult | NetworkResult>(json)
+      setResults(normalized.results)
+      setTotal(normalized.total)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed')
       setResults([])

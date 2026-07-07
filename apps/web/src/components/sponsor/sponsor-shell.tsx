@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from '@/components/providers/session-provider'
+import { KadarnBrandLink } from '@/components/shell/application-shell'
 import {
   E2E_WORKSPACE_PROFILE,
   isE2EAuthClientEnabled,
@@ -54,10 +55,7 @@ function SponsorShellInner({ children }: { children: React.ReactNode }) {
       {/* Global Header — KUX-004 §3 */}
       <header style={globalHeaderStyle} role="banner">
         <div style={headerLeftStyle}>
-          <Link href="/sponsor" style={brandLinkStyle}>
-            <KadarnDots />
-            <span style={{ fontWeight: 900, fontSize: 15 }}>Kadarn</span>
-          </Link>
+          <KadarnBrandLink href="/sponsor" size={18} gradientId="lgsponsor" />
           <span style={headerDividerStyle} aria-hidden="true">/</span>
           <span style={headerOrgStyle}>{orgName}</span>
           <span style={headerRoleStyle}>Sponsor Workspace</span>
@@ -199,18 +197,6 @@ function SponsorShellInner({ children }: { children: React.ReactNode }) {
   )
 }
 
-function KadarnDots() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-      <circle cx="28" cy="30" r="8" fill="#0CC5C1" />
-      <circle cx="28" cy="60" r="8" fill="#4467F2" />
-      <circle cx="62" cy="20" r="8" fill="#4467F2" />
-      <circle cx="72" cy="50" r="7" fill="#7B44FF" />
-      <circle cx="62" cy="78" r="7" fill="#8B44FF" />
-    </svg>
-  )
-}
-
 const rootStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
@@ -234,14 +220,6 @@ const headerLeftStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 10,
   minWidth: 0,
-}
-
-const brandLinkStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  color: 'var(--tx)',
-  textDecoration: 'none',
 }
 
 const headerDividerStyle: React.CSSProperties = { color: 'var(--border)' }

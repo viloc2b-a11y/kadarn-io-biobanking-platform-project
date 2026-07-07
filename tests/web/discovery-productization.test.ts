@@ -308,6 +308,7 @@ describe('discovery-api.ts references no new endpoints (Task 10)', () => {
   const allowedEndpoints = [
     '/api/v1/discovery/session',
     '/api/v1/discovery/dashboard',
+    '/api/v1/discovery/report',
     '/api/v1/discovery/curation',
     '/api/v1/discovery/validation-notes',
     '/api/v1/discovery/pipeline-status',

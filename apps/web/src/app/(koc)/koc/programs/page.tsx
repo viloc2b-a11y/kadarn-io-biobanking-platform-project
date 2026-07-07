@@ -1,12 +1,12 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 export default function ProgramsPage() {
   const [programs, setPrograms] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   useEffect(() => {
-    fetch(`${API}/api/programs`, { credentials: 'include' })
+    kocFetch(`/api/programs`)
       .then(r => { if (!r.ok) throw new Error('Failed'); return r.json() })
       .then(d => { setPrograms(d.data ?? []); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })

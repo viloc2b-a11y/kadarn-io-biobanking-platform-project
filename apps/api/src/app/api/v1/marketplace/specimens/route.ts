@@ -45,14 +45,17 @@ export const GET = withAsyncTracing(
       timestamp: new Date().toISOString(),
     }))
 
+    const results = (data ?? []).map((r: Record<string, unknown>) => ({
+      id: r.id, type: r.type, title: r.title, description: r.description,
+      disease_icd10: r.disease_icd10, disease_label: r.disease_label,
+      sample_types: r.sample_types, country: r.country,
+      organization_id: r.organization_id, org_name: r.organization_name ?? r.org_name,
+      price: r.price, currency: r.currency,
+    }))
+    const total = (data?.[0] as { total_count?: number } | undefined)?.total_count ?? results.length
+
     return Response.json({
-      data: (data ?? []).map((r: Record<string, unknown>) => ({
-        id: r.id, type: r.type, title: r.title, description: r.description,
-        disease_icd10: r.disease_icd10, disease_label: r.disease_label,
-        sample_types: r.sample_types, country: r.country,
-        organization_id: r.organization_id, organization_name: r.organization_name,
-        price: r.price, currency: r.currency,
-      })),
+      data: { results, total, limit, offset },
       error: null,
     })
   }),

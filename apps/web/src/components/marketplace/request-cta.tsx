@@ -21,7 +21,7 @@ export function RequestCta({ type, targetId, targetType }: RequestCtaProps) {
       const next = type === 'access'
         ? `/marketplace/requests/access?target=${targetId}&kind=${targetType}`
         : `/marketplace/requests/feasibility?target=${targetId}&kind=${targetType}`
-      router.push(`/auth/login?next=${encodeURIComponent(next)}`)
+      router.push(`/login?next=${encodeURIComponent(next)}`)
       return
     }
     if (type === 'access') {

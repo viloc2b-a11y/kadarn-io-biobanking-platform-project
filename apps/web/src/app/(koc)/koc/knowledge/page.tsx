@@ -1,11 +1,11 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 export default function KnowledgePage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    fetch(`${API}/api/v1/koc/knowledge`, { credentials: 'include' }).then(r => r.json()).then(d => { setData(d.data); setLoading(false) }).catch(() => setLoading(false))
+    kocFetch(`/api/v1/koc/knowledge`).then(r => r.json()).then(d => { setData(d.data); setLoading(false) }).catch(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ padding: 20, color: 'var(--txd)' }}>Loading knowledge data...</div>
   if (!data) return <div style={{ padding: 20, color: 'var(--txd)' }}>No knowledge data available</div>

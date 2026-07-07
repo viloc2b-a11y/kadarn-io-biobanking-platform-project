@@ -1,7 +1,7 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect, useCallback } from 'react'
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 const SEV_COLORS: Record<string, string> = { critical: 'var(--red)', warning: 'var(--amber)', info: 'var(--teal)' }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ export default function ExceptionsPage() {
 
   const fetchData = useCallback(() => {
     setLoading(true)
-    fetch(`${API}/api/v1/operations/exceptions`, { credentials: 'include' })
+    kocFetch(`/api/v1/operations/exceptions`)
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(d => { setData(d.data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
@@ -143,9 +143,8 @@ export default function ExceptionsPage() {
   const handleAction = useCallback(async (id: string, action: string) => {
     setActionLoading(id)
     try {
-      const res = await fetch(`${API}/api/v1/operations/exceptions/${id}`, {
+      const res = await kocFetch(`/api/v1/operations/exceptions/${id}`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, note: `Actioned via KOC` }),
       })

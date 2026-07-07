@@ -1,7 +1,6 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
-
 const LABELS: Record<string, string> = {
   active_organizations: 'Active Organizations',
   active_programs: 'Active Programs',
@@ -17,7 +16,7 @@ export default function HealthPage() {
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch(`${API}/api/v1/operations/health`, { credentials: 'include' })
+    kocFetch(`/api/v1/operations/health`)
       .then(r => { if (!r.ok) throw new Error('Failed'); return r.json() })
       .then(d => { setData(d.data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })

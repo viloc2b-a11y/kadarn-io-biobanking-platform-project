@@ -17,6 +17,8 @@
     "test:phase8": "vitest run phase8",
     "test:gate-28jk": "vitest run phase8/legacy-equivalence/gate.test.ts",
     "staging:cutover-smoke": "npx tsx phase8/staging-cutover-smoke.ts",
+    "test:instrumentation": "vitest run instrumentation",
+    "test:performance": "vitest run performance",
     "test:coverage": "vitest run --coverage",
     "seed:users": "npx tsx setup/seed-users.ts"
   },

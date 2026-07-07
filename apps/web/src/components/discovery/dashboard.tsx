@@ -306,7 +306,7 @@ export function DiscoveryInteractionDashboard({ mode }: DiscoveryInteractionDash
                 />
               </div>
 
-              <ReportGenerationCta />
+              <ReportGenerationCta sessionId={selectedSessionId} />
             </>
           )}
         </section>

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from '@/components/providers/session-provider'
 import { OrgSelector } from '@/components/auth/org-selector'
+import { AuthenticatedShellFrame, KadarnBrandLink } from '@/components/shell/application-shell'
 import {
   E2E_WORKSPACE_NAV,
   E2E_WORKSPACE_PROFILE,
@@ -25,6 +26,11 @@ interface WorkspaceProfile {
   memberships: OrganizationMembership[]
   allowed_experiences: string[]
   default_redirect: string
+}
+
+const SETTINGS_NAV_SECTION: NavSection = {
+  label: 'Settings',
+  items: [{ id: 'members', label: 'Members', href: '/settings/members' }],
 }
 
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -79,11 +85,10 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
 
   const org = profile?.active_org
   const capColor = 'var(--blue)'
+  const displayNavSections = [...navSections, SETTINGS_NAV_SECTION]
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside style={{
+  const sidebar = (
+    <aside style={{
         width: 228,
         borderRight: '1px solid var(--border)',
         background: 'var(--navy2)',
@@ -96,10 +101,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       }}>
         {/* Org header */}
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border)' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <KadarnDots />
-            <span style={{ fontWeight: 900, fontSize: 15 }}>Kadarn</span>
-          </Link>
+          <KadarnBrandLink href="/" gradientId="lgws" style={{ marginBottom: 14 }} />
 
           {/* Org switcher */}
           <button
@@ -185,7 +187,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
-          {navSections.map(section => (
+          {displayNavSections.map(section => (
             <div key={section.label} style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--txdd)', fontWeight: 700, padding: '0 8px', marginBottom: 4 }}>
                 {section.label}
@@ -228,11 +230,10 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
+  )
 
-      {/* Main */}
-      <main style={{ marginLeft: 228, flex: 1, minHeight: '100vh' }}>
-        {/* Top bar */}
-        <div style={{
+  const topbar = (
+    <div style={{
           height: 52,
           borderBottom: '1px solid var(--border)',
           display: 'flex',
@@ -249,35 +250,19 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
           </span>
           <span style={{ color: 'var(--border)' }}>/</span>
           <span style={{ fontSize: 12, color: 'var(--txd)', fontWeight: 600 }}>
-            {navSections.flatMap(s => s.items).find(i => i.href === pathname)?.label ?? 'Workspace'}
+            {displayNavSections.flatMap(s => s.items).find(i => i.href === pathname)?.label ?? 'Workspace'}
           </span>
           <div style={{ flex: 1 }} />
           <Link href="/marketplace" style={{ fontSize: 12, color: 'var(--txdd)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
             Marketplace
           </Link>
         </div>
-        <div style={{ padding: 28 }}>{children}</div>
-      </main>
-    </div>
   )
-}
 
-function KadarnDots() {
   return (
-    <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
-      <circle cx="28" cy="30" r="8" fill="#0CC5C1" />
-      <circle cx="28" cy="60" r="8" fill="#4467F2" />
-      <circle cx="62" cy="20" r="8" fill="#4467F2" />
-      <circle cx="72" cy="50" r="7" fill="#7B44FF" />
-      <circle cx="62" cy="78" r="7" fill="#8B44FF" />
-      <circle cx="45" cy="50" r="5" fill="url(#lgws)" />
-      <defs>
-        <linearGradient id="lgws" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0CC5C1" />
-          <stop offset="100%" stopColor="#8B44FF" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <AuthenticatedShellFrame sidebar={sidebar} topbar={topbar}>
+      {children}
+    </AuthenticatedShellFrame>
   )
 }
 

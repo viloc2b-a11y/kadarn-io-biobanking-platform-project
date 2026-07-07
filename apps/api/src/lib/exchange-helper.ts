@@ -7,6 +7,7 @@
 // Follows the same pattern as onboarding.ts — all hooks are fire-and-forget.
 // ==========================================================================
 
+import { getCorrelationId } from '@kadarn/instrumentation';
 import { SPAN_PROVENANCE_CORRECTION, withAsyncTracing } from '@kadarn/telemetry';
 
 // ---------------------------------------------------------------------------
@@ -114,7 +115,7 @@ export function signalExchangeRequestWorkflow(
 // ---------------------------------------------------------------------------
 
 export function createCorrelationId(): string {
-  return crypto.randomUUID();
+  return getCorrelationId()
 }
 
 // ---------------------------------------------------------------------------

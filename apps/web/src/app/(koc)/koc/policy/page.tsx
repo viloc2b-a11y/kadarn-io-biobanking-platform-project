@@ -1,11 +1,11 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 export default function PolicyPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    fetch(`${API}/api/v1/koc/policy`, { credentials: 'include' })
+    kocFetch(`/api/v1/koc/policy`)
       .then(r => r.json()).then(d => { setData(d.data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])

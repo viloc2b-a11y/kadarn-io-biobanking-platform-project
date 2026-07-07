@@ -1,12 +1,12 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 function healthColor(s: string) { return s === 'healthy' ? 'var(--teal)' : s === 'warning' ? 'var(--amber)' : s === 'critical' ? 'var(--red)' : 'var(--txdd)' }
 export default function TwinsPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
-    fetch(`${API}/api/v1/koc/twins`, { credentials: 'include' }).then(r => r.json()).then(d => { setData(d.data); setLoading(false) }).catch(() => setLoading(false))
+    kocFetch(`/api/v1/koc/twins`).then(r => r.json()).then(d => { setData(d.data); setLoading(false) }).catch(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ padding: 20, color: 'var(--txd)' }}>Loading twins data...</div>
   if (!data) return <div style={{ padding: 20, color: 'var(--txd)' }}>No twin data available</div>

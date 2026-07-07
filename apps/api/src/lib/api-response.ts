@@ -1,5 +1,6 @@
 // ==========================================================================
 // API Response Helper — Sprint 25E
+// @deprecated Use @kadarn/instrumentation envelope helpers (AF-4.0 Sprint 1)
 // ==========================================================================
 // Consistent JSON response envelope for all API endpoints.
 // ==========================================================================

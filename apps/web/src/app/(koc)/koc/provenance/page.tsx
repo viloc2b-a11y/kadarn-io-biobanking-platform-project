@@ -1,7 +1,6 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 const DOMAINS = ['all', 'asset', 'logistics', 'consent', 'exchange', 'settlement', 'governance']
 
@@ -28,7 +27,7 @@ export default function ProvenancePage() {
     if (domain !== 'all') params.set('domain', domain)
     params.set('limit', '20')
 
-    fetch(`${API}/api/v1/operations/provenance?${params}`, { credentials: 'include' })
+    kocFetch(`/api/v1/operations/provenance?${params}`)
       .then(r => { if (!r.ok) throw new Error('Failed'); return r.json() })
       .then(d => {
         setEvents(d.data.events ?? [])

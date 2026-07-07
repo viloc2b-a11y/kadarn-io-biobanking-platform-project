@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { kocFetch } from '@/lib/koc-api'
 
 type HealthData = {
   active_organizations: number
@@ -36,11 +37,9 @@ type KpeData = {
 }
 
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
-
 async function get<T>(path: string): Promise<{ data: T | null; error: boolean }> {
   try {
-    const res = await fetch(`${API}${path}`, { credentials: 'include' })
+    const res = await kocFetch(path)
     if (!res.ok) return { data: null, error: true }
     const json = await res.json()
     return { data: json.data ?? null, error: false }

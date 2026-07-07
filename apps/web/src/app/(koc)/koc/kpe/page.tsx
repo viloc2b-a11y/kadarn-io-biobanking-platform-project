@@ -1,12 +1,12 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 export default function KpePage() {
   const [report, setReport] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   useEffect(() => {
-    fetch(API + '/api/v1/operations/kpe/generate?programId=prog-001', { credentials: 'include' })
+    kocFetch('/')
       .then(r => { if (!r.ok) throw new Error('Failed'); return r.json() })
       .then(d => { setReport(d.data.report); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })

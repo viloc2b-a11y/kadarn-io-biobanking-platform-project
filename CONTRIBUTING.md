@@ -77,32 +77,24 @@ Before merging to `main`:
 
 ---
 
-## Getting Started
+## Getting Started (AF-4.0)
 
 ```bash
-# Prerequisites
-- Docker Desktop
-- Node.js 22+
-- Supabase CLI
+# Prerequisites: Docker Desktop, Node.js 20+, Supabase CLI
 
-# 1. Start Supabase Local
-cd ../Kadarn  # prototype repo with supabase config
-supabase start
-
-# 2. Apply migrations
-cd ../kadarn-platform
-docker exec -i supabase_db_<project> psql -U postgres -d postgres \
-  -f database/migrations/008_organizations_capabilities.sql
-# ... repeat for 009-012
-
-# 3. Seed users via Auth API
-cd tests
-npm install
-npm run seed:users
-
-# 4. Run security tests
-npm test
+cd kadarn-platform
+npm ci
+npx supabase start                    # local DB (in-repo supabase/)
+cp apps/api/.env.example apps/api/.env.local
+cp apps/web/.env.example apps/web/.env.local
+npm run dev:api                         # API :3001
+npm run dev                             # Web :3000
+npm run seed:users -w tests             # test users
+npm run test:instrumentation            # AF-4.0 instrumentation gate
+npm run test -w tests                   # full test suite
 ```
+
+See [openspec/af-4.0-dev-platform.md](openspec/af-4.0-dev-platform.md) for CLI and Dev Container options.
 
 ---
 

@@ -1,7 +1,6 @@
 'use client'
+import { kocFetch } from '@/lib/koc-api'
 import { useState, useEffect } from 'react'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
 function utilizationColor(level: string) {
   const colors: Record<string, string> = {
@@ -19,7 +18,7 @@ export default function CapacityPage() {
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch(`${API}/api/v1/operations/capacity`, { credentials: 'include' })
+    kocFetch(`/api/v1/operations/capacity`)
       .then(r => { if (!r.ok) throw new Error('Failed'); return r.json() })
       .then(d => { setData(d.data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
