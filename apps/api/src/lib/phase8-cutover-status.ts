@@ -1,17 +1,11 @@
 // ==========================================================================
-// Phase 8 cutover status — no @kadarn/published-view import (ops endpoint only)
+// Phase 8 cutover status — re-exports route lists from @kadarn/published-view
 // ==========================================================================
 
-export const VIEW_MIGRATED_ROUTES = [
-  '/api/v1/continuity/passport/:slug',
-  '/api/v1/institution/public/:slug',
-  '/api/v1/discovery/dashboard',
-  '/api/v1/discovery/report',
-] as const
-
-export const VIEW_PENDING_ROUTES = [
-  '/api/v1/institution/profile',
-] as const
+export {
+  VIEW_MIGRATED_ROUTES,
+  VIEW_PENDING_ROUTES,
+} from '@kadarn/published-view'
 
 const legacyEnabled = process.env.LEGACY_PASSPORT_ENABLED !== 'false'
 

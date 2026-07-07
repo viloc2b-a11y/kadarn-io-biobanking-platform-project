@@ -536,14 +536,19 @@ BEGIN
     v_user_id := gen_random_uuid();
 
     INSERT INTO auth.users (
-        id, email, encrypted_password, email_confirmed_at,
+        id, instance_id, email, encrypted_password, email_confirmed_at,
+        confirmation_token, recovery_token, email_change_token_new, email_change,
+        email_change_token_current, reauthentication_token, phone_change, phone_change_token,
         raw_app_meta_data, raw_user_meta_data,
         aud, role, is_sso_user, is_anonymous, created_at, updated_at
     ) VALUES (
         v_user_id,
+        '00000000-0000-0000-0000-000000000000',
         p_email,
         extensions.crypt(p_password, extensions.gen_salt('bf', 10)),
         now(),
+        '', '', '', '',
+        '', '', '', '',
         jsonb_build_object(
             'provider', 'email',
             'providers', ARRAY['email']

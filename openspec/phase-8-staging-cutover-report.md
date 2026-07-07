@@ -90,6 +90,41 @@
 
 ---
 
+## Remediation completion (2026-07-03)
+
+Phase 8 remediation plan v2 implemented across sprints S-1–S-4. Staging re-validation pending shared environment sign-off (S-5).
+
+| Remediation area | Status |
+|------------------|--------|
+| P0 Foundation (deps, assertConfig, env examples) | **DONE** |
+| P1.3 GoTrue seed compat | **DONE** |
+| P1.1 Migration parity doc + P1.2 grants/RLS (056–058) | **DONE** |
+| P2 API (passport public, ops protect, provenance auth) | **DONE** |
+| P3 UX (login, KOC wiring, institutions page, report CTA) | **DONE** |
+| P4 Native phase8 reads | **DEFERRED** (post-prod, CW) |
+| P5 Prod cutover | **NOT EXECUTED** — awaiting S-5/S-6 gates |
+
+**Production authorization:** Remains **NOT AUTHORIZED** until:
+1. ~~`staging:cutover-smoke` PASS on shared staging post-`db reset`~~ **PASS** (2026-07-03 post-remediation, local `:55421` + API `:3001`)
+2. All BP items in [architecture-freeze-af-3.0-checklist.md](architecture-freeze-af-3.0-checklist.md) remediation section checked
+3. Architecture sign-off on prod cutover window per runbook
+
+### Post-remediation validation (2026-07-03)
+
+| Gate | Result |
+|------|--------|
+| `npm run typecheck` | **PASS** |
+| `npm run test:gate-28jk -w tests` | **13/13 PASS** |
+| `npm run test:phase8 -w tests` | **18/18 PASS** |
+| `npm run staging:cutover-smoke -w tests` | **14/14 PASS** |
+| GoTrue seed auth (`seed-auth-local.test.ts`) | **PASS** |
+| Ops cutover (kadarn_internal Bearer) | **PASS** |
+| Passport anonymous public read | **PASS** |
+
+**Known residual:** full `supabase db reset` may still require manual apply for migration 045 chain — document in [phase-8-migration-parity.md](phase-8-migration-parity.md). Staging validated with migrations 046–058 applied.
+
+---
+
 ## Production cutover window (prepared, not executed)
 
 | Step | When |

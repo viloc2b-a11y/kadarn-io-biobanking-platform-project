@@ -111,6 +111,13 @@ After monitoring period with no rollback:
 ## Commands
 
 ```bash
+# Local API (Next.js 16 — webpack required for monorepo package resolution)
+npm run dev -w @kadarn/api
+# Equivalent: cd apps/api && npm run dev   # uses next dev -p 3001 --webpack
+
+# Staging cutover smoke (requires Supabase + API running)
+npm run staging:cutover-smoke -w tests
+
 # Gate validation
 npm run test:gate-28jk -w tests
 

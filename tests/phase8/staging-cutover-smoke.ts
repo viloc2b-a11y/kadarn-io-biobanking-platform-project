@@ -40,6 +40,20 @@ function loadJson<T>(name: string): T {
   return JSON.parse(readFileSync(join(FIXTURES, name), 'utf8')) as T
 }
 
+async function signInKoc(): Promise<string> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ email: 'koc@kadarn.test', password: 'Test123!' }),
+  })
+  if (!res.ok) {
+    throw new Error(`koc auth failed: ${res.status} ${await res.text()}`)
+  }
+  const json = await res.json() as { access_token?: string }
+  if (!json.access_token) throw new Error('no access_token from koc auth')
+  return json.access_token
+}
+
 async function signInBiobank(): Promise<string> {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -153,7 +167,12 @@ async function runHttpSmoke(): Promise<SmokeResult[]> {
   const results: SmokeResult[] = []
 
   try {
-    const statusRes = await fetch(`${API_URL}/api/v1/operations/phase8-cutover`)
+    const kocToken = await signInKoc()
+    const kocHeaders = { Authorization: `Bearer ${kocToken}` }
+
+    const statusRes = await fetch(`${API_URL}/api/v1/operations/phase8-cutover`, {
+      headers: kocHeaders,
+    })
     const statusJson = JSON.parse(await statusRes.text()) as {
       data?: { legacy_passport_enabled?: boolean, published_view_path?: string }
     }
@@ -186,9 +205,7 @@ async function runHttpSmoke(): Promise<SmokeResult[]> {
     token = await setActiveOrg(token, STAGING_ORG)
     const authHeaders = { Authorization: `Bearer ${token}` }
 
-    const passRes = await fetch(`${API_URL}/api/v1/continuity/passport/${STAGING_PASSPORT_SLUG}`, {
-      headers: authHeaders,
-    })
+    const passRes = await fetch(`${API_URL}/api/v1/continuity/passport/${STAGING_PASSPORT_SLUG}`)
     const passJson = JSON.parse(await passRes.text()) as { data?: { claims?: unknown[] } }
     const claimCount = passJson.data?.claims?.length ?? 0
     results.push({
