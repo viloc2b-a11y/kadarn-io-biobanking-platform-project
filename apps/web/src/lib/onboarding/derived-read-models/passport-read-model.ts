@@ -27,6 +27,8 @@ import type {
 } from '../../passport/passport-assembler'
 import { deriveCapabilityReadModel } from './capability-read-model'
 import { deriveReadinessReadModel } from './readiness-read-model'
+import type { ClaimReference, EvidenceReference, ProvenanceReference, ReadModelEnrichment } from './types'
+import { buildEnrichment } from './types'
 
 export type { PassportData } from '../../passport/passport-assembler'
 
@@ -35,6 +37,12 @@ export interface PassportReadModelInput {
   institutionName: string
   answers: Record<string, unknown>
   uploadedDocs?: UploadedDoc[]
+  /** ORP-1.4: Optional claim references from Claim Engine (future) */
+  claims?: ClaimReference[]
+  /** ORP-1.4: Optional evidence references from Evidence Engine (future) */
+  evidence?: EvidenceReference[]
+  /** ORP-1.4: Optional provenance references from Evidence Lineage (future) */
+  provenance?: ProvenanceReference[]
 }
 
 /**
@@ -52,6 +60,7 @@ export interface PassportReadModelInput {
  */
 export function derivePassportReadModel(input: PassportReadModelInput): PassportData {
   const now = new Date().toISOString()
+  const enrichment = buildEnrichment(input.claims, input.evidence)
   const a = input.answers
   const docs = input.uploadedDocs ?? []
   const institutionName =
@@ -140,6 +149,7 @@ export function derivePassportReadModel(input: PassportReadModelInput): Passport
     evidence,
     capabilities,
     readiness,
+    ...(enrichment ? { enrichment } : {}),
     nextSteps,
   }
 }

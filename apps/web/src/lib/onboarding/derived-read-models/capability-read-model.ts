@@ -8,6 +8,7 @@
 
 import type { LocationInfrastructure } from '../location-infrastructure'
 import type { PassportCapability, ContributionItem } from '../../passport/passport-assembler'
+import type { ClaimReference, EvidenceReference } from './types'
 
 export interface CapabilityReadModelInput {
   researchFocus: string[]
@@ -15,6 +16,10 @@ export interface CapabilityReadModelInput {
   infrastructure: LocationInfrastructure[]
   labCertifications: string[]
   shippingCapability: string | null
+  /** ORP-1.4: Optional claim references for capability enrichment */
+  claims?: ClaimReference[]
+  /** ORP-1.4: Optional evidence references for capability enrichment */
+  evidence?: EvidenceReference[]
 }
 
 /**
@@ -31,6 +36,8 @@ export interface CapabilityReadModelInput {
  * This is intentional — no capabilities without evidence.
  */
 export function deriveCapabilityReadModel(input: CapabilityReadModelInput): PassportCapability[] {
+  const claimIds = (input.claims ?? []).map(function(c: ClaimReference) { return c.id })
+  const evidenceIds = (input.evidence ?? []).map(function(e: EvidenceReference) { return e.id })
   const capabilities: PassportCapability[] = []
   const infra = input.infrastructure
 
@@ -341,5 +348,10 @@ export function deriveCapabilityReadModel(input: CapabilityReadModelInput): Pass
     }
   }
 
+  // ORP-1.4: Attach claim/evidence refs when present
+  for (const cap of capabilities) {
+    if (claimIds.length > 0) cap.supportingClaimIds = claimIds
+    if (evidenceIds.length > 0) cap.supportingEvidenceIds = evidenceIds
+  }
   return capabilities
 }

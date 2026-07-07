@@ -24,6 +24,7 @@ import {
   type RoadmapSection,
   type RoadmapPriority,
 } from '../institution-roadmap'
+import type { ClaimReference, EvidenceReference } from './types'
 
 export interface RoadmapReadModelInput {
   passport: PassportData
@@ -31,6 +32,10 @@ export interface RoadmapReadModelInput {
   teamMembers: ResearchTeamMember[]
   infrastructure: LocationInfrastructure[]
   strategicGoals: string[]
+  /** ORP-1.4: Optional claim references for roadmap gap detection */
+  claims?: ClaimReference[]
+  /** ORP-1.4: Optional evidence references for roadmap gap detection */
+  evidence?: EvidenceReference[]
 }
 
 /**
@@ -44,6 +49,17 @@ export interface RoadmapReadModelInput {
  * - Idempotent: repeated calls yield identical output
  */
 export function deriveRoadmapReadModel(input: RoadmapReadModelInput): InstitutionRoadmap {
+  // ORP-1.4: Detect claim/evidence gaps when references are present
+  const claimGaps: string[] = []
+  const evidenceGaps: string[] = []
+  if (input.claims?.length) {
+    const lowConfClaims = input.claims.filter(function(c: ClaimReference) { return c.confidence === 'Low' || c.confidence === 'Insufficient' })
+    if (lowConfClaims.length > 0) claimGaps.push(lowConfClaims.length + ' claims need stronger evidence')
+  }
+  if (input.evidence?.length) {
+    const expiredEvidence = input.evidence.filter(function(e: EvidenceReference) { return e.freshness === 'expired' })
+    if (expiredEvidence.length > 0) evidenceGaps.push(expiredEvidence.length + ' evidence items are expired')
+  }
   const { passport, locations, teamMembers, infrastructure, strategicGoals } = input
   const certifications = teamMembers.flatMap((member) => member.certifications ?? [])
 

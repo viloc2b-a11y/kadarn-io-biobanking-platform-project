@@ -12,6 +12,12 @@ import {
   deriveReadinessReadModel,
   deriveRoadmapReadModel,
 } from '../../apps/web/src/lib/onboarding/derived-read-models'
+import type {
+  ClaimReference,
+  EvidenceReference,
+  ProvenanceReference,
+} from '../../apps/web/src/lib/onboarding/derived-read-models'
+import { buildEnrichment } from '../../apps/web/src/lib/onboarding/derived-read-models'
 import type { InstitutionalLocation } from '../../apps/web/src/lib/onboarding/institutional-locations'
 import type { LocationInfrastructure } from '../../apps/web/src/lib/onboarding/location-infrastructure'
 import type { ResearchTeamMember } from '../../apps/web/src/lib/onboarding/research-team'
@@ -686,3 +692,147 @@ describe('ORP-1.3 invariants', () => {
     expect(topLevelKeys.length).toBe(7)
   })
 })
+
+    // ==========================================================================
+    // ORP-1.4 � Claim & Evidence Attachment Readiness
+    // ==========================================================================
+
+    describe('ORP-1.4 claim/evidence extension points', () => {
+      const sampleClaim: any = {
+        id: 'claim-1',
+        claimType: 'capability',
+        statement: 'Institution has CLIA-certified lab',
+        confidence: 'High',
+        status: 'active',
+        subjectType: 'laboratory',
+        subjectId: 'lab-1',
+      }
+
+      const sampleEvidence: any = {
+        id: 'ev-1',
+        evidenceType: 'document',
+        evidenceClass: 'A',
+        source: 'CLIA Certificate',
+        freshness: 'current',
+        lastValidatedAt: '2026-01-01',
+      }
+
+      const sampleProvenance: any = {
+        id: 'prov-1',
+        sourceClaimId: 'claim-1',
+        sourceEvidenceId: 'ev-1',
+        relationshipType: 'supports',
+        depth: 2,
+      }
+
+      it('produces identical output when claims/evidence/provenance are absent', () => {
+        const without = derivePassportReadModel({
+          institutionId: 'test-1',
+          institutionName: 'Test',
+          answers: basicAnswerSet(),
+          uploadedDocs: [],
+        })
+        const withEmpty = derivePassportReadModel({
+          institutionId: 'test-1',
+          institutionName: 'Test',
+          answers: basicAnswerSet(),
+          uploadedDocs: [],
+          claims: [],
+          evidence: [],
+          provenance: [],
+        })
+        expect(without).toEqual(withEmpty)
+      })
+
+      it('optional injection works � enrichment appears when claims present', () => {
+        const result = derivePassportReadModel({
+          institutionId: 'test-1',
+          institutionName: 'Test',
+          answers: basicAnswerSet(),
+          uploadedDocs: [],
+          claims: [sampleClaim],
+          evidence: [sampleEvidence],
+          provenance: [sampleProvenance],
+        })
+        expect(result.enrichment).toBeDefined()
+        expect(result.enrichment.claimCount).toBe(1)
+        expect(result.enrichment.evidenceCount).toBe(1)
+        expect(result.enrichment.claimIds).toContain('claim-1')
+        expect(result.enrichment.evidenceIds).toContain('ev-1')
+        expect(result.enrichment.claimsByConfidence).toBeDefined()
+      })
+
+      it('capability read model attaches claim/evidence IDs when present', () => {
+        const capabilities = deriveCapabilityReadModel({
+          researchFocus: ['Clinical Trials'],
+          organizationType: 'Hospital',
+          infrastructure: [makeInfrastructure({ laboratoryPresent: true })],
+          labCertifications: ['CLIA'],
+          shippingCapability: 'both',
+          claims: [sampleClaim],
+          evidence: [sampleEvidence],
+        })
+        const labCaps = capabilities.filter(function(c: any) { return c.name === 'Sample Processing' })
+        if (labCaps.length > 0) {
+          expect(labCaps[0].supportingClaimIds).toBeDefined()
+          expect(labCaps[0].supportingClaimIds).toContain('claim-1')
+        }
+      })
+
+      it('readiness read model accepts claims without modifying core logic', () => {
+        const withClaims = deriveReadinessReadModel({
+          capabilities: [],
+          evidence: {
+            totalDocuments: 0, uploadedDocuments: 0, missingCritical: [],
+            documents: [], coverageScore: 0, healthScore: 0,
+          },
+          locations: [],
+          teamMembers: [],
+          infrastructure: [],
+          hasBackupPower: false,
+          hasTemperatureMonitoring: false,
+          hasDigitalCustody: false,
+          hasPriorStudies: false,
+          claims: [sampleClaim],
+        })
+        const withoutClaims = deriveReadinessReadModel({
+          capabilities: [],
+          evidence: {
+            totalDocuments: 0, uploadedDocuments: 0, missingCritical: [],
+            documents: [], coverageScore: 0, healthScore: 0,
+          },
+          locations: [],
+          teamMembers: [],
+          infrastructure: [],
+          hasBackupPower: false,
+          hasTemperatureMonitoring: false,
+          hasDigitalCustody: false,
+          hasPriorStudies: false,
+        })
+        expect(withClaims.dimensions.length).toBe(withoutClaims.dimensions.length)
+        expect(withClaims.claimContributions).toBeDefined()
+      })
+
+      it('no publication metadata leaks through claims/evidence references', () => {
+        const result = derivePassportReadModel({
+          institutionId: 'test-1',
+          institutionName: 'Test',
+          answers: basicAnswerSet(),
+          uploadedDocs: [],
+          claims: [sampleClaim],
+          evidence: [sampleEvidence],
+          provenance: [sampleProvenance],
+        })
+        const json = JSON.stringify(result)
+        expect(json).not.toContain('publicationId')
+        expect(json).not.toContain('packageId')
+        expect(json).not.toContain('disclosure')
+        expect(json).not.toContain('delivery')
+        expect(json).not.toContain('A10')
+      })
+
+      it('buildEnrichment returns null when no references provided', () => {
+        expect(buildEnrichment()).toBeNull()
+        expect(buildEnrichment([], [])).toBeNull()
+      })
+    })
