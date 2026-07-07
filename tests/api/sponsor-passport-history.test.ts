@@ -2,7 +2,7 @@
  * RC-11.7 — Sponsor passport history runtime tests.
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createClaim,
   createProvenance,
@@ -17,9 +17,9 @@ import {
   mapAuditEventToPassportHistoryEvent,
   mapAuditEventsToPassportHistory,
 } from '../../apps/api/src/lib/sponsor-passport/adapter/map-history'
-import { setPortfolioAllowlistForTests } from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { readInstitutionAuditEvents, type AuditEventRecord } from '../../apps/api/src/lib/sponsor-passport/adapter/queries'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
+import { seedSponsorPortfolioMemberships } from './sponsor-passport-portfolio-fixtures'
 
 function createFakeDb(): DbClient {
   const tables: Record<string, Record<string, Record<string, unknown>>> = {}
@@ -72,10 +72,6 @@ const SPONSOR_ORG = 'org-sponsor-rc117'
 const SITE_ORG = 'org-site-rc117'
 
 describe('Sponsor passport history (RC-11.7)', () => {
-  afterEach(() => {
-    setPortfolioAllowlistForTests(null)
-  })
-
   it('maps audit rows to PassportHistoryEvent with required fields', () => {
     const row: AuditEventRecord = {
       id: 'audit-001',
@@ -162,11 +158,8 @@ describe('Sponsor passport history (RC-11.7)', () => {
   })
 
   it('EvidenceCorePassportStore populates history from lifecycle audit trail', async () => {
-    setPortfolioAllowlistForTests({
-      [SPONSOR_ORG]: [{ institutionId: SITE_ORG }],
-    })
-
     const db = createFakeDb()
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, [{ institutionId: SITE_ORG }])
     await db.from('organizations').insert({
       id: SITE_ORG,
       name: 'History Test Site',
@@ -220,11 +213,8 @@ describe('Sponsor passport history (RC-11.7)', () => {
   })
 
   it('does not invent portfolio or confidence movement events', async () => {
-    setPortfolioAllowlistForTests({
-      [SPONSOR_ORG]: [{ institutionId: SITE_ORG }],
-    })
-
     const db = createFakeDb()
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, [{ institutionId: SITE_ORG }])
     const provenance = createProvenance({
       actorId: 'actor-1',
       organizationId: SITE_ORG,

@@ -1,14 +1,9 @@
 /**
- * RC-10.3 — Sponsor passport mock store unit tests (no HTTP, no DB).
+ * RC-10.3 / RC-11.1 — Sponsor passport mock store unit tests (no HTTP, no DB).
  */
 
 import { describe, it, expect } from 'vitest'
-import {
-  getPortfolioIndex,
-  getInstitutionalPassport,
-  getClaimProvenanceDetail,
-  listInstitutionIds,
-} from '../../apps/api/src/lib/sponsor-passport/mock-store'
+import { MockPassportStore, listInstitutionIds } from '../../apps/api/src/lib/sponsor-passport/mock-passport-store'
 
 const FORBIDDEN_FIELD_NAMES = [
   'score',
@@ -40,9 +35,12 @@ function collectFieldNames(value: unknown, names: Set<string> = new Set(), depth
   return names
 }
 
-describe('Sponsor passport mock store (RC-10.3)', () => {
-  it('returns portfolio index with three RC-10.1 institutions', () => {
-    const index = getPortfolioIndex()
+describe('Sponsor passport mock store (RC-10.3 / RC-11.1)', () => {
+  const store = new MockPassportStore()
+  const sponsorOrgId = 'org-test-sponsor'
+
+  it('returns portfolio index with three RC-10.1 institutions', async () => {
+    const index = await store.getPortfolioIndex(sponsorOrgId)
     expect(index.items).toHaveLength(3)
     expect(listInstitutionIds()).toEqual([
       'inst-st-marys',
@@ -51,8 +49,8 @@ describe('Sponsor passport mock store (RC-10.3)', () => {
     ])
   })
 
-  it('returns full passport detail for inst-st-marys', () => {
-    const passport = getInstitutionalPassport('inst-st-marys')
+  it('returns full passport detail for inst-st-marys', async () => {
+    const passport = await store.getInstitutionalPassport(sponsorOrgId, 'inst-st-marys')
     expect(passport).toBeDefined()
     expect(passport!.passportId).toBe('passport-inst-st-marys')
     expect(passport!.claims.length).toBeGreaterThanOrEqual(1)
@@ -63,12 +61,12 @@ describe('Sponsor passport mock store (RC-10.3)', () => {
     expect(passport!.claims[0].provenance.documentTitle).toBeTruthy()
   })
 
-  it('returns undefined for unknown institution', () => {
-    expect(getInstitutionalPassport('inst-unknown')).toBeUndefined()
+  it('returns undefined for unknown institution', async () => {
+    expect(await store.getInstitutionalPassport(sponsorOrgId, 'inst-unknown')).toBeUndefined()
   })
 
-  it('returns claim provenance detail with evidence tree nodes', () => {
-    const detail = getClaimProvenanceDetail('inst-st-marys', 'claim-pbmc-001')
+  it('returns claim provenance detail with evidence tree nodes', async () => {
+    const detail = await store.getClaimProvenanceDetail(sponsorOrgId, 'inst-st-marys', 'claim-pbmc-001')
     expect(detail).toBeDefined()
     expect(detail!.claimId).toBe('claim-pbmc-001')
     expect(detail!.minimal.excerpt).toBeTruthy()
@@ -76,22 +74,29 @@ describe('Sponsor passport mock store (RC-10.3)', () => {
     expect(detail!.sourceDocuments.length).toBe(1)
   })
 
-  it('includes contradicting nodes for contested claims', () => {
-    const detail = getClaimProvenanceDetail('inst-st-marys', 'claim-cold-001')
+  it('includes contradicting nodes for contested claims', async () => {
+    const detail = await store.getClaimProvenanceDetail(sponsorOrgId, 'inst-st-marys', 'claim-cold-001')
     expect(detail!.contested).toBe(true)
     expect(detail!.contradictingNodeIds?.length).toBeGreaterThan(0)
     expect(detail!.evidenceNodes.some((n) => !n.supportsClaim)).toBe(true)
   })
 
-  it('returns undefined provenance for unknown claim', () => {
-    expect(getClaimProvenanceDetail('inst-st-marys', 'claim-missing')).toBeUndefined()
+  it('returns undefined provenance for unknown claim', async () => {
+    expect(
+      await store.getClaimProvenanceDetail(sponsorOrgId, 'inst-st-marys', 'claim-missing'),
+    ).toBeUndefined()
   })
 
-  it('does not expose forbidden lexicon fields in fixtures', () => {
+  it('isInstitutionInPortfolio reflects mock portfolio ids', async () => {
+    expect(await store.isInstitutionInPortfolio(sponsorOrgId, 'inst-st-marys')).toBe(true)
+    expect(await store.isInstitutionInPortfolio(sponsorOrgId, 'inst-unknown')).toBe(false)
+  })
+
+  it('does not expose forbidden lexicon fields in fixtures', async () => {
     const payloads = [
-      getPortfolioIndex(),
-      getInstitutionalPassport('inst-st-marys'),
-      getClaimProvenanceDetail('inst-st-marys', 'claim-pbmc-001'),
+      await store.getPortfolioIndex(sponsorOrgId),
+      await store.getInstitutionalPassport(sponsorOrgId, 'inst-st-marys'),
+      await store.getClaimProvenanceDetail(sponsorOrgId, 'inst-st-marys', 'claim-pbmc-001'),
     ]
 
     for (const payload of payloads) {
@@ -102,8 +107,8 @@ describe('Sponsor passport mock store (RC-10.3)', () => {
     }
   })
 
-  it('uses enum confidence labels not numeric scores in claims', () => {
-    const passport = getInstitutionalPassport('inst-barcelona-oncology')!
+  it('uses enum confidence labels not numeric scores in claims', async () => {
+    const passport = (await store.getInstitutionalPassport(sponsorOrgId, 'inst-barcelona-oncology'))!
     for (const claim of passport.claims) {
       expect(['High', 'Moderate', 'Low', 'Insufficient']).toContain(claim.confidence)
       expect(typeof claim.confidence).toBe('string')

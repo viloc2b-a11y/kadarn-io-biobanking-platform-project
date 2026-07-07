@@ -1,6 +1,6 @@
 /**
  * GET /api/v1/sponsor/passports/:institutionId/claims/:claimId/provenance
- * RC-10.3 — Mock Evidence Tree provenance (lazy sub-resource, no DB).
+ * Evidence Tree provenance (lazy sub-resource) via PassportStore.
  */
 
 import { withAuth, requireOrgMembership } from '@/lib/auth-guards'

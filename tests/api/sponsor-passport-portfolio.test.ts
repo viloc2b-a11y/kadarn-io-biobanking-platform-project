@@ -1,8 +1,8 @@
 /**
- * RC-11.5 — Sponsor passport portfolio runtime unit tests (no HTTP, no DB).
+ * RC-12.1C - Sponsor passport portfolio repository runtime tests (no HTTP).
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createProvenance,
   insertClaim,
@@ -11,11 +11,12 @@ import {
 } from '../../packages/evidence-core/src/index.js'
 import type { DbClient } from '../../packages/evidence-core/src/db.js'
 import { buildPortfolioIndex, checkInstitutionInPortfolio } from '../../apps/api/src/lib/sponsor-passport/adapter/map-portfolio-index'
-import {
-  setPortfolioAllowlistForTests,
-  type PortfolioAllowlist,
-} from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
+import { SupabaseSponsorPortfolioRepository } from '../../apps/api/src/lib/sponsor-passport/portfolio/repository'
+import {
+  seedSponsorPortfolioMemberships,
+  type SponsorPortfolioTestEntry,
+} from './sponsor-passport-portfolio-fixtures'
 
 function createFakeDb(): DbClient {
   const tables: Record<string, Record<string, Record<string, unknown>>> = {}
@@ -52,22 +53,20 @@ const SPONSOR_ORG = 'org-sponsor-rc115'
 const SITE_A = 'org-site-a'
 const SITE_B = 'org-site-b'
 
-const TEST_ALLOWLIST: PortfolioAllowlist = {
-  [SPONSOR_ORG]: [
-    {
-      institutionId: SITE_A,
-      displayName: "St. Mary's Hospital",
-      location: 'London, United Kingdom',
-      memberSince: '2024-03-12',
-    },
-    {
-      institutionId: SITE_B,
-      displayName: 'Barcelona Oncology Research Center',
-      location: 'Barcelona, Spain',
-      memberSince: '2023-11-08',
-    },
-  ],
-}
+const TEST_PORTFOLIO_ENTRIES: SponsorPortfolioTestEntry[] = [
+  {
+    institutionId: SITE_A,
+    displayName: "St. Mary's Hospital",
+    location: 'London, United Kingdom',
+    memberSince: '2024-03-12',
+  },
+  {
+    institutionId: SITE_B,
+    displayName: 'Barcelona Oncology Research Center',
+    location: 'Barcelona, Spain',
+    memberSince: '2023-11-08',
+  },
+]
 
 async function seedSiteClaims(db: DbClient, institutionId: string, claimTypeId: string): Promise<void> {
   const provenance = createProvenance({
@@ -102,28 +101,27 @@ async function seedSiteClaims(db: DbClient, institutionId: string, claimTypeId: 
   })
 }
 
-describe('Sponsor passport portfolio runtime (RC-11.5)', () => {
-  afterEach(() => {
-    setPortfolioAllowlistForTests(null)
-  })
-
-  it('isInstitutionInPortfolio uses allowlist only (no DB table)', async () => {
-    setPortfolioAllowlistForTests(TEST_ALLOWLIST)
-
-    expect(await checkInstitutionInPortfolio(SPONSOR_ORG, SITE_A)).toBe(true)
-    expect(await checkInstitutionInPortfolio(SPONSOR_ORG, SITE_B)).toBe(true)
-    expect(await checkInstitutionInPortfolio(SPONSOR_ORG, 'org-unknown')).toBe(false)
-    expect(await checkInstitutionInPortfolio('org-other-sponsor', SITE_A)).toBe(false)
-  })
-
-  it('getPortfolioIndex returns allowlisted institutions with evidence-backed summaries', async () => {
-    setPortfolioAllowlistForTests(TEST_ALLOWLIST)
+describe('Sponsor passport portfolio runtime (RC-12.1C)', () => {
+  it('isInstitutionInPortfolio uses persistent memberships', async () => {
     const db = createFakeDb()
+    const repository = new SupabaseSponsorPortfolioRepository(db)
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, TEST_PORTFOLIO_ENTRIES)
+
+    expect(await checkInstitutionInPortfolio(repository, SPONSOR_ORG, SITE_A)).toBe(true)
+    expect(await checkInstitutionInPortfolio(repository, SPONSOR_ORG, SITE_B)).toBe(true)
+    expect(await checkInstitutionInPortfolio(repository, SPONSOR_ORG, 'org-unknown')).toBe(false)
+    expect(await checkInstitutionInPortfolio(repository, 'org-other-sponsor', SITE_A)).toBe(false)
+  })
+
+  it('getPortfolioIndex returns portfolio institutions with evidence-backed summaries', async () => {
+    const db = createFakeDb()
+    const repository = new SupabaseSponsorPortfolioRepository(db)
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, TEST_PORTFOLIO_ENTRIES)
 
     await seedSiteClaims(db, SITE_A, 'biospecimen.processing.pbmc')
     await seedSiteClaims(db, SITE_B, 'experience.oncology.phase_ii')
 
-    const index = await buildPortfolioIndex(db, SPONSOR_ORG)
+    const index = await buildPortfolioIndex(db, repository, SPONSOR_ORG)
 
     expect(index.items).toHaveLength(2)
     expect(index.items.map((item) => item.institutionId).sort()).toEqual([SITE_A, SITE_B].sort())
@@ -133,20 +131,21 @@ describe('Sponsor passport portfolio runtime (RC-11.5)', () => {
     expect(index.items.every((item) => !('rank' in item))).toBe(true)
   })
 
-  it('getPortfolioIndex omits allowlisted institutions without claims', async () => {
-    setPortfolioAllowlistForTests(TEST_ALLOWLIST)
+  it('getPortfolioIndex omits portfolio institutions without claims', async () => {
     const db = createFakeDb()
+    const repository = new SupabaseSponsorPortfolioRepository(db)
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, TEST_PORTFOLIO_ENTRIES)
 
     await seedSiteClaims(db, SITE_A, 'biospecimen.processing.pbmc')
 
-    const index = await buildPortfolioIndex(db, SPONSOR_ORG)
+    const index = await buildPortfolioIndex(db, repository, SPONSOR_ORG)
     expect(index.items).toHaveLength(1)
     expect(index.items[0].institutionId).toBe(SITE_A)
   })
 
   it('EvidenceCorePassportStore blocks detail for institutions outside portfolio', async () => {
-    setPortfolioAllowlistForTests(TEST_ALLOWLIST)
     const db = createFakeDb()
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, TEST_PORTFOLIO_ENTRIES)
     await seedSiteClaims(db, SITE_A, 'biospecimen.processing.pbmc')
 
     const store = new EvidenceCorePassportStore(async () => db)
@@ -157,8 +156,8 @@ describe('Sponsor passport portfolio runtime (RC-11.5)', () => {
   })
 
   it('EvidenceCorePassportStore getPortfolioIndex returns empty list for unknown sponsor', async () => {
-    setPortfolioAllowlistForTests(TEST_ALLOWLIST)
     const db = createFakeDb()
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, TEST_PORTFOLIO_ENTRIES)
     await seedSiteClaims(db, SITE_A, 'biospecimen.processing.pbmc')
 
     const store = new EvidenceCorePassportStore(async () => db)

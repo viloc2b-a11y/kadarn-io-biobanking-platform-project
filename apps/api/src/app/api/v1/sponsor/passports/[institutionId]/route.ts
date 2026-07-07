@@ -1,6 +1,6 @@
 /**
  * GET /api/v1/sponsor/passports/:institutionId
- * RC-10.3 — Mock passport detail (no DB).
+ * Sponsor Passport detail via PassportStore.
  */
 
 import { withAuth, requireOrgMembership } from '@/lib/auth-guards'

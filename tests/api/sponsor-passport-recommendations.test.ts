@@ -2,7 +2,7 @@
  * RC-11.8 — Sponsor passport recommendations runtime tests.
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createProvenance,
   insertClaim,
@@ -12,10 +12,10 @@ import {
 import type { DbClient } from '../../packages/evidence-core/src/db.js'
 import { mapRecommendationsFromPassport } from '../../apps/api/src/lib/sponsor-passport/adapter/map-recommendations'
 import { mapClaimsToPassportClaims } from '../../apps/api/src/lib/sponsor-passport/adapter/map-claim'
-import { setPortfolioAllowlistForTests } from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { readInstitutionEvidence } from '../../apps/api/src/lib/sponsor-passport/adapter/queries'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
 import { MockPassportStore } from '../../apps/api/src/lib/sponsor-passport/mock-passport-store'
+import { seedSponsorPortfolioMemberships } from './sponsor-passport-portfolio-fixtures'
 
 function createFakeDb(): DbClient {
   const tables: Record<string, Record<string, Record<string, unknown>>> = {}
@@ -114,10 +114,6 @@ async function seedClaimWithEvidence(
 }
 
 describe('Sponsor passport recommendations (RC-11.8)', () => {
-  afterEach(() => {
-    setPortfolioAllowlistForTests(null)
-  })
-
   it('returns empty recommendations when all claims are adequately supported', async () => {
     const db = createFakeDb()
     await seedClaimWithEvidence(db, {
@@ -303,11 +299,8 @@ describe('Sponsor passport recommendations (RC-11.8)', () => {
   })
 
   it('EvidenceCorePassportStore populates recommendations without affecting other sections', async () => {
-    setPortfolioAllowlistForTests({
-      [SPONSOR_ORG]: [{ institutionId: SITE_ORG }],
-    })
-
     const db = createFakeDb()
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, [{ institutionId: SITE_ORG }])
     await seedClaimWithEvidence(db, {
       claimTypeId: 'logistics.cold_chain.storage',
       name: 'Cold-chain storage',

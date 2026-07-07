@@ -2,7 +2,7 @@
  * RC-11.6 — Sponsor passport identity + capabilities runtime tests.
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createProvenance,
   insertClaim,
@@ -16,9 +16,9 @@ import {
   mapOrganizationToPassportIdentity,
   resolveDisplayName,
 } from '../../apps/api/src/lib/sponsor-passport/adapter/map-identity'
-import { setPortfolioAllowlistForTests } from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { readInstitutionEvidence, readOrganization } from '../../apps/api/src/lib/sponsor-passport/adapter/queries'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
+import { seedSponsorPortfolioMemberships } from './sponsor-passport-portfolio-fixtures'
 
 function createFakeDb(): DbClient {
   const tables: Record<string, Record<string, Record<string, unknown>>> = {}
@@ -71,10 +71,6 @@ const SPONSOR_ORG = 'org-sponsor-rc116'
 const SITE_ORG = 'org-site-rc116'
 
 describe('Sponsor passport identity + capabilities (RC-11.6)', () => {
-  afterEach(() => {
-    setPortfolioAllowlistForTests(null)
-  })
-
   it('maps organization registration data into PassportIdentity without invented relationships', async () => {
     const db = createFakeDb()
     await seedOrganization(db, SITE_ORG, {
@@ -176,11 +172,8 @@ describe('Sponsor passport identity + capabilities (RC-11.6)', () => {
   })
 
   it('EvidenceCorePassportStore populates identity and capabilities sections', async () => {
-    setPortfolioAllowlistForTests({
-      [SPONSOR_ORG]: [{ institutionId: SITE_ORG }],
-    })
-
     const db = createFakeDb()
+    await seedSponsorPortfolioMemberships(db, SPONSOR_ORG, [{ institutionId: SITE_ORG }])
     await seedOrganization(db, SITE_ORG, {
       name: 'Barcelona Oncology Research Center',
       city: 'Barcelona',

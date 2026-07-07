@@ -1,20 +1,14 @@
-/**
- * RC-11.5 — Portfolio index mapping from allowlist + Evidence Core reads.
- */
-
 import type { Claim, DbClient } from '@kadarn/evidence-core'
-import type { PassportInstitutionSummary, PassportPortfolioIndexResponse, StabilityIndicator } from '../types'
-import {
-  getAllowedInstitutions,
-  getAllowlistEntry,
-  isInstitutionInPortfolioAllowlist,
-  type PortfolioAllowlistEntry,
-} from './portfolio-allowlist'
-import { readInstitutionEvidence } from './queries'
+import type { PassportInstitutionSummary, PassportPortfolioIndexResponse } from '../types'
+import type { SponsorPortfolioRepository } from '../portfolio/repository'
+import type { SponsorPortfolioInstitutionReadModel } from '../portfolio/types'
+import { deriveStabilityIndicatorFromSource } from '../stability'
+import { readInstitutionAuditEvents, readInstitutionEvidence } from './queries'
 
-const DEFAULT_STABILITY: StabilityIndicator = 'Under Review'
-
-function formatMemberSince(claim: Claim | undefined, entry?: PortfolioAllowlistEntry): string {
+function formatMemberSince(
+  claim: Claim | undefined,
+  entry?: SponsorPortfolioInstitutionReadModel,
+): string {
   if (entry?.memberSince) return entry.memberSince
   if (claim?.temporal.createdAt) return claim.temporal.createdAt.slice(0, 10)
   return new Date().toISOString().slice(0, 10)
@@ -34,22 +28,33 @@ function buildPortfolioSummary(claims: Claim[]): string {
 
 export async function buildPortfolioIndex(
   db: DbClient,
+  repository: SponsorPortfolioRepository,
   sponsorOrgId: string,
 ): Promise<PassportPortfolioIndexResponse> {
-  const allowed = getAllowedInstitutions(sponsorOrgId)
+  const memberships = await repository.listActiveInstitutions(sponsorOrgId)
   const items: PassportInstitutionSummary[] = []
+  const referenceDate = new Date()
 
-  for (const entry of allowed) {
+  for (const entry of memberships) {
     const read = await readInstitutionEvidence(db, entry.institutionId)
     if (read.claims.length === 0) continue
 
     const primaryClaim = read.claims[0]
+    const auditEvents = await readInstitutionAuditEvents(db, entry.institutionId)
+    const stability = deriveStabilityIndicatorFromSource({
+      read,
+      auditEvents,
+      actorId: sponsorOrgId || 'sponsor-passport-adapter',
+      correlationId: `portfolio-index-${entry.institutionId}`,
+      referenceDate,
+    })
+
     items.push({
       institutionId: entry.institutionId,
       passportId: `passport-${entry.institutionId}`,
       displayName: entry.displayName ?? entry.institutionId,
       location: entry.location ?? '',
-      stability: DEFAULT_STABILITY,
+      stability,
       memberSince: formatMemberSince(primaryClaim, entry),
       summary: buildPortfolioSummary(read.claims),
     })
@@ -59,15 +64,17 @@ export async function buildPortfolioIndex(
 }
 
 export async function checkInstitutionInPortfolio(
+  repository: SponsorPortfolioRepository,
   sponsorOrgId: string,
   institutionId: string,
 ): Promise<boolean> {
-  return isInstitutionInPortfolioAllowlist(sponsorOrgId, institutionId)
+  return repository.hasActiveInstitution(sponsorOrgId, institutionId)
 }
 
-export function resolvePortfolioEntry(
+export async function resolvePortfolioEntry(
+  repository: SponsorPortfolioRepository,
   sponsorOrgId: string,
   institutionId: string,
-): PortfolioAllowlistEntry | undefined {
-  return getAllowlistEntry(sponsorOrgId, institutionId)
+): Promise<SponsorPortfolioInstitutionReadModel | undefined> {
+  return repository.getActiveInstitution(sponsorOrgId, institutionId)
 }

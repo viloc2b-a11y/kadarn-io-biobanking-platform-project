@@ -3,8 +3,8 @@
  */
 
 import type { PassportIdentity } from '../types'
+import type { SponsorPortfolioInstitutionReadModel } from '../portfolio/types'
 import type { OrganizationRecord } from './queries'
-import type { PortfolioAllowlistEntry } from './portfolio-allowlist'
 
 const ORG_SOURCE = 'Organization registration'
 
@@ -15,9 +15,9 @@ function formatLocation(org: OrganizationRecord): string | null {
 
 export function mapOrganizationToPassportIdentity(params: {
   organization: OrganizationRecord | null
-  allowlistEntry?: PortfolioAllowlistEntry
+  portfolioEntry?: SponsorPortfolioInstitutionReadModel
 }): PassportIdentity {
-  const { organization, allowlistEntry } = params
+  const { organization, portfolioEntry } = params
   const names: PassportIdentity['names'] = []
   const locations: PassportIdentity['locations'] = []
 
@@ -37,11 +37,11 @@ export function mapOrganizationToPassportIdentity(params: {
     })
   }
 
-  if (names.length === 0 && allowlistEntry?.displayName) {
+  if (names.length === 0 && portfolioEntry?.displayName) {
     names.push({
       label: 'Primary name',
-      value: allowlistEntry.displayName,
-      source: 'Portfolio allowlist',
+      value: portfolioEntry.displayName,
+      source: 'Sponsor portfolio',
     })
   }
 
@@ -52,11 +52,11 @@ export function mapOrganizationToPassportIdentity(params: {
       value: orgLocation,
       source: ORG_SOURCE,
     })
-  } else if (allowlistEntry?.location) {
+  } else if (portfolioEntry?.location) {
     locations.push({
       label: 'Primary site',
-      value: allowlistEntry.location,
-      source: 'Portfolio allowlist',
+      value: portfolioEntry.location,
+      source: 'Sponsor portfolio',
     })
   }
 
@@ -69,12 +69,12 @@ export function mapOrganizationToPassportIdentity(params: {
 
 export function resolveDisplayName(params: {
   organization: OrganizationRecord | null
-  allowlistEntry?: PortfolioAllowlistEntry
+  portfolioEntry?: SponsorPortfolioInstitutionReadModel
   institutionId: string
 }): string {
   return (
     params.organization?.name ??
-    params.allowlistEntry?.displayName ??
+    params.portfolioEntry?.displayName ??
     params.institutionId
   )
 }

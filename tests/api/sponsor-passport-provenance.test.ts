@@ -2,7 +2,7 @@
  * RC-11.4 — Sponsor passport provenance sub-resource unit tests (no HTTP, no DB).
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createProvenance,
   insertClaim,
@@ -12,9 +12,9 @@ import {
 } from '../../packages/evidence-core/src/index.js'
 import type { DbClient } from '../../packages/evidence-core/src/db.js'
 import { mapClaimProvenanceDetail } from '../../apps/api/src/lib/sponsor-passport/adapter/map-provenance-detail'
-import { setPortfolioAllowlistForTests } from '../../apps/api/src/lib/sponsor-passport/adapter/portfolio-allowlist'
 import { readInstitutionEvidence } from '../../apps/api/src/lib/sponsor-passport/adapter/queries'
 import { EvidenceCorePassportStore } from '../../apps/api/src/lib/sponsor-passport/evidence-core-passport-store'
+import { seedSponsorPortfolioMemberships } from './sponsor-passport-portfolio-fixtures'
 
 function createFakeDb(): DbClient {
   const tables: Record<string, Record<string, Record<string, unknown>>> = {}
@@ -48,10 +48,6 @@ function createFakeDb(): DbClient {
 }
 
 describe('Sponsor passport provenance mapping (RC-11.4)', () => {
-  afterEach(() => {
-    setPortfolioAllowlistForTests(null)
-  })
-
   const storeSponsorOrg = 'org-sponsor-provenance-test'
   it('returns undefined when claim is not found for institution', async () => {
     const db = createFakeDb()
@@ -195,9 +191,7 @@ describe('Sponsor passport provenance mapping (RC-11.4)', () => {
   it('EvidenceCorePassportStore.getClaimProvenanceDetail delegates to adapter', async () => {
     const db = createFakeDb()
     const institutionId = 'org-site-store-prov'
-    setPortfolioAllowlistForTests({
-      [storeSponsorOrg]: [{ institutionId }],
-    })
+    await seedSponsorPortfolioMemberships(db, storeSponsorOrg, [{ institutionId }])
     const provenance = createProvenance({
       actorId: 'actor-1',
       organizationId: institutionId,
