@@ -64,11 +64,40 @@ export interface PassportCapability {
   evidence: string; domains: string[]
   /** CR-0 FIX: Verifiable supporting evidence */
   supportingEvidence: ContributionItem[]
+  /** KTP-1.3: Evidence support level */
+  evidenceSupport?: 'SUPPORTED_BY_EVIDENCE' | 'DECLARED_ONLY' | 'NEEDS_EVIDENCE' | 'PARTIALLY_SUPPORTED' | 'UNKNOWN' | 'NOT_APPLICABLE' | 'NEEDS_REVIEW' | 'EXPIRED_OR_OUTDATED'
 }
 
 export interface PassportReadiness {
   overallScore: number; dimensions: PassportReadinessDimension[]
   eligiblePrograms: string[]; partialPrograms: string[]
+  /** KTP-1.3: Per-program-type readiness evaluations (e.g., hybrid trial, biospecimen collection) */
+  programTypeReadiness?: ProgramReadiness[]
+}
+
+/** KTP-1.3: Per-program-type readiness evaluation */
+export interface ProgramReadiness {
+  programTypeKey: string
+  programTypeName: string
+  readinessStatus: 'not_ready' | 'partial' | 'conditionally_ready' | 'ready'
+  overallConfidence: number
+  capabilities: {
+    capabilityTypeKey: string
+    capabilityTypeName: string
+    isMandatory: boolean
+    met: boolean
+    achievedConfidence: number
+    requiredConfidence: number
+    evidenceGaps: {
+      evidenceClass: string
+      isMandatory: boolean
+      required: number
+      present: number
+      missing: number
+    }[]
+  }[]
+  evidenceGaps: string[]
+  verifiableVia: string
 }
 
 export interface PassportReadinessDimension {

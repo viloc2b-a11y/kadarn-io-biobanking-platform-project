@@ -187,7 +187,159 @@ export default function PassportPage() {
         )}
       </SectionCard>
 
-      {/* Section 5: What We Should Do Next */}
+      {/* KTP-1.3: Sponsor-Facing Hybrid Trial Readiness Package */}
+          {readiness.programTypeReadiness && readiness.programTypeReadiness.length > 0 && (
+            <SectionCard number={4.5} title="Hybrid Trial Readiness" color="teal">
+              <p className="text-sm text-gray-500 mb-5">
+                Based on available evidence and onboarding answers. This assessment reflects current documented capabilities.
+                It does not certify or guarantee future performance. Sponsors should verify critical claims independently.
+              </p>
+
+              {readiness.programTypeReadiness.map((ht) => {
+                const mandatoryMet = ht.capabilities.filter(c => c.isMandatory && c.met).length
+                const mandatoryTotal = ht.capabilities.filter(c => c.isMandatory).length
+                const naCount = ht.capabilities.filter(c => c.achievedConfidence === 1.0 && !c.met).length
+                const declaredCount = ht.capabilities.filter(c => c.achievedConfidence <= 0.40 && c.achievedConfidence > 0).length
+                const supportedCount = ht.capabilities.filter(c => c.met).length
+                const criticalNames = ['Site-Based Execution', 'Hybrid Data Integrity', 'At-Home Coordination', 'Biospecimen-at-Home', 'Safety Escalation']
+
+                return (
+                  <div key={ht.programTypeKey}>
+
+                    {/* Executive Summary */}
+                    <div className="bg-gradient-to-r from-teal-700 to-teal-900 rounded-xl p-6 text-white mb-6">
+                      <div className="text-sm text-teal-200 uppercase tracking-wide mb-1">Hybrid Trial Readiness Package</div>
+                      <div className="flex items-end gap-6 mt-3">
+                        <div>
+                          <div className="text-4xl font-bold">{Math.round(ht.overallConfidence * 100)}%</div>
+                          <div className="text-teal-200 text-sm">Overall Confidence</div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-lg font-semibold">Status: {ht.readinessStatus.replace(/_/g, ' ')}</div>
+                          <div className="text-teal-200 text-sm mt-1">
+                            {mandatoryMet} of {mandatoryTotal} mandatory met
+                            {naCount > 0 ? ' \u00b7 ' + naCount + ' not applicable' : ''}
+                            {declaredCount > 0 ? ' \u00b7 ' + declaredCount + ' self-declared' : ''}
+                          </div>
+                        </div>
+                        <span className="text-xs px-2 py-1 rounded-full bg-teal-600 text-teal-100">Based on onboarding answers</span>
+                      </div>
+                    </div>
+
+                    {/* Decision Guidance */}
+                    <div className="p-4 rounded-lg mb-6" style={{
+                      backgroundColor: ht.readinessStatus === 'ready' ? '#f0fdf4' : ht.readinessStatus === 'conditionally_ready' ? '#fffbeb' : '#fef2f2',
+                      border: '1px solid ' + (ht.readinessStatus === 'ready' ? '#bbf7d0' : ht.readinessStatus === 'conditionally_ready' ? '#fde68a' : '#fecaca'),
+                    }}>
+                      <div className="text-sm font-semibold mb-2" style={{
+                        color: ht.readinessStatus === 'ready' ? '#166534' : ht.readinessStatus === 'conditionally_ready' ? '#92400e' : '#991b1b',
+                      }}>
+                        {ht.readinessStatus === 'ready' ? 'Suitable for Hybrid Trial Participation' :
+                         ht.readinessStatus === 'conditionally_ready' ? 'Conditionally Suitable \u2014 Verify Critical Claims' :
+                         'Not Ready \u2014 Significant Evidence Gaps'}
+                      </div>
+                      <p className="text-xs" style={{
+                        color: ht.readinessStatus === 'ready' ? '#166534' : ht.readinessStatus === 'conditionally_ready' ? '#92400e' : '#991b1b',
+                      }}>
+                        {ht.readinessStatus === 'ready'
+                          ? 'This institution has demonstrated evidence across mandatory hybrid trial dimensions. Sponsor due diligence is still required for protocol-specific qualification.'
+                          : ht.readinessStatus === 'conditionally_ready'
+                          ? 'This institution meets core requirements but has gaps in optional or supporting capabilities. Review critical claims below before proceeding.'
+                          : 'This institution has insufficient evidence for hybrid trial participation. Address the gaps below or request additional documentation.'}
+                      </p>
+                    </div>
+
+                    {/* Critical Claims for Sponsor Review */}
+                    <div className="mb-4">
+                      <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Critical Claims for Sponsor Review</div>
+                      <div className="space-y-2">
+                        {ht.capabilities.filter(c => criticalNames.includes(c.capabilityTypeName)).map((cap) => {
+                          const isMet = cap.met
+                          const confPct = Math.round(cap.achievedConfidence * 100)
+                          return (
+                            <div key={cap.capabilityTypeKey} className="flex items-center justify-between p-3 rounded-lg border" style={{
+                              borderColor: isMet ? '#bbf7d0' : '#fecaca',
+                              backgroundColor: isMet ? '#f0fdf4' : '#fef2f2',
+                            }}>
+                              <div className="flex items-center gap-2">
+                                <span>{isMet ? '\u2713' : '\u2717'}</span>
+                                <span className="text-sm font-medium">{cap.capabilityTypeName}</span>
+                                {cap.isMandatory && <span className="text-xs text-gray-400">(required)</span>}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-20 h-1.5 bg-gray-200 rounded-full">
+                                  <div className="h-full rounded-full" style={{ width: confPct + '%', backgroundColor: isMet ? '#16a34a' : '#dc2626' }} />
+                                </div>
+                                <span className="text-xs font-medium">{confPct}%</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* All Claims (collapsible) */}
+                    <details className="mb-4">
+                      <summary className="text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-800">
+                        All 10 Capabilities ({supportedCount} supported)
+                      </summary>
+                      <div className="space-y-1.5 mt-3">
+                        {ht.capabilities.map((cap) => {
+                          const isNA = cap.achievedConfidence === 1.0 && !cap.met
+                          const isUnk = cap.achievedConfidence === 0 && !cap.met
+                          const isDec = cap.achievedConfidence <= 0.40 && cap.achievedConfidence > 0
+                          const isPar = cap.achievedConfidence > 0.40 && cap.achievedConfidence <= 0.65
+                          let label = isNA ? 'N/A' : isUnk ? 'Not answered' : isDec ? 'Declared only' : isPar ? 'Partially supported' : cap.met ? 'Supported' : 'Needs evidence'
+                          let clr = isNA || isUnk ? '#6b7280' : isDec ? '#92400e' : isPar ? '#1e40af' : cap.met ? '#166534' : '#6b7280'
+                          return (
+                            <div key={cap.capabilityTypeKey} className="flex items-center justify-between text-xs py-1.5 px-2 rounded hover:bg-gray-50">
+                              <span className="text-gray-700">{cap.capabilityTypeName}{cap.isMandatory ? ' *' : ''}</span>
+                              <span className="font-medium" style={{ color: clr }}>{label} ({Math.round(cap.achievedConfidence * 100)}%)</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </details>
+
+                    {/* Known Limitations */}
+                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                      <div className="text-xs font-semibold text-gray-600 uppercase mb-2">Known Limitations</div>
+                      <ul className="space-y-1 text-xs text-gray-500">
+                        <li>\u2022 Evaluation based on onboarding answers \u2014 evidence nodes not persisted in database.</li>
+                        <li>\u2022 Self-declared claims (Declared only) are capped at 40% confidence. Request supporting documents.</li>
+                        <li>\u2022 This assessment does not replace sponsor qualification or protocol-specific due diligence.</li>
+                        <li>\u2022 Historical experience claims require ClinicalTrials.gov records or sponsor references.</li>
+                        {ht.evidenceGaps && ht.evidenceGaps.length > 0 && (
+                          <li>\u2022 {ht.evidenceGaps.length} evidence gap(s) identified.</li>
+                        )}
+                      </ul>
+                    </div>
+
+                    {/* Site-Facing Improvement Actions */}
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                      <div className="text-xs font-semibold text-blue-700 uppercase mb-2">Improvement Actions</div>
+                      <ul className="space-y-1 text-xs text-blue-600">
+                        {mandatoryMet < mandatoryTotal && (
+                          <li>\u2022 Complete {mandatoryTotal - mandatoryMet} remaining mandatory claim(s).</li>
+                        )}
+                        {declaredCount > 0 && (
+                          <li>\u2022 Upload documents for {declaredCount} self-declared claim(s).</li>
+                        )}
+                        <li>\u2022 Upload SOPs, certifications, and workflow documentation in the Documents section.</li>
+                        <li>\u2022 Hybrid trial experience can be documented via ClinicalTrials.gov references.</li>
+                      </ul>
+                    </div>
+
+                    <div className="mt-3 text-xs text-gray-400">
+                      {ht.verifiableVia}
+                    </div>
+                  </div>
+                )
+              })}
+            </SectionCard>
+          )}
+
+{/* Section 5: What We Should Do Next */}
       <SectionCard number={5} title="What We Should Do Next" color="red">
         <p className="text-sm text-gray-500 mb-5">Highest-impact current actions across missing documents, expirations, capability gaps, and readiness improvements.</p>
         <SnapshotGrid>

@@ -23,12 +23,15 @@ import type {
   PassportCapability,
   PassportReadiness,
   PassportNextStep,
+  ProgramReadiness,
   UploadedDoc,
 } from '../../passport/passport-assembler'
 import { deriveCapabilityReadModel } from './capability-read-model'
 import { deriveReadinessReadModel } from './readiness-read-model'
 import type { KnowledgeContext } from './types'
 import { buildEnrichment } from './types'
+import { deriveHybridTrialReadiness } from '../hybrid-trial-readiness'
+import type { HybridClaimResult } from '../hybrid-trial-readiness'
 
 export type { PassportData } from '../../passport/passport-assembler'
 
@@ -138,6 +141,72 @@ export function derivePassportReadModel(input: PassportReadModelInput): Passport
     hasPriorStudies: String(a['infra_has_studies'] ?? '') === 'yes',
   })
 
+  // KTP-1.3: Derive Hybrid Trial Readiness from ht_* answers (provisional frontend helper)
+  const hasHybridAnswers = Object.keys(input.answers).some(k => k.startsWith('ht_'))
+  let hybridCapabilities: PassportCapability[] = []
+  let hybridReadiness: ProgramReadiness | null = null
+
+  if (hasHybridAnswers) {
+    const htResult = deriveHybridTrialReadiness(input.answers, docs.map(d => d.label))
+
+    hybridCapabilities = htResult.claims
+      .filter(c => c.evidenceSupport !== 'NOT_APPLICABLE')
+      .map(c => ({
+        name: c.claimLabel,
+        level: c.confidence >= 0.65 ? 'Strong' : c.confidence >= 0.35 ? 'Moderate' : 'Available',
+        evidence: c.gaps.length === 0 ? 'All evidence requirements met.' : c.gaps.join('; '),
+        domains: ['hybrid-trial'],
+        supportingEvidence: [
+          ...Object.entries(c.responses).map(([qid, val]) => ({
+            label: qid,
+            impact: 'positive' as const,
+            points: 5,
+            description: String(val).slice(0, 60),
+          })),
+          ...c.gaps.map(g => ({
+            label: 'Gap',
+            impact: 'negative' as const,
+            points: -5,
+            description: g,
+          })),
+        ],
+        evidenceSupport: c.evidenceSupport,
+      }))
+
+    hybridReadiness = {
+      programTypeKey: 'readiness_hybrid_trial',
+      programTypeName: 'Hybrid Trial Readiness',
+      readinessStatus: htResult.readinessStatus,
+      overallConfidence: htResult.overallConfidence,
+      capabilities: htResult.claims.map(c => ({
+        capabilityTypeKey: c.claimId,
+        capabilityTypeName: c.claimLabel,
+        isMandatory: c.isMandatory,
+        met: c.evidenceSupport !== 'NOT_APPLICABLE' && c.evidenceSupport !== 'UNKNOWN' && (c.evidenceSupport === 'SUPPORTED_BY_EVIDENCE' || c.confidence >= 0.50),
+        achievedConfidence: c.confidence,
+        requiredConfidence: 0.50,
+        evidenceGaps: c.gaps.map(g => ({
+          evidenceClass: 'B',
+          isMandatory: c.isMandatory,
+          required: 1,
+          present: 0,
+          missing: 1,
+        })),
+      })),
+      evidenceGaps: htResult.claims.flatMap(c => c.gaps.map(g => ({
+        evidenceClass: 'B',
+        isMandatory: c.isMandatory,
+        required: 1,
+        present: 0,
+        missing: 1,
+      }))),
+      verifiableVia: 'shared-evaluator://hybrid-trial/' + input.institutionId,
+    }
+  }
+
+  // Merge hybrid capabilities with existing capabilities
+  const allCapabilities = [...capabilities, ...hybridCapabilities]
+
   // Derive next steps — reads from canonical objects only
   const nextSteps = deriveNextSteps(infrastructure, evidence, docs)
 
@@ -146,8 +215,11 @@ export function derivePassportReadModel(input: PassportReadModelInput): Passport
     generatedAt: now,
     institution,
     evidence,
-    capabilities,
-    readiness,
+    capabilities: allCapabilities,
+    readiness: {
+      ...readiness,
+      ...(hybridReadiness ? { programTypeReadiness: [hybridReadiness] } : {}),
+    },
     ...(enrichment ? { enrichment } : {}),
     nextSteps,
   }

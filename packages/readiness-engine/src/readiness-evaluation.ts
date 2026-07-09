@@ -13,16 +13,34 @@
 //
 // Uses evaluateClaim from readiness-engine (moved per AMB-3 / ADR-011).
 // evaluateClaim accepts pre-loaded evidence data (claims, evidenceNodes, etc.).
+//
+// KTP-1.3 additions:
+//   - EvidenceSupport type and evidenceSupport field
+//   - isReadinessType: skips org_capabilities for readiness program types
+//   - N/A and UNKNOWN exclusion from mandatory/optional counts
+//   - Self-report caps via shared computeEvidenceSupportLevel helper
+//   - computeOverallConfidence excludes N/A and UNKNOWN
 // ==========================================================================
 
 import { evaluateClaim } from './output.js';
 import type { ConfidenceReport } from './output.js';
+import { computeEvidenceSupportLevel } from './readiness-helpers.js';
 
 // --------------------------------------------------------------------------
 // Types
 // --------------------------------------------------------------------------
 
 export type ReadinessStatus = 'not_ready' | 'partial' | 'conditionally_ready' | 'ready';
+
+export type EvidenceSupport =
+  | 'SUPPORTED_BY_EVIDENCE'
+  | 'DECLARED_ONLY'
+  | 'NEEDS_EVIDENCE'
+  | 'PARTIALLY_SUPPORTED'
+  | 'UNKNOWN'
+  | 'NOT_APPLICABLE'
+  | 'NEEDS_REVIEW'
+  | 'EXPIRED_OR_OUTDATED';
 
 export interface CapabilityRequirement {
   id: string;
@@ -54,6 +72,8 @@ export interface CapabilityReadinessResult {
   met: boolean;
   claims: ClaimAssessment[];
   evidenceGaps: EvidenceGap[];
+  /** KTP-1.3: Evidence support level — drives N/A skip, UNKNOWN exclusion, and self-report cap */
+  evidenceSupport: EvidenceSupport;
 }
 
 export interface ClaimAssessment {
@@ -96,6 +116,8 @@ export interface ReadinessEvaluationInput {
   /** Supabase-compatible client (full chain: .from().select().eq().order().single()) */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any;
+  /** KTP-1.3: When true, skips org_capabilities requirement and applies readiness rules */
+  isReadinessType?: boolean;
 }
 
 // --------------------------------------------------------------------------
@@ -125,11 +147,25 @@ export async function evaluateReadiness(
   let mandatoryCapsTotal = 0;
   let optionalCapsMet = 0;
   let optionalCapsTotal = 0;
+  const isReadiness = input.isReadinessType ?? taxonomy.category === 'readiness';
 
   for (const req of capReqs) {
     const result = await evaluateCapabilityReadiness(
-      db, organizationId, req, taxonomy.readiness_threshold,
+      db, organizationId, req, taxonomy.readiness_threshold, isReadiness,
     );
+
+    // KTP-1.3: Skip N/A and UNKNOWN claims from mandatory/optional counts
+    if (result.evidenceSupport === 'NOT_APPLICABLE') {
+      result.met = false;
+      capabilities.push(result);
+      continue;
+    }
+    if (result.evidenceSupport === 'UNKNOWN') {
+      result.met = false;
+      capabilities.push(result);
+      continue;
+    }
+
     capabilities.push(result);
 
     if (req.is_mandatory) {
@@ -147,7 +183,7 @@ export async function evaluateReadiness(
     optionalCapsMet, optionalCapsTotal,
   );
 
-  // Step 5: Compute overall confidence
+  // Step 5: Compute overall confidence (excludes N/A and UNKNOWN)
   const overallConfidence = computeOverallConfidence(capabilities);
 
   // Step 6: Compute correlation ID (hash of capability states for idempotency)
@@ -230,14 +266,19 @@ async function loadCapabilityRequirements(db: any, programTypeId: string): Promi
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function evaluateCapabilityReadiness(
   db: any, organizationId: string, req: CapabilityRequirement, threshold: number,
+  isReadinessType = false,
 ): Promise<CapabilityReadinessResult> {
-  // Check if org has this capability
-  const { data: orgCap } = await db
-    .from('organization_capabilities')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('capability_type_id', req.capability_type_id)
-    .maybeSingle();
+  // KTP-1.3: For readiness program types, capability declaration is optional
+  let orgCap: { id: string } | null = null;
+  if (!isReadinessType) {
+    const { data } = await db
+      .from('organization_capabilities')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('capability_type_id', req.capability_type_id)
+      .maybeSingle();
+    orgCap = data as { id: string } | null;
+  }
 
   // Get claims for this org
   const { data: claims } = await db
@@ -253,7 +294,6 @@ async function evaluateCapabilityReadiness(
   if (claims) {
     for (const claim of claims) {
       try {
-        // evaluateClaim requires full evidence graph data
         const report: ConfidenceReport = evaluateClaim({
           claimId: claim.id,
           actorId: 'system',
@@ -277,9 +317,18 @@ async function evaluateCapabilityReadiness(
     }
   }
 
-  const achievedConfidence = claimCount > 0 ? totalConfidence / claimCount / 100 : 0;
   const requiredConfidence = req.minimum_confidence ?? threshold;
-  const hasCapability = orgCap !== null;
+
+  // KTP-1.3: Compute evidence support using canonical shared helper
+  const rawConfidence = claimCount > 0 ? totalConfidence / claimCount / 100 : 0;
+  const evidenceClassArray = claimAssessments.map(ca => ca.evidenceClass);
+  const { evidenceSupport, cappedConfidence } = computeEvidenceSupportLevel(
+    evidenceClassArray,
+    rawConfidence,
+  );
+  const achievedConfidence = cappedConfidence;
+
+  const hasCapability = isReadinessType || orgCap !== null;
   const confidenceMet = achievedConfidence >= requiredConfidence;
   const met = hasCapability && confidenceMet;
   const evidenceGaps = buildEvidenceGaps(claimAssessments, req.evidence_requirements);
@@ -294,6 +343,7 @@ async function evaluateCapabilityReadiness(
     met,
     claims: claimAssessments,
     evidenceGaps,
+    evidenceSupport,
   };
 }
 
@@ -344,9 +394,13 @@ export function determineReadinessStatus(
 export function computeOverallConfidence(
   capabilities: CapabilityReadinessResult[],
 ): number {
-  if (capabilities.length === 0) return 0;
-  const sum = capabilities.reduce((acc, c) => acc + c.achievedConfidence, 0);
-  return Math.round((sum / capabilities.length) * 100) / 100;
+  // KTP-1.3: Exclude N/A and UNKNOWN from confidence averaging
+  const active = capabilities.filter(
+    c => c.evidenceSupport !== 'NOT_APPLICABLE' && c.evidenceSupport !== 'UNKNOWN',
+  );
+  if (active.length === 0) return 0;
+  const sum = active.reduce((acc, c) => acc + c.achievedConfidence, 0);
+  return Math.round((sum / active.length) * 100) / 100;
 }
 
 function computeCorrelationId(capabilities: CapabilityReadinessResult[]): string {

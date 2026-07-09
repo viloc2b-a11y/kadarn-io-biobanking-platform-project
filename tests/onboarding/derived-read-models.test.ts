@@ -740,7 +740,10 @@ describe('ORP-1.3 invariants', () => {
           uploadedDocs: [],
           knowledge: { claims: [], evidence: [] },
         })
-        expect(without).toEqual(withEmpty)
+        // Ignore generatedAt which varies between calls (new Date())
+        const { generatedAt: _a, ...restWithout } = without
+        const { generatedAt: _b, ...restWithEmpty } = withEmpty
+        expect(restWithout).toEqual(restWithEmpty)
       })
 
       it('optional injection works � enrichment appears when claims present', () => {

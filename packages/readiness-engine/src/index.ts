@@ -26,8 +26,16 @@ export {
 } from './evaluators.js';
 export type { EvaluationContribution } from './evaluators.js';
 
+// Hybrid Trial Evaluators (KTP-1.3)
+export {
+  selfReportCapEvaluator,
+  evidenceExpiryEvaluator,
+  notApplicableSkipEvaluator,
+  hybridEvaluators,
+} from './hybrid-evaluators.js';
+
 // Readiness Evaluation Pipeline (KTP-1.3 Mission 4)
-export { evaluateReadiness, persistReadinessEvaluation } from './readiness-evaluation.js';
+export { evaluateReadiness, persistReadinessEvaluation, determineReadinessStatus, computeOverallConfidence } from './readiness-evaluation.js';
 export type {
   ReadinessStatus,
   CapabilityRequirement,
@@ -35,6 +43,7 @@ export type {
   CapabilityReadinessResult,
   ClaimAssessment,
   EvidenceGap,
+  EvidenceSupport,
   ReadinessEvaluationResult,
   ReadinessEvaluationInput,
 } from './readiness-evaluation.js';
@@ -60,3 +69,11 @@ export type {
   ReadinessReport as ReadinessReportDTO,
   ReadinessStatus as DtoReadinessStatus,
 } from './dto.js';
+
+// Shared Readiness Helpers (KTP-1.3) — canonical source of truth for evidence support, filtering, met-checks
+export {
+  computeEvidenceSupportLevel,
+  filterActiveClaims,
+  isClaimMet,
+} from './readiness-helpers.js';
+export type { EvidenceSupportResult } from './readiness-helpers.js';

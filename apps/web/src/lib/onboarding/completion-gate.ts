@@ -113,9 +113,16 @@ export function computeCompletionGate(input: CompletionGateInput): CompletionGat
     // Count answered questions for interview domains
     let questionsAnswered = 0
     if (isInterview) {
-      // For interview domains, check if the domain has any relevant answers
-      const domainAnswers = Object.entries(answers).filter(([, v]) => isAnswered(v))
-      questionsAnswered = completed ? step.questionCount : Math.min(domainAnswers.length, step.questionCount)
+      // KTP-1.3: For hybrid-trial, count only ht_ prefixed answers
+      if (step.domain === 'hybrid-trial') {
+        const htAnswers = Object.entries(answers).filter(
+          ([k, v]) => k.startsWith('ht_') && isAnswered(v),
+        )
+        questionsAnswered = completed ? step.questionCount : htAnswers.length
+      } else {
+        const domainAnswers = Object.entries(answers).filter(([, v]) => isAnswered(v))
+        questionsAnswered = completed ? step.questionCount : Math.min(domainAnswers.length, step.questionCount)
+      }
     } else {
       // Derived domains are "complete" if their parent interview domains are done
       questionsAnswered = completed ? step.questionCount : 0

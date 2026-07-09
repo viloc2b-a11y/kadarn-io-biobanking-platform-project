@@ -4,6 +4,8 @@
 // Replaces the 14-step fine-grained journey with 8 user-facing modules.
 // Internal domains (Facilities, Lab, Equipment, Biospecimen) are grouped as Infrastructure.
 // Quality, Regulatory, Research Experience are woven into the relevant sections.
+//
+// KTP-1.3: Added hybrid-trial interview domain for Hybrid Trial Readiness Passport.
 // ==========================================================================
 
 export type OnboardingDomain =
@@ -11,6 +13,7 @@ export type OnboardingDomain =
   | 'organization'
   | 'people'
   | 'infrastructure'
+  | 'hybrid-trial'
   | 'documents'
   | 'memory'
   | 'capabilities'
@@ -76,6 +79,42 @@ export const ONBOARDING_JOURNEY: OnboardingStep[] = [
     whatYouGet: 'Facility map, lab certifications, equipment inventory, biospecimen capabilities.',
     questionCount: 45,
     requiresDocuments: true,
+    isDerived: false,
+  },
+  {
+    domain: 'hybrid-trial',
+    label: 'Hybrid Trial',
+    description: 'Your hybrid and decentralized trial capabilities.',
+    estimatedMinutes: 20,
+    whyItMatters: 'Hybrid trials are the fastest-growing trial model. Sponsors need to know if you can execute decentralized components including at-home visits, remote monitoring, and biospecimen collection outside the clinic.',
+    whatYouGet: 'Hybrid Trial Readiness Passport: site execution, at-home coordination, data integrity, patient diversity, biospecimen-at-home, remote monitoring, vendor management, protocol compliance, safety escalation, and historical experience.',
+    questionCount: 55,
+    requiresDocuments: true,
+    generatesClaims: [
+      'clinical_trials.hybrid.site_execution',
+      'clinical_trials.hybrid.at_home_coordination',
+      'clinical_trials.hybrid.data_integrity',
+      'clinical_trials.hybrid.patient_access_diversity',
+      'clinical_trials.hybrid.biospecimen_at_home',
+      'clinical_trials.hybrid.remote_monitoring',
+      'clinical_trials.hybrid.vendor_nurse_coordination',
+      'clinical_trials.hybrid.protocol_compliance',
+      'clinical_trials.hybrid.safety_escalation',
+      'clinical_trials.hybrid.historical_experience',
+    ],
+    derivesCapabilities: [
+      'Hybrid Site Execution',
+      'At-Home Coordination',
+      'Hybrid Data Integrity',
+      'Patient Access & Diversity',
+      'Biospecimen-at-Home',
+      'Remote Monitoring',
+      'Vendor / Home Nurse Coordination',
+      'Protocol Compliance Documentation',
+      'Safety Escalation',
+      'Hybrid Trial Historical Experience',
+    ],
+    readinessImpact: 'Hybrid Trial Readiness Passport becomes available with evidence-backed evaluation when this domain is completed.',
     isDerived: false,
   },
   {
