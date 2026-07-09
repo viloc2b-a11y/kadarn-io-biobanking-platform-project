@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { COMPLETION_STATUS_LABELS } from '@/lib/onboarding/completion-gate'
 import type { PassportData, PassportDocument } from '@/lib/passport/passport-assembler'
 import { normalizeLocations, type InstitutionalLocation } from '@/lib/onboarding/institutional-locations'
+import { deriveStudyExperienceClaims, deriveHistoricalPerformanceSignals, COMPONENT_LABELS, type StudyExperienceRecord } from '@/lib/onboarding/study-experience-record'
 
 export default function PassportPage() {
   const { state, completeOnboarding, onboardingCompleted } = useOnboarding()
@@ -339,7 +340,220 @@ export default function PassportPage() {
             </SectionCard>
           )}
 
-{/* Section 5: What We Should Do Next */}
+{/* KTP-1.4: Study Experience Evidence Section */}
+          {(() => {
+            const studies: StudyExperienceRecord[] = Array.isArray(state.answers['study_experience_records'])
+              ? (state.answers['study_experience_records'] as StudyExperienceRecord[])
+              : []
+            if (studies.length === 0) return null
+            const claims = deriveStudyExperienceClaims(studies)
+            const withNCT = studies.filter(s => s.clinicaltrialsGovNct).length
+            const withDocs = studies.filter(s => s.documents.some(d => d.isUploaded)).length
+            const withEnrollment = studies.filter(s => s.enrollmentEnrolledReported !== null || s.enrollmentCompletedReported !== null).length
+            const withExternal = studies.filter(s => s.evidenceStatus.site_participation === 'EXTERNALLY_CORROBORATED').length
+
+            return (
+              <SectionCard number={4.6} title="Study Experience Evidence" color="indigo">
+                <p className="text-sm text-gray-500 mb-5">
+                  Study participation history with evidence classification per component.
+                  Enrollment is self-reported by default. External corroboration requires sponsor/CRO confirmation.
+                </p>
+
+                <div className="grid grid-cols-4 gap-3 mb-5">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-gray-800">{studies.length}</div>
+                    <div className="text-xs text-gray-500">studies recorded</div>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-700">{withNCT}</div>
+                    <div className="text-xs text-amber-600">with NCT anchor</div>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-700">{withDocs}</div>
+                    <div className="text-xs text-blue-600">with documents</div>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-green-700">{withExternal}</div>
+                    <div className="text-xs text-green-600">externally corroborated</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {claims.map(c => (
+                    <span key={c.claimId} className="px-2 py-1 rounded-full text-xs font-medium" style={{
+                      backgroundColor: c.evidenceStatus === 'EXTERNALLY_CORROBORATED' ? '#dcfce7' :
+                        c.evidenceStatus === 'DOCUMENT_SUPPORTED' ? '#dbeafe' :
+                        c.evidenceStatus === 'ANCHORED' ? '#fef3c7' :
+                        c.evidenceStatus === 'SELF_REPORTED' ? '#ffedd5' : '#f3f4f6',
+                      color: c.evidenceStatus === 'EXTERNALLY_CORROBORATED' ? '#166534' :
+                        c.evidenceStatus === 'DOCUMENT_SUPPORTED' ? '#1e40af' :
+                        c.evidenceStatus === 'ANCHORED' ? '#92400e' :
+                        c.evidenceStatus === 'SELF_REPORTED' ? '#9a3412' : '#6b7280',
+                    }}>
+                      {COMPONENT_LABELS[c.evidenceStatus]}: {c.claimLabel} ({c.studyCount})
+                    </span>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  {studies.slice(0, 10).map(s => {
+                    const es = s.evidenceStatus
+                    const hasEnrollment = s.enrollmentEnrolledReported !== null || s.enrollmentCompletedReported !== null
+                    const badges = []
+                    if (es.study_existence === 'ANCHORED') badges.push('NCT anchored')
+                    if (es.site_irb_approval === 'DOCUMENT_SUPPORTED') badges.push('IRB letter')
+                    if (es.operational_execution === 'DOCUMENT_SUPPORTED') badges.push('Activation/Closeout')
+                    if (es.site_participation === 'EXTERNALLY_CORROBORATED') badges.push('Sponsor-confirmed')
+                    if (es.enrollment_performance === 'EXTERNALLY_CORROBORATED') badges.push('Enrollment corroborated')
+                    else if (es.enrollment_performance === 'DOCUMENT_SUPPORTED') badges.push('Enrollment documented')
+                    else if (es.enrollment_performance === 'SELF_REPORTED') badges.push('Enrollment self-reported')
+                    if (es.biospecimen_handling === 'DOCUMENT_SUPPORTED') badges.push('Biospecimen evidence')
+
+                    return (
+                      <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 text-xs">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-800 truncate">{s.studyTitle || 'Untitled Study'}</div>
+                          <div className="text-gray-500">
+                            {s.protocolNumber && <span>{s.protocolNumber}</span>}
+                            {s.clinicaltrialsGovNct && <span className="ml-2">NCT: {s.clinicaltrialsGovNct}</span>}
+                            {s.sponsorName && <span className="ml-2">{s.sponsorName}</span>}
+                            {s.phase && <span className="ml-2">{s.phase}</span>}
+                          </div>
+                          {hasEnrollment && (
+                            <div className="text-gray-400 mt-0.5">
+                              Enrolled: {s.enrollmentEnrolledReported ?? '-'} / Completed: {s.enrollmentCompletedReported ?? '-'}
+                              {s.enrollmentTarget ? ' (target: ' + s.enrollmentTarget + ')' : ''}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1 flex-shrink-0 ml-3 max-w-[220px] justify-end">
+                          {badges.length === 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px]">No evidence</span>
+                          ) : (
+                            badges.slice(0, 3).map((b, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded-full text-[10px]" style={{
+                                backgroundColor: b.includes('NCT') ? '#fef3c7' :
+                                  b.includes('Sponsor') || b.includes('corroborated') ? '#dcfce7' :
+                                  b.includes('self-reported') ? '#ffedd5' : '#dbeafe',
+                                color: b.includes('NCT') ? '#92400e' :
+                                  b.includes('Sponsor') || b.includes('corroborated') ? '#166534' :
+                                  b.includes('self-reported') ? '#9a3412' : '#1e40af',
+                              }}>{b}</span>
+                            ))
+                          )}
+                          {badges.length > 3 && <span className="text-gray-400 text-[10px]">+{badges.length - 3}</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {withEnrollment > 0 && (
+                  <div className="mt-3 text-xs text-gray-400">
+                    Enrollment data is self-reported unless marked as document-supported or externally corroborated.
+                  </div>
+                )}
+              
+                {/* Historical Performance Signals */}
+                {(() => {
+                  const sigs = deriveHistoricalPerformanceSignals(studies)
+                  return (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Historical Performance Signals</div>
+
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="text-xs text-gray-500">Complexity Tier</div>
+                          <div className="text-sm font-semibold text-gray-800">{sigs.studyComplexityTier}</div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="text-xs text-gray-500">Biospecimen Intensity</div>
+                          <div className="text-sm font-semibold text-gray-800">{sigs.biospecimenIntensityTier}</div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="text-xs text-gray-500">Enrollment Band</div>
+                          <div className="text-sm font-semibold text-gray-800">{sigs.enrollmentOutcomeBand.replace(/_/g, ' ')}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <div className="text-xs text-gray-500">Startup Evidence</div>
+                          <div className="text-xs font-medium" style={{
+                            color: sigs.startupEvidenceStatus === 'externally_corroborated' ? '#166534' :
+                              sigs.startupEvidenceStatus === 'document_supported' ? '#1e40af' :
+                              sigs.startupEvidenceStatus === 'partial' ? '#92400e' : '#6b7280',
+                          }}>{sigs.startupEvidenceStatus.replace(/_/g, ' ')}</div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <div className="text-xs text-gray-500">Site Role Certainty</div>
+                          <div className="text-xs font-medium" style={{
+                            color: sigs.siteRoleCertainty === 'externally_corroborated' ? '#166534' :
+                              sigs.siteRoleCertainty === 'document_supported' ? '#1e40af' :
+                              sigs.siteRoleCertainty === 'anchored' ? '#92400e' : '#9a3412',
+                          }}>{sigs.siteRoleCertainty.replace(/_/g, ' ')}</div>
+                        </div>
+                      </div>
+
+                      {sigs.therapeuticAreaExperience.length > 0 && (
+                        <div className="mb-2">
+                          <div className="text-xs text-gray-500 mb-1">Therapeutic Areas</div>
+                          <div className="flex flex-wrap gap-1">
+                            {sigs.therapeuticAreaExperience.slice(0, 6).map(ta => (
+                              <span key={ta.area} className="px-2 py-0.5 rounded-full text-xs" style={{
+                                backgroundColor: ta.evidenceBasis === 'EXTERNALLY_CORROBORATED' ? '#dcfce7' :
+                                  ta.evidenceBasis === 'DOCUMENT_SUPPORTED' ? '#dbeafe' : '#ffedd5',
+                                color: ta.evidenceBasis === 'EXTERNALLY_CORROBORATED' ? '#166534' :
+                                  ta.evidenceBasis === 'DOCUMENT_SUPPORTED' ? '#1e40af' : '#9a3412',
+                              }}>{ta.area} ({ta.studyCount})</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {sigs.phaseExperience.length > 0 && (
+                        <div className="mb-2">
+                          <div className="text-xs text-gray-500 mb-1">Phase Experience</div>
+                          <div className="flex flex-wrap gap-1">
+                            {sigs.phaseExperience.map(p => (
+                              <span key={p.phase} className="px-2 py-0.5 rounded-full text-xs" style={{
+                                backgroundColor: p.evidenceBasis === 'EXTERNALLY_CORROBORATED' ? '#dcfce7' :
+                                  p.evidenceBasis === 'DOCUMENT_SUPPORTED' ? '#dbeafe' : '#ffedd5',
+                                color: p.evidenceBasis === 'EXTERNALLY_CORROBORATED' ? '#166534' :
+                                  p.evidenceBasis === 'DOCUMENT_SUPPORTED' ? '#1e40af' : '#9a3412',
+                              }}>{p.phase} ({p.studyCount})</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {sigs.executionPatternTags.length > 0 && (
+                        <div className="mb-2">
+                          <div className="text-xs text-gray-500 mb-1">Execution Patterns</div>
+                          <div className="flex flex-wrap gap-1">
+                            {sigs.executionPatternTags.map(tag => (
+                              <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">{tag.replace(/_/g, ' ')}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs font-semibold text-gray-500 mb-1">Signal Limitations</div>
+                        <ul className="space-y-0.5 text-[11px] text-gray-500">
+                          {sigs.limitations.map((l, i) => (
+                            <li key={i}>- {l}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )
+                })()}
+</SectionCard>
+            )
+          })()}
+
+          {/* Section 5: What We Should Do Next */}
       <SectionCard number={5} title="What We Should Do Next" color="red">
         <p className="text-sm text-gray-500 mb-5">Highest-impact current actions across missing documents, expirations, capability gaps, and readiness improvements.</p>
         <SnapshotGrid>

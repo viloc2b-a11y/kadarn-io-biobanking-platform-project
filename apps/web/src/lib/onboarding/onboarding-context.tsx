@@ -5,6 +5,7 @@ import type { InstitutionalLocation } from '@/lib/onboarding/institutional-locat
 import type { InstitutionalMemoryEvent } from '@/lib/onboarding/institutional-memory'
 import type { LocationInfrastructure } from '@/lib/onboarding/location-infrastructure'
 import type { ResearchTeamMember } from '@/lib/onboarding/research-team'
+import type { StudyExperienceRecord } from '@/lib/onboarding/study-experience-record'
 import type { OnboardingDomain } from '@/lib/onboarding/onboarding-journey'
 import { computeFastTrackProgress, type FastTrackProgress } from '@/lib/onboarding/fast-track'
 import {
@@ -21,7 +22,7 @@ import { computeCompletionGate, type CompletionGateResult } from '@/lib/onboardi
 // FIX CR-1: Shared state across all onboarding pages
 // ==========================================================================
 
-export type OnboardingAnswerValue = string | number | boolean | string[] | InstitutionalLocation[] | InstitutionalMemoryEvent[] | LocationInfrastructure[] | ResearchTeamMember[] | null
+export type OnboardingAnswerValue = string | number | boolean | string[] | InstitutionalLocation[] | InstitutionalMemoryEvent[] | LocationInfrastructure[] | ResearchTeamMember[] | StudyExperienceRecord[] | null
 export type OnboardingAnswers = Record<string, OnboardingAnswerValue>
 
 export interface OnboardingProgressSummary {
