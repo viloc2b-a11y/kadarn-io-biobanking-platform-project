@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./phase8": "./src/phase8/index.ts",
     "./errors": "./src/errors.ts",
-    "./events/platform-events": "./src/events/platform-events.ts"
+    "./events/platform-events": "./src/events/platform-events.ts",
+    "./document-handling": "./src/document-handling.ts"
   },
   "scripts": { "typecheck": "tsc --noEmit" }
 }
