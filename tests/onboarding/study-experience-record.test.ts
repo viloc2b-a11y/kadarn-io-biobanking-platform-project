@@ -10,6 +10,8 @@ import {
   deriveHistoricalPerformanceSignals,
   generateStudyEvidenceNodePayloads,
   createStudyEvidenceLinks,
+  validateNct,
+  validateNctFormat,
   type StudyExperienceRecord,
   type ComponentEvidenceStatus,
 } from '../../apps/web/src/lib/onboarding/study-experience-record'
@@ -536,5 +538,59 @@ describe('createStudyEvidenceLinks', () => {
     // IRB letter should not claim enrollment support
     const enrollmentLinks = links.filter(l => l.supportedComponent === 'enrollment_performance')
     expect(enrollmentLinks.length).toBe(0)
+  })
+})
+
+
+// ==========================================================================
+// NCT Validation Tests
+// ==========================================================================
+
+describe('validateNctFormat', () => {
+  it('should accept valid NCT format', () => {
+    expect(validateNctFormat('NCT01234567')).toBe(true)
+    expect(validateNctFormat('NCT99999999')).toBe(true)
+  })
+
+  it('should accept lowercase nct', () => {
+    expect(validateNctFormat('nct01234567')).toBe(true)
+  })
+
+  it('should reject invalid formats', () => {
+    expect(validateNctFormat('')).toBe(false)
+    expect(validateNctFormat('NCT123')).toBe(false)
+    expect(validateNctFormat('NCT012345678')).toBe(false)
+    expect(validateNctFormat('ABC01234567')).toBe(false)
+    expect(validateNctFormat('NCTabcdefgh')).toBe(false)
+  })
+
+  it('should handle whitespace', () => {
+    expect(validateNctFormat('  NCT01234567  ')).toBe(true)
+  })
+})
+
+describe('validateNct', () => {
+  it('should return formatValid true for valid NCT', () => {
+    const result = validateNct('NCT01234567')
+    expect(result.formatValid).toBe(true)
+    expect(result.apiConfirmed).toBe(false)
+    expect(result.apiAvailable).toBe(false)
+  })
+
+  it('should return formatValid false for invalid NCT', () => {
+    const result = validateNct('INVALID')
+    expect(result.formatValid).toBe(false)
+  })
+
+  it('should include limitations about what NCT does NOT prove', () => {
+    const result = validateNct('NCT01234567')
+    expect(result.limitations.length).toBeGreaterThanOrEqual(3)
+    expect(result.limitations.some(l => l.includes('does NOT prove site participation'))).toBe(true)
+    expect(result.limitations.some(l => l.includes('does NOT prove enrollment'))).toBe(true)
+  })
+
+  it('should state that API confirmation is not yet available', () => {
+    const result = validateNct('NCT01234567')
+    expect(result.limitations.some(l => l.includes('API confirmation is not yet integrated'))).toBe(true)
   })
 })

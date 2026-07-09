@@ -808,3 +808,102 @@ function componentToClaimId(component: StudyComponent): string {
   }
   return m[component] || 'study.participation'
 }
+
+
+// ==========================================================================
+// KTP-1.4 — ClinicalTrials.gov NCT Validation
+// ==========================================================================
+// Validates NCT numbers against format rules and (when API is available)
+// against the ClinicalTrials.gov API. NCT validation anchors study existence
+// but does NOT prove site participation or enrollment.
+//
+// Current state: format validation (client-side). API validation is deferred
+// to a future iteration when network access is configured.
+// ==========================================================================
+
+export interface NctValidationResult {
+  /** The NCT number being validated */
+  nct: string
+  /** Whether the NCT format is valid */
+  formatValid: boolean
+  /** Whether the NCT was confirmed via API (always false until API integrated) */
+  apiConfirmed: boolean
+  /** Study title from ClinicalTrials.gov (if API confirmed) */
+  apiStudyTitle: string | null
+  /** Study status from ClinicalTrials.gov (if API confirmed) */
+  apiStudyStatus: string | null
+  /** What this validation proves */
+  provesStatement: string
+  /** What this validation does NOT prove */
+  limitations: string[]
+  /** Whether API validation is available */
+  apiAvailable: boolean
+}
+
+/**
+ * Validate an NCT number format.
+ * NCT numbers follow the pattern: NCT followed by 8 digits (e.g., NCT01234567)
+ */
+export function validateNctFormat(nct: string): boolean {
+  if (!nct) return false
+  const cleaned = nct.trim().toUpperCase()
+  return /^NCT\d{8}$/.test(cleaned)
+}
+
+/**
+ * Validate an NCT number. Currently format-only. API integration is deferred.
+ *
+ * When API is integrated, this will call ClinicalTrials.gov API v2:
+ *   GET https://clinicaltrials.gov/api/v2/studies/{nct}
+ *
+ * IMPORTANT: NCT validation proves study EXISTENCE only.
+ * It does NOT prove:
+ *   - That the site participated in the study
+ *   - That the site enrolled patients
+ *   - That the site's performance matches reported data
+ *   - Any site-specific capability
+ */
+export function validateNct(nct: string): NctValidationResult {
+  const cleaned = nct ? nct.trim().toUpperCase() : ''
+  const formatValid = validateNctFormat(cleaned)
+
+  return {
+    nct: cleaned,
+    formatValid,
+    apiConfirmed: false,
+    apiStudyTitle: null,
+    apiStudyStatus: null,
+    provesStatement: formatValid
+      ? 'NCT format is valid. When API-confirmed, this will anchor study existence to a public registry.'
+      : 'NCT format is invalid. Expected format: NCT followed by 8 digits.',
+    limitations: [
+      'NCT validation only proves study existence in a public registry.',
+      'It does NOT prove site participation — the site must provide site-specific documents.',
+      'It does NOT prove enrollment — enrollment data is self-reported unless externally corroborated.',
+      'API confirmation is not yet integrated. Format validation only.',
+    ],
+    apiAvailable: false,
+  }
+}
+
+/**
+ * Placeholder for future API integration.
+ * When called with a fetch implementation, will validate against ClinicalTrials.gov.
+ */
+export async function validateNctViaApi(nct: string): Promise<NctValidationResult> {
+  const base = validateNct(nct)
+  if (!base.formatValid) return base
+
+  try {
+    // Future: call ClinicalTrials.gov API v2
+    // const response = await fetch(`https://clinicaltrials.gov/api/v2/studies/${nct}`)
+    // if (!response.ok) return { ...base, limitations: [...base.limitations, 'NCT not found in ClinicalTrials.gov'] }
+    // const data = await response.json()
+    // return { ...base, apiConfirmed: true, apiStudyTitle: data.protocolSection?.identificationModule?.briefTitle, apiStudyStatus: data.protocolSection?.statusModule?.overallStatus }
+
+    // For now, return format-only result
+    return base
+  } catch {
+    return { ...base, limitations: [...base.limitations, 'API validation failed — network error.'] }
+  }
+}
