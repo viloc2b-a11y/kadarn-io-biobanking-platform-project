@@ -10,6 +10,8 @@
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { requireActiveOrg } from '@/lib/workspace'
+import { DOCUMENT_HANDLING_MATRIX } from '@kadarn/types/document-handling'
+import type { DocumentHandlingMode, EvidenceBasis, DisclosureStatus, RedactionStatus } from '@kadarn/types/document-handling'
 
 // --------------------------------------------------------------------------
 // Schema
@@ -153,6 +155,12 @@ export const POST = withAuth(async (request, user) => {
             effective_date: p.effectiveDate,
             transformation_history: ['study_experience_document_created', 'payload_generated', 'evidence_node_persisted'],
             summary: p.provenanceSummary,
+            // KTP-1.5: Document handling metadata
+            handling_mode: p.handlingMode,
+            evidence_basis: p.evidenceBasis || DOCUMENT_HANDLING_MATRIX[p.handlingMode || 'stored_evidence']?.evidenceBasis,
+            disclosure_status: p.disclosureStatus || DOCUMENT_HANDLING_MATRIX[p.handlingMode || 'stored_evidence']?.defaultDisclosureStatus,
+            redaction_status: p.redactionStatus || 'unknown',
+            retained: p.handlingMode ? ['stored_evidence', 'feasibility_folder', 'private_restricted'].includes(p.handlingMode) : false,
           },
           visibility: {
             owning_organization_id: orgId,

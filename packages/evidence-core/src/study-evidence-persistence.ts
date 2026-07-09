@@ -90,6 +90,14 @@ export interface EvidenceNodeInsertPayload {
     source_type: string
     warnings: string[]
   }
+  /** KTP-1.5: Document handling metadata */
+  _handling_metadata?: {
+    handling_mode: string
+    evidence_basis: string
+    disclosure_status: string
+    redaction_status: string
+    retained: boolean
+  }
 }
 
 export interface PersistEvidenceNodesResult {
