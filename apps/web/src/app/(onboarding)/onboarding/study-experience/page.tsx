@@ -15,6 +15,13 @@ import {
   STUDY_COMPONENT_LABELS,
   COMPONENT_LABELS,
 } from '@/lib/onboarding/study-experience-record'
+import {
+  DOCUMENT_HANDLING_MODE_LABELS,
+  DOCUMENT_HANDLING_MATRIX,
+  evaluateFeasibilitySuggestion,
+  type DocumentHandlingMode,
+} from '@kadarn/types/document-handling'
+import { evaluateStoragePolicy } from '@/lib/documents/document-storage-policy'
 
 type EditingStudy = StudyExperienceRecord | null
 
@@ -364,9 +371,16 @@ function StudyForm({ record, onChange, onSave, onCancel }: {
         {record.documents.length === 0 && (
           <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>No documents associated yet.</div>
         )}
-        {record.documents.map(doc => (
+        {record.documents.map(doc => {
+              const linkedDoc = doc.uploadedDocLabel ? state.uploadedDocs.find(d => d.label === doc.uploadedDocLabel) : null
+              const docStatus = linkedDoc?.uploaded ? "retained" : linkedDoc?.pending ? "pending" : doc.isUploaded ? "marked" : "not_uploaded"
+              const statusColor = docStatus === "retained" ? "#166534" : docStatus === "pending" ? "#92400e" : "#9ca3af"
+              const feasibility = evaluateFeasibilitySuggestion({ documentType: doc.documentType, documentLabel: doc.label || STUDY_DOCUMENT_LABELS[doc.documentType] || "", isUploaded: doc.isUploaded })
+              return (
           <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', fontSize: '12px' }}>
-            <span style={{ flex: 1 }}>{STUDY_DOCUMENT_LABELS[doc.documentType] || doc.label}</span>
+            <span style={{ flex: 1, fontWeight: 500 }}>{STUDY_DOCUMENT_LABELS[doc.documentType] || doc.label}</span>
+                <span style={{ fontSize: "10px", color: statusColor, backgroundColor: docStatus === "retained" ? "#dcfce7" : docStatus === "pending" ? "#fef3c7" : "#f3f4f6", padding: "1px 6px", borderRadius: "100px" }}>{docStatus === "retained" ? "Uploaded" : docStatus === "pending" ? "Pending" : docStatus === "marked" ? "Marked" : "Not uploaded"}</span>
+                {feasibility.suggested && (<span style={{ fontSize: "10px", color: "#1e40af", backgroundColor: "#dbeafe", padding: "1px 6px", borderRadius: "100px", cursor: "pointer" }} title={feasibility.reason}>+FF</span>)}
             <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               <input type="checkbox" checked={doc.isUploaded} onChange={() => toggleDocUploaded(doc.id)} />
               Uploaded
