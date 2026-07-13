@@ -296,6 +296,27 @@ describe('Capability Intelligence — Sponsor view as derived projection', () =>
     // But calling again with input1 returns same as view1
     expect(buildSponsorDecisionView(input1)).toEqual(view1)
   })
+
+  it('does not fabricate timestamps or provenance when metadata is unavailable', () => {
+    const input = makeInput()
+    const view = buildSponsorDecisionView(input)
+
+    expect(view.lastUpdated).toBe('not_provided')
+    expect(view.verifiableVia).toBe('not_available')
+    expect(view.lastUpdated).not.toMatch(/^derived:/)
+    expect(view.verifiableVia).not.toMatch(/^provenance:capability-intelligence:/)
+  })
+
+  it('uses explicit generation metadata when a caller provides it', () => {
+    const input = makeInput()
+    const view = buildSponsorDecisionView(input, {
+      generatedAt: '2026-07-13T22:00:00.000Z',
+      verifiableVia: 'provenance://organizations/org-001/readiness/hybrid-trial/evidence-graph-001',
+    })
+
+    expect(view.lastUpdated).toBe('2026-07-13T22:00:00.000Z')
+    expect(view.verifiableVia).toBe('provenance://organizations/org-001/readiness/hybrid-trial/evidence-graph-001')
+  })
 })
 
 // ==========================================================================
@@ -342,5 +363,10 @@ describe('Capability Intelligence — Non-certifying recommendations', () => {
       // Impact should describe positive outcome, not penalty
       expect(rec.expectedImpact).toMatch(/would|enable|improve|achieve|reach/i)
     }
+  })
+
+  it('recommendation IDs do not persist state between calls', () => {
+    const input = makeInput()
+    expect(generateRecommendations(input)).toEqual(generateRecommendations(input))
   })
 })

@@ -15,12 +15,11 @@ export interface ImprovementRecommendation {
   relatedGaps: string[]
 }
 
-let recCounter = 0
-
 export function generateRecommendations(
   input: CapabilityIntelligenceInput
 ): ImprovementRecommendation[] {
   const recs: ImprovementRecommendation[] = []
+  let recCounter = 0
 
   // Build capability name map
   const capNameMap = new Map<string, string>()

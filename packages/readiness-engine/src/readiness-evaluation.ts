@@ -178,10 +178,13 @@ export async function evaluateReadiness(
   }
 
   // Step 4: Determine readiness status
-  const readinessStatus = determineReadinessStatus(
+  const hasEvaluatedCapability = capabilities.some(
+    c => c.evidenceSupport !== 'NOT_APPLICABLE' && c.evidenceSupport !== 'UNKNOWN',
+  );
+  const readinessStatus = hasEvaluatedCapability ? determineReadinessStatus(
     mandatoryCapsMet, mandatoryCapsTotal,
     optionalCapsMet, optionalCapsTotal,
-  );
+  ) : 'not_ready';
 
   // Step 5: Compute overall confidence (excludes N/A and UNKNOWN)
   const overallConfidence = computeOverallConfidence(capabilities);
@@ -214,6 +217,7 @@ interface TaxonomyRow {
   id: string;
   type_key: string;
   name: string;
+  category: string;
   readiness_threshold: number;
 }
 
@@ -221,7 +225,7 @@ interface TaxonomyRow {
 async function loadProgramTypeTaxonomy(db: any, programTypeKey: string): Promise<TaxonomyRow | null> {
   const { data, error } = await db
     .from('program_type_taxonomy')
-    .select('id, type_key, name, readiness_threshold')
+    .select('id, type_key, name, category, readiness_threshold')
     .eq('type_key', programTypeKey)
     .eq('is_active', true)
     .single();

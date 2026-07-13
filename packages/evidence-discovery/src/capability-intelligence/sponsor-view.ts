@@ -22,8 +22,14 @@ export interface SponsorDecisionView {
   verifiableVia: string
 }
 
+export interface SponsorDecisionViewMetadata {
+  generatedAt?: string
+  verifiableVia?: string
+}
+
 export function buildSponsorDecisionView(
-  input: CapabilityIntelligenceInput
+  input: CapabilityIntelligenceInput,
+  metadata: SponsorDecisionViewMetadata = {},
 ): SponsorDecisionView {
   const supported = input.candidateCapabilities.filter((c) => c.status === 'supported')
   const partial = input.candidateCapabilities.filter((c) => c.status === 'partially_supported')
@@ -79,7 +85,7 @@ export function buildSponsorDecisionView(
     keyRisks: keyRisks.slice(0, 5),
     evidenceCompleteness,
     recommendationSummary,
-    lastUpdated: new Date().toISOString(),
-    verifiableVia: `provenance:capability-intelligence:${Date.now()}`,
+    lastUpdated: metadata.generatedAt ?? 'not_provided',
+    verifiableVia: metadata.verifiableVia ?? 'not_available',
   }
 }

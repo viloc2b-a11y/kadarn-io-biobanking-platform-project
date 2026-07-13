@@ -51,14 +51,17 @@ export class GraphQueryService {
       ? await this.adapter.findOrganizationsByCapability(criteria.requiredCapabilities)
       : [];
 
-    // Note: Trust Score logic removed per ADR-010 (RC-0.2)
     const suppliers: SupplierMatch[] = [];
     const maxResults = criteria.maxResults ?? 20;
+    const minTrustScore = criteria.minTrustScore ?? Number.NEGATIVE_INFINITY;
 
     for (const org of candidates) {
-      if (suppliers.length >= maxResults) break;
+      const trust = await this.adapter.getOrganizationTrust(org.id);
+      const trustScore = trust.overallScore;
 
-
+      if (!Number.isFinite(trustScore) || trustScore < minTrustScore) {
+        continue;
+      }
 
       const reasons: string[] = [];
       if (expandedTypes) {
@@ -71,13 +74,20 @@ export class GraphQueryService {
       suppliers.push({
         organizationId: org.id,
         name: org.name,
+        trustScore,
         capabilities: criteria.requiredCapabilities ?? [],
         matchReasons: reasons,
       });
     }
 
+    return suppliers
+      .sort((a, b) => {
+        const byTrust = (b.trustScore ?? Number.NEGATIVE_INFINITY) - (a.trustScore ?? Number.NEGATIVE_INFINITY);
+        if (byTrust !== 0) return byTrust;
 
-    return suppliers;
+        return a.organizationId.localeCompare(b.organizationId);
+      })
+      .slice(0, maxResults);
   }
 
   // ------------------------------------------------------------------------

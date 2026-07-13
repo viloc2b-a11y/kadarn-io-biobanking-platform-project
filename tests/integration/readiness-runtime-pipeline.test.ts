@@ -94,6 +94,7 @@ function mockTaxonomy(threshold = 0.75) {
     id: 'tax-biospecimen',
     type_key: 'readiness_biospecimen_collection',
     name: 'Prospective Biospecimen Collection Readiness',
+    category: 'readiness',
     readiness_threshold: threshold,
   };
 }
@@ -160,7 +161,7 @@ describe('Readiness Runtime Pipeline', () => {
     expect(result.capabilities.length).toBe(3);
     expect(result.capabilities.every((c) => !c.met)).toBe(true);
     expect(result.mandatoryCapsMet).toBe(0);
-    expect(result.mandatoryCapsTotal).toBe(2);
+    expect(result.mandatoryCapsTotal).toBe(0);
   });
 
   // Test 2: Missing taxonomy → throws

@@ -34,4 +34,4 @@ export { generateRecommendations } from './recommendations'
 export type { ImprovementRecommendation } from './recommendations'
 
 export { buildSponsorDecisionView } from './sponsor-view'
-export type { SponsorDecisionView } from './sponsor-view'
+export type { SponsorDecisionView, SponsorDecisionViewMetadata } from './sponsor-view'

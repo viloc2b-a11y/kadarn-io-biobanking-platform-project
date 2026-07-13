@@ -302,7 +302,7 @@ export {
   markDocumentReviewed,
   assignItemOwner,
   recordItemDocumented,
-  uploadDocument,
+  uploadDocument as uploadComplianceDocument,
   archiveObsoleteItem,
 } from './compliance-ecosystem'
 
@@ -421,7 +421,7 @@ export {
   THERAPEUTIC_AREAS, DISEASE_AREAS, SPECIMEN_TYPES, LABORATORY_TECHNIQUES,
   EQUIPMENT_CATEGORIES, FACILITY_TYPES, CAPABILITY_TYPES, DOCUMENT_TYPES,
   CERTIFICATION_TYPES, TRAINING_TYPES, ORGANIZATION_TYPES, RESEARCH_ROLES,
-  PROGRAM_TYPES, RELATIONSHIP_TYPES, STORAGE_CONDITIONS,
+  PROGRAM_TYPES as TAXONOMY_PROGRAM_TYPES, RELATIONSHIP_TYPES, STORAGE_CONDITIONS,
   TAXONOMY_STATS, validateTaxonomyTerm,
   getAllTherapeuticAreaKeys, getAllCapabilityTypeKeys,
   getAllSpecimenTypeKeys, getAllDocumentTypeKeys,
@@ -476,8 +476,8 @@ export type {
 export {
   computeDocumentLifecycle,
   computeReviewStatus,
-  renewDocument,
-  replaceDocument,
+  renewDocument as renewIntelligenceDocument,
+  replaceDocument as replaceIntelligenceDocument,
   approveDocument,
   archiveDocument,
   linkDocumentToEntity,

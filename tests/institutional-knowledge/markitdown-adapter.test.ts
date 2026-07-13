@@ -4,7 +4,7 @@
 // ==========================================================================
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { convertToMarkdown, checkMarkItDownInstalled } from '../../../apps/web/src/lib/documents/markitdown-adapter.ts'
+import { convertToMarkdown, checkMarkItDownInstalled } from '../../apps/web/src/lib/documents/markitdown-adapter.ts'
 
 describe('MarkItDown Adapter', () => {
   let installed = false

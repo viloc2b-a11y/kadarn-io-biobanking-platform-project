@@ -17,6 +17,43 @@ import type { DocumentHandlingMode, EvidenceBasis, DisclosureStatus, RedactionSt
 // Schema
 // --------------------------------------------------------------------------
 
+const documentHandlingModeSchema = z.enum([
+  'stored_evidence',
+  'reviewed_not_stored',
+  'reference_only',
+  'private_restricted',
+  'feasibility_folder',
+  'ephemeral_processing',
+] satisfies [DocumentHandlingMode, ...DocumentHandlingMode[]])
+
+const evidenceBasisSchema = z.enum([
+  'self_reported',
+  'referenced_only',
+  'document_reviewed_not_stored',
+  'document_supported',
+  'document_supported_internal',
+  'document_supported_shareable',
+  'reviewed_limited_retention',
+  'externally_corroborated',
+] satisfies [EvidenceBasis, ...EvidenceBasis[]])
+
+const disclosureStatusSchema = z.enum([
+  'not_eligible',
+  'eligible_with_authorization',
+  'authorized_for_package',
+  'shared',
+  'access_revoked',
+  'expired',
+] satisfies [DisclosureStatus, ...DisclosureStatus[]])
+
+const redactionStatusSchema = z.enum([
+  'none',
+  'redacted',
+  'unknown',
+  'required',
+  'not_applicable',
+] satisfies [RedactionStatus, ...RedactionStatus[]])
+
 const evidenceNodePayloadSchema = z.object({
   proposedId: z.string(),
   claimId: z.string().min(1),
@@ -34,6 +71,10 @@ const evidenceNodePayloadSchema = z.object({
   warnings: z.array(z.string()).optional(),
   organizationId: z.string().nullable().optional(),
   assertedBy: z.string().nullable().optional(),
+  handlingMode: documentHandlingModeSchema.optional(),
+  evidenceBasis: evidenceBasisSchema.optional(),
+  disclosureStatus: disclosureStatusSchema.optional(),
+  redactionStatus: redactionStatusSchema.optional(),
 })
 
 const persistSchema = z.object({
@@ -135,6 +176,8 @@ export const POST = withAuth(async (request, user) => {
       }
 
       const nodeDate = p.effectiveDate || p.captureDate.split('T')[0]
+      const handlingMode = p.handlingMode ?? 'stored_evidence'
+      const handlingMapping = DOCUMENT_HANDLING_MATRIX[handlingMode]
       const { data: newNode, error: insertError } = await supabase
         .from('evidence_nodes')
         .insert({
@@ -156,11 +199,11 @@ export const POST = withAuth(async (request, user) => {
             transformation_history: ['study_experience_document_created', 'payload_generated', 'evidence_node_persisted'],
             summary: p.provenanceSummary,
             // KTP-1.5: Document handling metadata
-            handling_mode: p.handlingMode,
-            evidence_basis: p.evidenceBasis || DOCUMENT_HANDLING_MATRIX[p.handlingMode || 'stored_evidence']?.evidenceBasis,
-            disclosure_status: p.disclosureStatus || DOCUMENT_HANDLING_MATRIX[p.handlingMode || 'stored_evidence']?.defaultDisclosureStatus,
+            handling_mode: handlingMode,
+            evidence_basis: p.evidenceBasis ?? handlingMapping.evidenceBasis,
+            disclosure_status: p.disclosureStatus ?? handlingMapping.defaultDisclosureStatus,
             redaction_status: p.redactionStatus || 'unknown',
-            retained: p.handlingMode ? ['stored_evidence', 'feasibility_folder', 'private_restricted'].includes(p.handlingMode) : false,
+            retained: handlingMapping.retained,
           },
           visibility: {
             owning_organization_id: orgId,

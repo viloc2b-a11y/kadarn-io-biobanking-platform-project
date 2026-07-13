@@ -6,9 +6,9 @@
 // ==========================================================================
 
 import { describe, it, expect } from 'vitest';
-import { GraphQueryService } from '../packages/graph-query/src/service.js';
-import type { GraphQueryAdapter } from '../packages/graph-query/src/types.js';
-import type { SpecimenProvenance, OrganizationTrustInfo, SupplierMatch } from '../packages/graph-query/src/types.js';
+import { GraphQueryService } from '../../packages/graph-query/src/service.js';
+import type { GraphQueryAdapter } from '../../packages/graph-query/src/types.js';
+import type { SpecimenProvenance, OrganizationTrustInfo, SupplierMatch } from '../../packages/graph-query/src/types.js';
 
 // --------------------------------------------------------------------------
 // Mock adapter
