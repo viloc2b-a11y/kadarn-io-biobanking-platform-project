@@ -59,3 +59,4 @@ supabase/.branches/
 
 # Third-party vendored repos (contain nested .git)
 vendor/
+_tmp_*
