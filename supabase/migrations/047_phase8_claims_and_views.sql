@@ -1,58 +1,130 @@
 -- ============================================================================
--- Phase 8 Sprint 28C / 28D — Claim versions + Published Views (append-only)
+-- KADARN PLATFORM — Evidence Discovery Preparation Layer (Sprint 20A.3B)
+-- ============================================================================
+-- Baseline: AF-1.0
+-- Design: KEMS-002, KEMS-002A, Agent Responsibility Matrix
+--
+-- Creates the semantic extraction request queue between Layer 1 extraction
+-- and the future Agent Pipeline. No AI agents. No Evidence Core writes.
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS phase8_claim_instances (
-    claim_instance_id   TEXT PRIMARY KEY,
-    claim_type_id       TEXT NOT NULL,
-    org_id              UUID NOT NULL,
-    subject_entity_id   TEXT NOT NULL,
-    lifecycle_state     TEXT NOT NULL,
-    current_claim_version_id TEXT NOT NULL,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+DO $$ BEGIN
+    CREATE TYPE discovery_request_type AS ENUM (
+        'DOCUMENT_CLASSIFICATION',
+        'ENTITY_EXTRACTION',
+        'RELATIONSHIP_EXTRACTION',
+        'CLAIM_CANDIDATE_DETECTION',
+        'TIMELINE_RECONSTRUCTION',
+        'GAP_DETECTION',
+        'LEVERAGE_RECOMMENDATION'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE discovery_request_status AS ENUM (
+        'PENDING', 'CLAIMED', 'RUNNING', 'COMPLETED',
+        'FAILED', 'CANCELLED', 'SKIPPED'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE discovery_request_priority AS ENUM (
+        'high', 'normal', 'low'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS discovery_preparation_requests (
+    request_id          UUID PRIMARY KEY,
+    discovery_run_id    UUID NOT NULL REFERENCES discovery_runs(id) ON DELETE CASCADE,
+    artifact_id         UUID NOT NULL REFERENCES discovery_artifacts(id),
+    layer1_id           UUID NOT NULL REFERENCES discovery_layer1(id),
+    request_type        discovery_request_type NOT NULL,
+    status              discovery_request_status NOT NULL DEFAULT 'PENDING',
+    priority            discovery_request_priority NOT NULL DEFAULT 'normal',
+    pipeline_version    TEXT NOT NULL,
+    agent_version       TEXT,
+    model_version       TEXT,
+    input_hash          TEXT NOT NULL,
+    output_ref          TEXT,
+    error               TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    claimed_at          TIMESTAMPTZ,
+    completed_at        TIMESTAMPTZ,
+    failed_at           TIMESTAMPTZ,
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    -- Idempotency: no duplicate active PENDING/CLAIMED/RUNNING requests
+    -- for the same layer1Id + requestType + pipelineVersion
+    CONSTRAINT uq_active_request UNIQUE (layer1_id, request_type, pipeline_version, status)
 );
 
-CREATE TABLE IF NOT EXISTS phase8_claim_versions (
-    claim_version_id    TEXT PRIMARY KEY,
-    claim_instance_id   TEXT NOT NULL REFERENCES phase8_claim_instances(claim_instance_id),
-    schema_version_id   TEXT NOT NULL,
-    payload             JSONB NOT NULL,
-    content_hash        TEXT NOT NULL,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    supersedes_version_id TEXT
-);
+CREATE INDEX idx_prep_requests_run ON discovery_preparation_requests(discovery_run_id);
+CREATE INDEX idx_prep_requests_status ON discovery_preparation_requests(status);
+CREATE INDEX idx_prep_requests_type ON discovery_preparation_requests(request_type);
 
-CREATE TABLE IF NOT EXISTS phase8_claim_candidates (
-    candidate_id        TEXT PRIMARY KEY,
-    claim_type_id       TEXT NOT NULL,
-    org_id              UUID NOT NULL,
-    subject_entity_id   TEXT NOT NULL,
-    fact_ids            JSONB NOT NULL DEFAULT '[]',
-    rule_id             TEXT NOT NULL,
-    rule_version        TEXT NOT NULL,
-    proposed_payload    JSONB NOT NULL,
-    status              TEXT NOT NULL,
-    discovery_session_id TEXT,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- ############################################################################
+-- ROW-LEVEL SECURITY
+-- ############################################################################
+-- Org-scoped via discovery_run_id -> discovery_runs.session_id ->
+-- discovery_sessions.organization_id (same pattern as migration 046).
 
-CREATE TABLE IF NOT EXISTS phase8_published_views (
-    view_id             TEXT PRIMARY KEY,
-    view_version        TEXT NOT NULL,
-    claim_instance_id   TEXT NOT NULL,
-    claim_version_id    TEXT NOT NULL,
-    org_id              UUID NOT NULL,
-    schema_version      TEXT NOT NULL,
-    adapter_version     TEXT NOT NULL,
-    projection          JSONB NOT NULL,
-    confidence_level    TEXT NOT NULL,
-    confidence_value    NUMERIC NOT NULL,
-    confidence_computed_at TIMESTAMPTZ NOT NULL,
-    published_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    visibility_policy_ref TEXT NOT NULL
-);
+ALTER TABLE discovery_preparation_requests ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_published_views_claim ON phase8_published_views(claim_instance_id);
-CREATE INDEX IF NOT EXISTS idx_published_views_org ON phase8_published_views(org_id);
+CREATE POLICY discovery_preparation_requests_select_org ON discovery_preparation_requests
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM discovery_runs r
+            JOIN discovery_sessions s ON s.id = r.session_id
+            WHERE r.id = discovery_preparation_requests.discovery_run_id
+            AND s.organization_id IN (
+                SELECT organization_id FROM organization_memberships
+                WHERE user_id = auth.uid() AND status = 'active'
+            )
+        )
+    );
 
-COMMENT ON TABLE phase8_published_views IS 'ADR-030 Published View projections — append-only';
+CREATE POLICY discovery_preparation_requests_insert_org ON discovery_preparation_requests
+    FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM discovery_runs r
+            JOIN discovery_sessions s ON s.id = r.session_id
+            WHERE r.id = discovery_preparation_requests.discovery_run_id
+            AND s.organization_id IN (
+                SELECT organization_id FROM organization_memberships
+                WHERE user_id = auth.uid() AND status = 'active'
+            )
+        )
+    );
+
+-- UPDATE: request lifecycle transitions (status, claimed_at, completed_at,
+-- failed_at, output_ref, error) by org members; identity/queue fields
+-- (discovery_run_id, artifact_id, layer1_id, request_type, input_hash) are
+-- immutable once created.
+CREATE POLICY discovery_preparation_requests_update_org ON discovery_preparation_requests
+    FOR UPDATE
+    USING (
+        EXISTS (
+            SELECT 1 FROM discovery_runs r
+            JOIN discovery_sessions s ON s.id = r.session_id
+            WHERE r.id = discovery_preparation_requests.discovery_run_id
+            AND s.organization_id IN (
+                SELECT organization_id FROM organization_memberships
+                WHERE user_id = auth.uid() AND status = 'active'
+            )
+        )
+    )
+    WITH CHECK (
+        discovery_run_id = (SELECT original.discovery_run_id FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
+        AND artifact_id = (SELECT original.artifact_id FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
+        AND layer1_id = (SELECT original.layer1_id FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
+        AND request_type = (SELECT original.request_type FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
+    );
+
+-- ============================================================================
+-- END OF MIGRATION 047
+-- ============================================================================

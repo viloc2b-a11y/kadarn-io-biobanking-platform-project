@@ -1,95 +1,209 @@
 -- ============================================================================
--- KADARN PLATFORM — Discovery Curation Events (Sprint 20A.6)
+-- KTP-1.2 — Migration 053: Readiness Requirements
 -- ============================================================================
--- Curation is NOT promotion. Curation does not write to Evidence Core.
--- Every curation action is an immutable provenance event.
+-- Purpose:
+--   Define what capabilities and evidence are required for each Program Type.
+--
+--   readiness_capability_requirements:
+--     Maps Program Types to required capabilities, reusing the existing
+--     organization_capability_types vocabulary (migration 008).
+--
+--   readiness_evidence_requirements:
+--     Maps capability requirements to specific evidence classes that
+--     must be present for the capability to be considered validated.
+--
+-- Boundaries:
+--   - References but does NOT modify organization_capability_types (008).
+--   - References but does NOT modify program_type_taxonomy (052).
+--   - Evidence class enum (evidence_class) matches migration 045.
+--   - These are REQUIREMENTS (what a program type needs), NOT assertions
+--     (what an institution claims to have). Assertions live in
+--     organization_capabilities + claims (008 + 045).
+--
+-- Dependencies:
+--   - public.program_type_taxonomy (migration 052)
+--   - public.organization_capability_types (migration 008)
+--   - evidence_class enum (migration 045)
 -- ============================================================================
 
-DO $$ BEGIN
-    CREATE TYPE curation_action AS ENUM (
-        'ACCEPT', 'REJECT', 'ENRICH', 'DEFER',
-        'NEEDS_MORE_EVIDENCE', 'MERGE', 'SPLIT', 'ARCHIVE'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+-- ###########################################################################
+-- PART 1: readiness_capability_requirements TABLE
+-- ###########################################################################
 
-DO $$ BEGIN
-    CREATE TYPE curation_target_type AS ENUM (
-        'EVIDENCE_CANDIDATE', 'CLASSIFICATION', 'ENTITY', 'RELATIONSHIP',
-        'SNAPSHOT_ITEM'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
-CREATE TABLE IF NOT EXISTS discovery_curation_events (
+CREATE TABLE IF NOT EXISTS public.readiness_capability_requirements (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    target_type         curation_target_type NOT NULL,
-    target_id           TEXT NOT NULL,
-    action              curation_action NOT NULL,
 
-    -- Actor
-    actor_id            TEXT NOT NULL,
-    actor_role          TEXT NOT NULL DEFAULT 'reviewer',
+    -- FK to program_type_taxonomy: which program type this requirement belongs to
+    program_type_id     UUID NOT NULL
+        REFERENCES public.program_type_taxonomy(id) ON DELETE CASCADE,
 
-    -- Provenance
-    reason              TEXT,
-    enrichment_payload  JSONB,
-    previous_state      TEXT,
-    new_state           TEXT,
-    provenance_ref      TEXT NOT NULL,
-    discovery_run_id    UUID NOT NULL REFERENCES discovery_runs(id),
-    artifact_id         TEXT,
-    layer1_id           TEXT,
+    -- FK to organization_capability_types: reuses the existing 12 seeded types
+    capability_type_id  UUID NOT NULL
+        REFERENCES public.organization_capability_types(id) ON DELETE RESTRICT,
 
-    -- Merge/split
-    merge_source_ids    JSONB,
-    split_child_ids     JSONB,
+    -- Is this capability mandatory for the program type?
+    is_mandatory        BOOLEAN NOT NULL DEFAULT true,
 
-    -- Temporal
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    -- Optional per-capability confidence threshold override.
+    -- If NULL, the program type's readiness_threshold is used.
+    minimum_confidence  NUMERIC(3,2),
+
+    -- Human-readable description of what this requirement entails
+    description         TEXT,
+
+    -- UI ordering
+    display_order       INTEGER NOT NULL DEFAULT 0,
+
+    -- Extension point
+    metadata            JSONB DEFAULT '{}',
+
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    -- One requirement per capability per program type
+    CONSTRAINT uq_readiness_cap_req UNIQUE (program_type_id, capability_type_id)
 );
 
-CREATE INDEX idx_curation_target ON discovery_curation_events(target_type, target_id);
-CREATE INDEX idx_curation_run ON discovery_curation_events(discovery_run_id);
+COMMENT ON TABLE public.readiness_capability_requirements IS
+    'Required capabilities for each Program Type. '
+    'References the existing organization_capability_types vocabulary (migration 008). '
+    'These are REQUIREMENTS — what a program type needs from an institution. '
+    'Capability ASSERTIONS (what an institution claims to have) live in organization_capabilities.';
 
--- ############################################################################
--- ROW-LEVEL SECURITY
--- ############################################################################
--- Org-scoped via discovery_run_id -> discovery_runs.session_id ->
--- discovery_sessions.organization_id. Curation events are immutable
--- provenance records (no UPDATE/DELETE policy) — curation never rewrites
--- history, it only appends new events.
+COMMENT ON COLUMN public.readiness_capability_requirements.minimum_confidence IS
+    'Per-capability override for the readiness threshold. If NULL, the program type''s '
+    'default readiness_threshold from program_type_taxonomy is used.';
 
-ALTER TABLE discovery_curation_events ENABLE ROW LEVEL SECURITY;
+-- ###########################################################################
+-- PART 2: readiness_evidence_requirements TABLE
+-- ###########################################################################
 
-CREATE POLICY discovery_curation_events_select_org ON discovery_curation_events
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM discovery_runs r
-            JOIN discovery_sessions s ON s.id = r.session_id
-            WHERE r.id = discovery_curation_events.discovery_run_id
-            AND s.organization_id IN (
-                SELECT organization_id FROM organization_memberships
-                WHERE user_id = auth.uid() AND status = 'active'
-            )
-        )
-    );
+CREATE TABLE IF NOT EXISTS public.readiness_evidence_requirements (
+    id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-CREATE POLICY discovery_curation_events_insert_org ON discovery_curation_events
-    FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM discovery_runs r
-            JOIN discovery_sessions s ON s.id = r.session_id
-            WHERE r.id = discovery_curation_events.discovery_run_id
-            AND s.organization_id IN (
-                SELECT organization_id FROM organization_memberships
-                WHERE user_id = auth.uid() AND status = 'active'
-            )
-        )
-    );
+    -- FK to capability requirement: which capability this evidence supports
+    capability_requirement_id   UUID NOT NULL
+        REFERENCES public.readiness_capability_requirements(id) ON DELETE CASCADE,
 
--- ============================================================================
--- END OF MIGRATION 049
--- ============================================================================
+    -- Evidence class (A-F) matching the classification from migration 045
+    -- A = highest rigor (regulatory docs, certifications)
+    -- F = lowest rigor (self-reported, informal)
+    evidence_class              evidence_class NOT NULL,
+
+    -- Is this evidence class mandatory for the capability?
+    is_mandatory                BOOLEAN NOT NULL DEFAULT true,
+
+    -- Minimum number of evidence items of this class required
+    minimum_count               INTEGER NOT NULL DEFAULT 1,
+
+    -- Human-readable description of what evidence is expected
+    description                 TEXT,
+
+    -- UI ordering
+    display_order               INTEGER NOT NULL DEFAULT 0,
+
+    -- Extension point
+    metadata                    JSONB DEFAULT '{}',
+
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    -- One requirement per evidence class per capability
+    CONSTRAINT uq_readiness_evidence_req UNIQUE (capability_requirement_id, evidence_class)
+);
+
+COMMENT ON TABLE public.readiness_evidence_requirements IS
+    'Evidence requirements per capability requirement. '
+    'Each row defines what class of evidence is needed for a given capability '
+    'within a given program type. Evidence classes match migration 045 (A-F).';
+
+COMMENT ON COLUMN public.readiness_evidence_requirements.evidence_class IS
+    'Evidence classification matching migration 045. A=highest rigor (certifications, regulatory), '
+    'F=lowest rigor (self-reported). Used to compute readiness confidence scores.';
+
+-- ###########################################################################
+-- PART 3: INDEXES
+-- ###########################################################################
+
+CREATE INDEX IF NOT EXISTS idx_readiness_cap_req_program_type
+    ON public.readiness_capability_requirements(program_type_id);
+
+CREATE INDEX IF NOT EXISTS idx_readiness_cap_req_capability
+    ON public.readiness_capability_requirements(capability_type_id);
+
+CREATE INDEX IF NOT EXISTS idx_readiness_evidence_req_cap
+    ON public.readiness_evidence_requirements(capability_requirement_id);
+
+CREATE INDEX IF NOT EXISTS idx_readiness_evidence_req_class
+    ON public.readiness_evidence_requirements(evidence_class);
+
+-- ###########################################################################
+-- PART 4: updated_at TRIGGER (capability requirements only)
+-- ###########################################################################
+
+DROP TRIGGER IF EXISTS trg_readiness_cap_req_updated_at ON public.readiness_capability_requirements;
+CREATE TRIGGER trg_readiness_cap_req_updated_at
+    BEFORE UPDATE ON public.readiness_capability_requirements
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ###########################################################################
+-- PART 5: ROW-LEVEL SECURITY
+-- ###########################################################################
+-- Both tables contain reference data (what programs require).
+-- Network-visible for SELECT. Management gated for authenticated users
+-- (temporary — platform_admin role in Mission 3).
+
+ALTER TABLE public.readiness_capability_requirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.readiness_evidence_requirements ENABLE ROW LEVEL SECURITY;
+
+-- SELECT: anyone authenticated can read requirements
+DROP POLICY IF EXISTS readiness_cap_req_select ON public.readiness_capability_requirements;
+CREATE POLICY readiness_cap_req_select
+    ON public.readiness_capability_requirements FOR SELECT
+    TO authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS readiness_evidence_req_select ON public.readiness_evidence_requirements;
+CREATE POLICY readiness_evidence_req_select
+    ON public.readiness_evidence_requirements FOR SELECT
+    TO authenticated
+    USING (true);
+
+-- INSERT/UPDATE/DELETE: temporary authenticated gate
+-- TODO: Restrict to platform_admin in Mission 3
+DROP POLICY IF EXISTS readiness_cap_req_insert ON public.readiness_capability_requirements;
+CREATE POLICY readiness_cap_req_insert
+    ON public.readiness_capability_requirements FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS readiness_cap_req_update ON public.readiness_capability_requirements;
+CREATE POLICY readiness_cap_req_update
+    ON public.readiness_capability_requirements FOR UPDATE
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS readiness_cap_req_delete ON public.readiness_capability_requirements;
+CREATE POLICY readiness_cap_req_delete
+    ON public.readiness_capability_requirements FOR DELETE
+    TO authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS readiness_evidence_req_insert ON public.readiness_evidence_requirements;
+CREATE POLICY readiness_evidence_req_insert
+    ON public.readiness_evidence_requirements FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS readiness_evidence_req_update ON public.readiness_evidence_requirements;
+CREATE POLICY readiness_evidence_req_update
+    ON public.readiness_evidence_requirements FOR UPDATE
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS readiness_evidence_req_delete ON public.readiness_evidence_requirements;
+CREATE POLICY readiness_evidence_req_delete
+    ON public.readiness_evidence_requirements FOR DELETE
+    TO authenticated
+    USING (true);

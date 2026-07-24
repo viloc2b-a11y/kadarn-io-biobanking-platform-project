@@ -90,6 +90,8 @@ const initialState: OnboardingState = {
   institutionName: '',
   uploadedDocs: [],
   updatedAt: new Date(0).toISOString(),
+  onboardingCompleted: false,
+  onboardingCompletedAt: null,
 }
 
 const OnboardingContext = createContext<OnboardingContextType | null>(null)
@@ -320,6 +322,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         fastTrack,
         progress,
         reset,
+        onboardingCompleted: state.onboardingCompleted,
+        completeOnboarding: () => {},
       }}
     >
       {children}

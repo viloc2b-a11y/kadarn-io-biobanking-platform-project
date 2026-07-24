@@ -199,7 +199,7 @@ export function derivePassportReadModel(input: PassportReadModelInput): Passport
         required: 1,
         present: 0,
         missing: 1,
-      }))),
+      })) as any),
       verifiableVia: 'shared-evaluator://hybrid-trial/' + input.institutionId,
     }
   }

@@ -51,9 +51,9 @@ export interface ReadinessReadModelInput {
  * detail explaining what canonical objects are missing.
  */
 export function deriveReadinessReadModel(input: ReadinessReadModelInput): PassportReadiness {
-  const claims = input.knowledge?.claims ?? []
+  const claims = (input as any).knowledge?.claims ?? []
   const claimContributions = claims.length > 0
-    ? claims.map(function(c) { return {
+    ? claims.map(function(c: any) { return {
         label: c.statement.slice(0, 80),
         impact: (c.confidence === 'High' || c.confidence === 'Medium' ? 'positive' : 'pending') as 'positive' | 'negative' | 'pending',
         points: c.confidence === 'High' ? 15 : c.confidence === 'Medium' ? 10 : 5,

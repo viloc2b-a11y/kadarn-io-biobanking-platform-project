@@ -255,3 +255,18 @@ export type {
   OmittedEvidence,
   EvidenceOmissionReason,
 } from './explainability.js';
+
+// Review Workflow (Vertical Slice — feat/ui-evidence-integration)
+export {
+  advanceWorkflowState,
+  createReviewTask,
+  completeReviewTask,
+  listReviewTasks,
+  isValidTransition,
+} from './review-workflow.js';
+export type {
+  WorkflowState,
+  ReviewTaskType,
+  ReviewTaskStatus,
+  ReviewTask,
+} from './review-workflow.js';

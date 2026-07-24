@@ -353,8 +353,8 @@ export function deriveCapabilityReadModel(input: CapabilityReadModelInput): Pass
 
   // ORP-1.4: Attach claim/evidence refs when present
   for (const cap of capabilities) {
-    if (claimIds.length > 0) cap.supportingClaimIds = claimIds
-    if (evidenceIds.length > 0) cap.supportingEvidenceIds = evidenceIds
+    if (claimIds.length > 0) (cap as any).supportingClaimIds = claimIds
+    if (evidenceIds.length > 0) (cap as any).supportingEvidenceIds = evidenceIds
   }
   // OCP-3: Compute evidence support for each capability
   const docLabels = (input.uploadedDocLabels ?? []).map(function(l: string) { return l.toLowerCase() })

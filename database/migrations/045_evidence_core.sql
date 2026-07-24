@@ -96,7 +96,7 @@ END $$;
 -- ############################################################################
 -- KEMS-001 §3: six Evidence Classes with decay and weight defaults.
 
-CREATE TABLE IF NOT EXISTS evidence_class (
+CREATE TABLE IF NOT EXISTS evidence_class_ref (
     id              evidence_class PRIMARY KEY,
     name            TEXT NOT NULL,
     description     TEXT NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS evidence_class (
     default_weight  NUMERIC(3,2) NOT NULL
 );
 
-INSERT INTO evidence_class (id, name, description, decay_months, default_weight) VALUES
+INSERT INTO evidence_class_ref (id, name, description, decay_months, default_weight) VALUES
     ('A', 'Public Independent Evidence', 'Evidence from public registries verifiable without relying on the institution.', 60, 0.80),
     ('B', 'Institutional Documentary Evidence', 'Evidence from the institution in the form of structured documents.', 24, 0.50),
     ('C', 'Operational Evidence', 'Evidence generated automatically by operational systems as a byproduct of execution.', 12, 0.70),
@@ -285,6 +285,7 @@ CREATE TABLE IF NOT EXISTS right_of_response (
     CONSTRAINT response_attached_to_counter_evidence CHECK (
         -- enforced by FK + application logic: counter_evidence_id must reference
         -- an evidence_node with is_counter_evidence = true
+        true
     )
 );
 

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "repositoryType": "product-repo",
+  "policyProfile": "standard-product",
+  "project": {
+    "id": "kadarn",
+    "name": "KADARN",
+    "type": "product",
+    "status": "active",
+    "criticality": "high",
+    "product_owner": "TBD",
+    "technical_owner": "TBD",
+    "data_classification": "sensitive",
+    "description": "Operating system for biospecimen and clinical data programs. Institution-first; MVP is Program Readiness."
+  },
+  "repository": {
+    "root": ".",
+    "default_branch": "master",
+    "languages": ["typescript"],
+    "package_manager": "npm",
+    "monorepo": true
+  },
+  "runtime": {
+    "architecture_style": "modular-monolith",
+    "frontend": "nextjs",
+    "backend": "node-api",
+    "database": "postgres",
+    "object_storage_contract": "s3-compatible",
+    "notes": "npm workspaces (apps/web Next 16, apps/api Next 16 API, 35 packages, tests workspace with vitest). Supabase (PostgreSQL 17 + Auth + RLS)."
+  },
+  "domain": {
+    "bounded_contexts": [
+      "organizations",
+      "people",
+      "operational-footprint",
+      "infrastructure",
+      "evidence",
+      "capabilities",
+      "readiness",
+      "sponsor-passport",
+      "historical-portfolio"
+    ]
+  },
+  "integration": {
+    "inbound_apis": [],
+    "outbound_dependencies": [],
+    "published_events": [],
+    "consumed_events": []
+  },
+  "security": {
+    "authentication": "application-defined",
+    "authorization_mode": "application-rbac",
+    "protected_paths": ["database/**", "supabase/**"],
+    "requires_approval_for": ["production_migration", "secret_changes", "destructive_data_change"]
+  },
+  "methodology": {
+    "primary": "SDD"
+  },
+  "commands": {
+    "install": "npm install",
+    "lint": "npm run lint",
+    "typecheck": "npm run typecheck",
+    "unit_tests": "npm run test",
+    "domain_tests": "npm run test -w tests",
+    "ui_tests": "npm run test:e2e -w apps/web",
+    "build": "npm run build",
+    "dev": "npm run dev"
+  },
+  "validation": {
+    "required_checks": ["lint", "typecheck", "unit-tests"],
+    "conditional_checks": {
+      "infrastructure_change": ["smoke-test", "telemetry-check"],
+      "ui_change": ["playwright"]
+    },
+    "evidence_required": ["command-log", "diff-summary", "test-summary", "final-report"]
+  },
+  "constraints": {
+    "strategic": [
+      "Institution-first",
+      "MVP is Program Readiness",
+      "Capability Portfolio belongs to the institution",
+      "Sponsor Passport belongs to the sponsor-facing projection",
+      "Canonical chain: Capability -> Claim -> Evidence -> Evidence Graph -> Confidence Projection",
+      "Document Intelligence is frozen",
+      "Do not implement DoclingAdapter, EXTRACT-1, or RRE",
+      "Evidence Core production integration may still be pending",
+      "Do not duplicate domain calculations in the UI",
+      "Validation, not configuration, determines completion"
+    ],
+    "technical": [
+      "No cross-product database access (ADR-0006)",
+      "Gentle AI is factory tooling only (ADR-0007)"
+    ]
+  },
+  "delivery": {
+    "completion_policy": {
+      "require_test_evidence": true,
+      "require_clean_git_status_review": true,
+      "require_final_report": true,
+      "require_smoke_test_for_integrations": true
+    }
+  },
+  "observability": {
+    "tracing_required": false,
+    "metrics_required": false,
+    "log_correlation_required": true
+  }
+}
