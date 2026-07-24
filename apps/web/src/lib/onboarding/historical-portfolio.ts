@@ -263,7 +263,7 @@ export function deriveHistoricalPortfolio(
     evidenceStateLabel: '',
     linkedDocuments: docLabels.includes('legal_entity_document') ? ['Legal entity document'] : [],
     source: 'canonical_object',
-    strengthensPassport: hasFoundedYear,
+    strengthensPassport: hasFoundedYear === true,
     isBaseline: true,
   })
   events[events.length - 1].evidenceStateLabel =

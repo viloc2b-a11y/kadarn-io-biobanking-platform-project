@@ -1,58 +1,95 @@
 -- ============================================================================
--- Phase 8 Staging Cutover Seed — Sprint 28K
--- Target: local/staging only. National Biobank public passport + discovery session.
+-- KADARN PLATFORM — Discovery Curation Events (Sprint 20A.6)
+-- ============================================================================
+-- Curation is NOT promotion. Curation does not write to Evidence Core.
+-- Every curation action is an immutable provenance event.
 -- ============================================================================
 
-DO $$
-DECLARE
-    v_org     CONSTANT UUID := 'a0000000-0000-0000-0000-000000000004';
-    v_profile UUID := '00000000-0000-4000-8000-000000000101';
-    v_claim1  UUID := '00000000-0000-4000-8000-000000000201';
-    v_claim2  UUID := '00000000-0000-4000-8000-000000000202';
-    v_user    UUID;
-BEGIN
-    SELECT id INTO v_user FROM auth.users WHERE email = 'biobank@kadarn.test' LIMIT 1;
-
-    INSERT INTO public.site_continuity_profiles (
-        id, organization_id, headline, summary, public_slug,
-        passport_visibility, status, created_by
-    ) VALUES (
-        v_profile, v_org,
-        'Regional Biobank Network',
-        'Multi-site biospecimen facility with cold-chain infrastructure',
-        'national-biobank-staging',
-        'public', 'active',
-        v_user
-    ) ON CONFLICT (id) DO UPDATE SET
-        headline = EXCLUDED.headline,
-        summary = EXCLUDED.summary,
-        public_slug = EXCLUDED.public_slug,
-        passport_visibility = EXCLUDED.passport_visibility;
-
-    INSERT INTO public.continuity_experience_claims (
-        id, site_continuity_profile_id, organization_id,
-        claim_type, category, title, description,
-        therapeutic_area, study_phase,
-        verification_status, confidence_score, is_public
-    ) VALUES
-    (
-        v_claim1, v_profile, v_org,
-        'biospecimen_collection', 'capability',
-        '500K plasma samples', 'Longitudinal biobank collection across 3 sites',
-        'Oncology', 'Phase III',
-        'kadarn_verified', 88, true
-    ),
-    (
-        v_claim2, v_profile, v_org,
-        'clinical_experience', 'experience',
-        'Phase II immunotherapy trials', '12 completed trials 2019-2024',
-        NULL, NULL,
-        'evidence_submitted', 72, true
-    )
-    ON CONFLICT (id) DO NOTHING;
-
-    UPDATE public.organizations
-    SET city = 'Bethesda', region = 'MD',
-        description = 'Large-scale biobank with 500K+ samples across 50+ collections'
-    WHERE id = v_org;
+DO $$ BEGIN
+    CREATE TYPE curation_action AS ENUM (
+        'ACCEPT', 'REJECT', 'ENRICH', 'DEFER',
+        'NEEDS_MORE_EVIDENCE', 'MERGE', 'SPLIT', 'ARCHIVE'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+DO $$ BEGIN
+    CREATE TYPE curation_target_type AS ENUM (
+        'EVIDENCE_CANDIDATE', 'CLASSIFICATION', 'ENTITY', 'RELATIONSHIP',
+        'SNAPSHOT_ITEM'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS discovery_curation_events (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    target_type         curation_target_type NOT NULL,
+    target_id           TEXT NOT NULL,
+    action              curation_action NOT NULL,
+
+    -- Actor
+    actor_id            TEXT NOT NULL,
+    actor_role          TEXT NOT NULL DEFAULT 'reviewer',
+
+    -- Provenance
+    reason              TEXT,
+    enrichment_payload  JSONB,
+    previous_state      TEXT,
+    new_state           TEXT,
+    provenance_ref      TEXT NOT NULL,
+    discovery_run_id    UUID NOT NULL REFERENCES discovery_runs(id),
+    artifact_id         TEXT,
+    layer1_id           TEXT,
+
+    -- Merge/split
+    merge_source_ids    JSONB,
+    split_child_ids     JSONB,
+
+    -- Temporal
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_curation_target ON discovery_curation_events(target_type, target_id);
+CREATE INDEX idx_curation_run ON discovery_curation_events(discovery_run_id);
+
+-- ############################################################################
+-- ROW-LEVEL SECURITY
+-- ############################################################################
+-- Org-scoped via discovery_run_id -> discovery_runs.session_id ->
+-- discovery_sessions.organization_id. Curation events are immutable
+-- provenance records (no UPDATE/DELETE policy) — curation never rewrites
+-- history, it only appends new events.
+
+ALTER TABLE discovery_curation_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY discovery_curation_events_select_org ON discovery_curation_events
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM discovery_runs r
+            JOIN discovery_sessions s ON s.id = r.session_id
+            WHERE r.id = discovery_curation_events.discovery_run_id
+            AND s.organization_id IN (
+                SELECT organization_id FROM organization_memberships
+                WHERE user_id = auth.uid() AND status = 'active'
+            )
+        )
+    );
+
+CREATE POLICY discovery_curation_events_insert_org ON discovery_curation_events
+    FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM discovery_runs r
+            JOIN discovery_sessions s ON s.id = r.session_id
+            WHERE r.id = discovery_curation_events.discovery_run_id
+            AND s.organization_id IN (
+                SELECT organization_id FROM organization_memberships
+                WHERE user_id = auth.uid() AND status = 'active'
+            )
+        )
+    );
+
+-- ============================================================================
+-- END OF MIGRATION 049
+-- ============================================================================

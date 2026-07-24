@@ -1,130 +1,203 @@
 -- ============================================================================
--- KADARN PLATFORM — Evidence Discovery Preparation Layer (Sprint 20A.3B)
+-- RC-12.1B - Sponsor Portfolio Persistence
 -- ============================================================================
--- Baseline: AF-1.0
--- Design: KEMS-002, KEMS-002A, Agent Responsibility Matrix
+-- Purpose:
+--   Replace temporary Sponsor Passport portfolio allowlists with persistent,
+--   sponsor-owned portfolio infrastructure.
 --
--- Creates the semantic extraction request queue between Layer 1 extraction
--- and the future Agent Pipeline. No AI agents. No Evidence Core writes.
+-- Boundaries:
+--   - Does NOT change RC-10.2 Sponsor Passport contract.
+--   - Does NOT change Sponsor UI.
+--   - Does NOT change Evidence Core claim/evidence ownership.
+--   - Portfolio is access scope, not evidence truth.
+--
+-- Dependencies:
+--   - public.organizations
+--   - public.organization_memberships
 -- ============================================================================
 
+-- ############################################################################
+-- PART 1: ENUMS
+-- ############################################################################
+
 DO $$ BEGIN
-    CREATE TYPE discovery_request_type AS ENUM (
-        'DOCUMENT_CLASSIFICATION',
-        'ENTITY_EXTRACTION',
-        'RELATIONSHIP_EXTRACTION',
-        'CLAIM_CANDIDATE_DETECTION',
-        'TIMELINE_RECONSTRUCTION',
-        'GAP_DETECTION',
-        'LEVERAGE_RECOMMENDATION'
+    CREATE TYPE sponsor_portfolio_status AS ENUM (
+        'active',
+        'archived'
     );
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE discovery_request_status AS ENUM (
-        'PENDING', 'CLAIMED', 'RUNNING', 'COMPLETED',
-        'FAILED', 'CANCELLED', 'SKIPPED'
+    CREATE TYPE sponsor_portfolio_membership_status AS ENUM (
+        'active',
+        'paused',
+        'removed'
     );
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$ BEGIN
-    CREATE TYPE discovery_request_priority AS ENUM (
-        'high', 'normal', 'low'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+-- ############################################################################
+-- PART 2: TABLE - sponsor_portfolios
+-- ############################################################################
+--
+-- Root aggregate for a sponsor-owned portfolio. A portfolio is an access and
+-- working-set construct. It does not own institutional claims or evidence.
+-- ============================================================================
 
-CREATE TABLE IF NOT EXISTS discovery_preparation_requests (
-    request_id          UUID PRIMARY KEY,
-    discovery_run_id    UUID NOT NULL REFERENCES discovery_runs(id) ON DELETE CASCADE,
-    artifact_id         UUID NOT NULL REFERENCES discovery_artifacts(id),
-    layer1_id           UUID NOT NULL REFERENCES discovery_layer1(id),
-    request_type        discovery_request_type NOT NULL,
-    status              discovery_request_status NOT NULL DEFAULT 'PENDING',
-    priority            discovery_request_priority NOT NULL DEFAULT 'normal',
-    pipeline_version    TEXT NOT NULL,
-    agent_version       TEXT,
-    model_version       TEXT,
-    input_hash          TEXT NOT NULL,
-    output_ref          TEXT,
-    error               TEXT,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    claimed_at          TIMESTAMPTZ,
-    completed_at        TIMESTAMPTZ,
-    failed_at           TIMESTAMPTZ,
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+CREATE TABLE IF NOT EXISTS public.sponsor_portfolios (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sponsor_org_id  UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
 
-    -- Idempotency: no duplicate active PENDING/CLAIMED/RUNNING requests
-    -- for the same layer1Id + requestType + pipelineVersion
-    CONSTRAINT uq_active_request UNIQUE (layer1_id, request_type, pipeline_version, status)
+    name            TEXT NOT NULL DEFAULT 'Sponsor Portfolio',
+    status          sponsor_portfolio_status NOT NULL DEFAULT 'active',
+    version         INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+
+    created_by      UUID,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    archived_at     TIMESTAMPTZ,
+    metadata        JSONB NOT NULL DEFAULT '{}',
+
+    CONSTRAINT uq_sponsor_portfolios_id_owner UNIQUE (id, sponsor_org_id),
+    CONSTRAINT ck_sponsor_portfolios_archived_at
+        CHECK (
+            (status = 'archived' AND archived_at IS NOT NULL)
+            OR (status = 'active' AND archived_at IS NULL)
+        )
 );
 
-CREATE INDEX idx_prep_requests_run ON discovery_preparation_requests(discovery_run_id);
-CREATE INDEX idx_prep_requests_status ON discovery_preparation_requests(status);
-CREATE INDEX idx_prep_requests_type ON discovery_preparation_requests(request_type);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sponsor_portfolios_active_owner
+    ON public.sponsor_portfolios(sponsor_org_id)
+    WHERE status = 'active';
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_portfolios_sponsor_status
+    ON public.sponsor_portfolios(sponsor_org_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_portfolios_updated_at
+    ON public.sponsor_portfolios(updated_at DESC);
+
+COMMENT ON TABLE public.sponsor_portfolios IS
+    'Sponsor-owned portfolio aggregate for Sponsor Passport access scope.';
+
+COMMENT ON COLUMN public.sponsor_portfolios.sponsor_org_id IS
+    'Organization that owns the sponsor portfolio.';
 
 -- ############################################################################
--- ROW-LEVEL SECURITY
+-- PART 3: TABLE - sponsor_portfolio_memberships
 -- ############################################################################
--- Org-scoped via discovery_run_id -> discovery_runs.session_id ->
--- discovery_sessions.organization_id (same pattern as migration 046).
+--
+-- Institution/site membership inside a sponsor portfolio. institution_org_id is
+-- the organization_id used by Evidence Core claim/evidence reads.
+-- ============================================================================
 
-ALTER TABLE discovery_preparation_requests ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS public.sponsor_portfolio_memberships (
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    portfolio_id          UUID NOT NULL,
+    sponsor_org_id        UUID NOT NULL,
+    institution_org_id    UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
 
-CREATE POLICY discovery_preparation_requests_select_org ON discovery_preparation_requests
+    status                sponsor_portfolio_membership_status NOT NULL DEFAULT 'active',
+    member_since          DATE NOT NULL DEFAULT CURRENT_DATE,
+    display_name_override TEXT,
+    location_override     TEXT,
+    version               INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+
+    created_by            UUID,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    removed_at            TIMESTAMPTZ,
+    metadata              JSONB NOT NULL DEFAULT '{}',
+
+    CONSTRAINT fk_sponsor_portfolio_memberships_portfolio_owner
+        FOREIGN KEY (portfolio_id, sponsor_org_id)
+        REFERENCES public.sponsor_portfolios(id, sponsor_org_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT ck_sponsor_portfolio_memberships_distinct_orgs
+        CHECK (sponsor_org_id <> institution_org_id),
+
+    CONSTRAINT ck_sponsor_portfolio_memberships_removed_at
+        CHECK (
+            (status = 'removed' AND removed_at IS NOT NULL)
+            OR (status <> 'removed' AND removed_at IS NULL)
+        )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sponsor_portfolio_memberships_active_portfolio_institution
+    ON public.sponsor_portfolio_memberships(portfolio_id, institution_org_id)
+    WHERE status = 'active';
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sponsor_portfolio_memberships_active_sponsor_institution
+    ON public.sponsor_portfolio_memberships(sponsor_org_id, institution_org_id)
+    WHERE status = 'active';
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_portfolio_memberships_sponsor_status
+    ON public.sponsor_portfolio_memberships(sponsor_org_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_portfolio_memberships_portfolio_status
+    ON public.sponsor_portfolio_memberships(portfolio_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_portfolio_memberships_institution
+    ON public.sponsor_portfolio_memberships(institution_org_id);
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_portfolio_memberships_updated_at
+    ON public.sponsor_portfolio_memberships(updated_at DESC);
+
+COMMENT ON TABLE public.sponsor_portfolio_memberships IS
+    'Institutions/sites included in a sponsor-owned portfolio for Sponsor Passport access scope.';
+
+COMMENT ON COLUMN public.sponsor_portfolio_memberships.institution_org_id IS
+    'Institution/site organization ID used by Evidence Core reads.';
+
+-- ############################################################################
+-- PART 4: TRIGGERS - updated_at
+-- ############################################################################
+
+DROP TRIGGER IF EXISTS trg_sponsor_portfolios_updated_at ON public.sponsor_portfolios;
+CREATE TRIGGER trg_sponsor_portfolios_updated_at
+    BEFORE UPDATE ON public.sponsor_portfolios
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_sponsor_portfolio_memberships_updated_at ON public.sponsor_portfolio_memberships;
+CREATE TRIGGER trg_sponsor_portfolio_memberships_updated_at
+    BEFORE UPDATE ON public.sponsor_portfolio_memberships
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ############################################################################
+-- PART 5: ROW-LEVEL SECURITY
+-- ############################################################################
+
+ALTER TABLE public.sponsor_portfolios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sponsor_portfolio_memberships ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS sponsor_portfolios_select_org ON public.sponsor_portfolios;
+CREATE POLICY sponsor_portfolios_select_org ON public.sponsor_portfolios
     FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM discovery_runs r
-            JOIN discovery_sessions s ON s.id = r.session_id
-            WHERE r.id = discovery_preparation_requests.discovery_run_id
-            AND s.organization_id IN (
-                SELECT organization_id FROM organization_memberships
-                WHERE user_id = auth.uid() AND status = 'active'
-            )
+        sponsor_org_id IN (
+            SELECT organization_id FROM public.organization_memberships
+            WHERE user_id = auth.uid() AND status = 'active'
         )
+        OR auth.role() = 'service_role'
     );
 
-CREATE POLICY discovery_preparation_requests_insert_org ON discovery_preparation_requests
-    FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM discovery_runs r
-            JOIN discovery_sessions s ON s.id = r.session_id
-            WHERE r.id = discovery_preparation_requests.discovery_run_id
-            AND s.organization_id IN (
-                SELECT organization_id FROM organization_memberships
-                WHERE user_id = auth.uid() AND status = 'active'
-            )
-        )
-    );
-
--- UPDATE: request lifecycle transitions (status, claimed_at, completed_at,
--- failed_at, output_ref, error) by org members; identity/queue fields
--- (discovery_run_id, artifact_id, layer1_id, request_type, input_hash) are
--- immutable once created.
-CREATE POLICY discovery_preparation_requests_update_org ON discovery_preparation_requests
-    FOR UPDATE
+DROP POLICY IF EXISTS sponsor_portfolio_memberships_select_org ON public.sponsor_portfolio_memberships;
+CREATE POLICY sponsor_portfolio_memberships_select_org ON public.sponsor_portfolio_memberships
+    FOR SELECT
     USING (
-        EXISTS (
-            SELECT 1 FROM discovery_runs r
-            JOIN discovery_sessions s ON s.id = r.session_id
-            WHERE r.id = discovery_preparation_requests.discovery_run_id
-            AND s.organization_id IN (
-                SELECT organization_id FROM organization_memberships
-                WHERE user_id = auth.uid() AND status = 'active'
-            )
+        sponsor_org_id IN (
+            SELECT organization_id FROM public.organization_memberships
+            WHERE user_id = auth.uid() AND status = 'active'
         )
-    )
-    WITH CHECK (
-        discovery_run_id = (SELECT original.discovery_run_id FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
-        AND artifact_id = (SELECT original.artifact_id FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
-        AND layer1_id = (SELECT original.layer1_id FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
-        AND request_type = (SELECT original.request_type FROM discovery_preparation_requests original WHERE original.request_id = discovery_preparation_requests.request_id)
+        OR auth.role() = 'service_role'
     );
 
--- ============================================================================
--- END OF MIGRATION 047
--- ============================================================================
+-- ############################################################################
+-- PART 6: GRANTS
+-- ############################################################################
+
+GRANT SELECT ON public.sponsor_portfolios TO authenticated, service_role;
+GRANT SELECT ON public.sponsor_portfolio_memberships TO authenticated, service_role;
+GRANT INSERT, UPDATE ON public.sponsor_portfolios TO service_role;
+GRANT INSERT, UPDATE ON public.sponsor_portfolio_memberships TO service_role;

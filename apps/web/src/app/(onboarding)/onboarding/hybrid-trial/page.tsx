@@ -319,7 +319,7 @@ export default function HybridTrialPage() {
           <CheckboxControl
             questionId={q.id}
             options={q.options}
-            currentValue={Array.isArray(currentValue) ? currentValue : []}
+            currentValue={Array.isArray(currentValue) ? (currentValue as string[]) : []}
             onChange={(value) => setAnswer(q.id, value)}
           />
         )}

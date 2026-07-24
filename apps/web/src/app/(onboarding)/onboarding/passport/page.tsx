@@ -311,7 +311,7 @@ export default function PassportPage() {
                         <li>\u2022 This assessment does not replace sponsor qualification or protocol-specific due diligence.</li>
                         <li>\u2022 Historical experience claims require ClinicalTrials.gov records or sponsor references.</li>
                         {ht.evidenceGaps && ht.evidenceGaps.length > 0 && (
-                          <li>\u2022 {ht.evidenceGaps.length} evidence gap(s) identified.</li>
+                          <li>{'\\u2022'} {ht.evidenceGaps.length} evidence gap(s) identified.</li>
                         )}
                       </ul>
                     </div>
@@ -321,10 +321,10 @@ export default function PassportPage() {
                       <div className="text-xs font-semibold text-blue-700 uppercase mb-2">Improvement Actions</div>
                       <ul className="space-y-1 text-xs text-blue-600">
                         {mandatoryMet < mandatoryTotal && (
-                          <li>\u2022 Complete {mandatoryTotal - mandatoryMet} remaining mandatory claim(s).</li>
+                          <li>{'\\u2022'} Complete {mandatoryTotal - mandatoryMet} remaining mandatory claim(s).</li>
                         )}
                         {declaredCount > 0 && (
-                          <li>\u2022 Upload documents for {declaredCount} self-declared claim(s).</li>
+                          <li>{'\\u2022'} Upload documents for {declaredCount} self-declared claim(s).</li>
                         )}
                         <li>\u2022 Upload SOPs, certifications, and workflow documentation in the Documents section.</li>
                         <li>\u2022 Hybrid trial experience can be documented via ClinicalTrials.gov references.</li>
