@@ -18,7 +18,10 @@ export type AuditAction =
   | 'right_of_response.submitted'
   | 'relationship.created'
   | 'process_state.updated'
-  | 'evidence.superseded';
+  | 'evidence.superseded'
+  | 'workflow.advanced'
+  | 'review_task.created'
+  | 'review_task.completed';
 
 export interface AuditEntry {
   id?: string;

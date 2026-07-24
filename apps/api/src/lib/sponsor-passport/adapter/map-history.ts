@@ -27,6 +27,9 @@ const EVENT_TYPE_LABELS: Record<AuditAction, string> = {
   'process_state.updated': 'Process state updated',
   'evidence.superseded': 'Evidence superseded',
   'relationship.created': 'Relationship created',
+  'workflow.advanced': 'Workflow state advanced',
+  'review_task.created': 'Review task created',
+  'review_task.completed': 'Review task completed',
 }
 
 function resolveActor(row: AuditEventRecord): string | undefined {
