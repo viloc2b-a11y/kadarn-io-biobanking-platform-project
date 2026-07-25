@@ -21,3 +21,10 @@ export { GenerationRuleRepository } from './generation-rule-repository'
 export { ClaimRepository } from './claim-repository'
 export { CapabilityRepository } from './capability-repository'
 export { ClaimVersionRepository } from './claim-version-repository'
+
+// ─── KAD-LOOP-004 — Confidence Repositories (Phase 9) ────────────────
+export { ConfidenceModelRepository } from './confidence-model-repository'
+export { ConfidenceRuleRepository } from './confidence-rule-repository'
+export { ConfidenceAssessmentRepository } from './confidence-assessment-repository'
+export { ConfidenceFactorRepository } from './confidence-factor-repository'
+export { ConfidenceBlockerRepository } from './confidence-blocker-repository'
