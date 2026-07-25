@@ -8,3 +8,6 @@ export type { LocationRecord } from './location-repository'
 
 export { MembershipRepository } from './membership-repository'
 export type { MembershipRecord, RoleRecord, RoleAssignmentRecord } from './membership-repository'
+
+// ─── KAD-LOOP-CANONICALIZATION-001 — Event Repository ────────────────────
+export { EventRepository } from './event-repository'
