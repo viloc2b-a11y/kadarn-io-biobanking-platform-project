@@ -11,3 +11,8 @@ export type { MembershipRecord, RoleRecord, RoleAssignmentRecord } from './membe
 
 // ─── KAD-LOOP-CANONICALIZATION-001 — Event Repository ────────────────────
 export { EventRepository } from './event-repository'
+
+// ─── KAD-LOOP-002 — Evidence Acquisition Repositories ───────────────────
+export { SourceRecordRepository } from './source-record-repository'
+export { EvidenceSourceRepository } from './evidence-source-repository'
+export { GenerationRuleRepository } from './generation-rule-repository'

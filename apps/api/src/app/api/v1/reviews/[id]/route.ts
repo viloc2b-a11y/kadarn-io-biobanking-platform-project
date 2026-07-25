@@ -32,7 +32,7 @@ export const PATCH = withAuth(async (request, _user, params) => {
       return Response.json({ data: null, error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
     }
     const update: Record<string, unknown> = { ...parsed.data };
-    if (parsed.data.status === 'approved' || parsed.data.status === 'rejected') {
+    if (parsed.data.review_outcome === 'approved' || parsed.data.review_outcome === 'rejected') {
       update.completed_at = new Date().toISOString();
     }
     const { data, error } = await supabase.from('review_tasks').update(update).eq('id', id).select().single();

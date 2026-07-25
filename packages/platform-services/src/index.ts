@@ -26,7 +26,7 @@ export type { NotificationService, Notification, SendEmailOptions, SendInAppOpti
 export type { FileService, FileMetadata, UploadOptions } from './file-service';
 
 // ─── KAD-002D — Repositories ──────────────────────────────────────────────
-export { PersonRepository, LocationRepository, MembershipRepository, EventRepository } from './repositories';
+export { PersonRepository, LocationRepository, MembershipRepository, EventRepository, SourceRecordRepository, EvidenceSourceRepository, GenerationRuleRepository } from './repositories';
 export type { PersonRecord, LocationRecord, MembershipRecord, RoleRecord, RoleAssignmentRecord } from './repositories';
 
 // Search
@@ -59,3 +59,7 @@ export type { BackgroundJobsService, Job, JobStatus, JobHandler } from './backgr
 
 // Lineage Service (KAD-LOOP-CANONICALIZATION-001, Package E)
 export * from './lineage-service';
+
+// KAD-LOOP-002 — Generation Pipeline & Lineage Implementation
+export * from './generation-pipeline-service';
+export * from './lineage-service-impl';
