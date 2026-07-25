@@ -1,0 +1,19 @@
+id,description,impact,affected_components,effort,priority,workaround,owner
+TDR-001,Dual claim implementations (evidence-core vs continuity),Data inconsistency across claim workflows,evidence-core,continuity engine,3 days,P1,Use evidence-core.claims as source of truth,Engineering
+TDR-002,Evidence_node schema mismatch (JSONB vs individual columns),Code/schema drift between TypeScript and SQL,evidence-core,2 days,P1,Keep current JSONB columns for now, create migration later,Engineering
+TDR-003,Divergent migration directories (database vs supabase),Build reproducibility risk,database/migrations,supabase/migrations,1 day,P1,Declare database/migrations as canonical,Engineering
+TDR-004,11 scaffolded engine packages (<5 files each),Maintenance overhead obscures true architecture,12 packages across repos,4 days,P2,Navigate to files directly (find),Architecture
+TDR-005,packages/ui empty - UI components duplicated in apps/web,Component fragmentation and no reuse,apps/web,packages/ui,5 days,P2,Continue using apps/web components,Engineering
+TDR-006,apps/web lint failure,CI/CD integration broken,apps/web,1 day,P2,Disable lint in CI until fixed,Engineering
+TDR-007,No Person model (no dedicated table or API),MVP blocker for clinical workflows,platform-services,evidence-core,3 days,P1,Use auth.users as temporary identity store,Engineering
+TDR-008,No Location model (no facility/lab entity),MVP blocker for site logistics,platform-services,evidence-core,2 days,P1,Embed address in organizations table,Engineering
+TDR-009,Marketplace API routes mixed with core,Security/domain boundary leak,api (multiple route files),3 days,P1,Tag marketplace routes for quarantine,Architecture
+TDR-010,Provenance fragmentation (3 implementations),Audit trail inconsistency,evidence-core,provenance,provenance-graph,2 days,P2,Use evidence-core audit as temporary source,Engineering
+TDR-011,No E2E test suite,Regression risk on UI changes,apps/web,tests,5 days,P2,Manual regression testing for now,QA
+TDR-012,No integration tests for API,Deployment risk,api,tests,3 days,P2,Manual smoke testing via curl,QA
+TDR-013,No authorization tests (RLS, roles),Security verification gap,api,tests,2 days,P2,Manual SQL verification of RLS policies,Engineering
+TDR-014,Confidence computation not fully wired,Trust model incomplete,evidence-core,3 days,P2,Use static confidence values for now,Engineering
+TDR-015,Incomplete RLS on document-intake tables,Data leak risk,document-intake,2 days,P2,Manually verify document access in code review,Engineering
+TDR-016,Evidence_node schema divergence from KEMS-001,KFL compliance gap,evidence-core,2 days,P2,Document schema difference in ADR,Architecture
+TDR-017,Continuity engine overlaps with evidence-core,Duplicate domain logic,continuity engine,4 days,P2,Freeze continuity engine development,Engineering
+TDR-018,Test placeholders in performance and security,False sense of coverage,tests/performance,tests/security,1 day,P3,Remove placeholder tests,Engineering

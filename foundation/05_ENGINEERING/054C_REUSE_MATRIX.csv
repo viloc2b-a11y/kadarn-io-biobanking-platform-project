@@ -1,0 +1,36 @@
+component,classification,rationale,evidence,dependencies,risk,migration_complexity,destination
+evidence-core,KEEP,Validated end-to-end with KEMS-001 alignment,Build green,types,auth,Low,None,packages/evidence-core
+types,KEEP,Foundation for type safety,17 files with Zod schemas,none,Low,None,packages/types
+auth,KEEP,Supabase JWT pattern,1 file implement,types,Low,None,packages/auth
+instrumentation,KEEP,Observability working,10 files,types,Low,None,packages/instrumentation
+domain-events,KEEP,Event bus pattern,2 files with runtime,types,Low,None,packages/domain-events
+ai-layer,KEEP,LLM integration,2 files,types,Low,None,packages/ai-layer
+sdk,KEEP,Public API surface,1 file with exports,types,Low,None,packages/sdk
+cli,KEEP,Developer tooling,1 file working,types,Low,None,packages/cli
+platform-services,KEEP,Shared platform utilities,17 files,types,Low,None,packages/platform-services
+telemetry,KEEP,OpenTelemetry integration,3 files,types,Low,None,packages/telemetry
+evidence-discovery,ADAPT,Real extraction pipeline but old domain model,110 files (largest package),types,institutional-knowledge,Medium,High,packages/evidence-pipeline
+institutional-knowledge,ADAPT,Knowledge extraction pipeline valuable,34 files,evidence-discovery,Medium,Medium,packages/evidence-pipeline
+document-intake,ADAPT,Connector pattern reusable,26 files,types,Medium,Medium,packages/evidence-pipeline
+delivery-domain,ADAPT,Target domain model needs alignment,73 files,types,Medium,Medium,packages/passport-engine
+published-view,ADAPT,Evidence pack generation reusable,9 files,delivery-domain,Low,Low,packages/passport-engine
+readiness-engine,ADAPT,Evaluation logic realignable,9 files,types,Low,Medium,packages/readiness-engine
+policy-engine,ADAPT,Rule evaluation pattern,10 files,types,Low,Low,packages/policy-engine
+workflow-engine,ADAPT,State machine pattern foundational,7 files,domain-events,Low,Low,packages/workflow-engine
+trust-engine,ADAPT,Decay model only,4 files,types,Low,Low,merge into evidence-core
+provenance,ADAPT,PROV mapping valuable,3 files,types,Low,Medium,packages/provenance (unified)
+evidence-lineage,CONSOLIDATE,Merge into evidence-core,16 files,evidence-core,Low,Medium,merge into evidence-core
+evidence-validation,CONSOLIDATE,Merge into evidence-core,4 files,types,Low,Low,merge into evidence-core
+operational-twins,CONSOLIDATE,Merge into platform-services,4 files,types,Low,Low,merge into platform-services
+provenance-graph,CONSOLIDATE,Merge into unified provenance,3 files,types,Low,Low,merge into provenance
+graph-query,CONSOLIDATE,Merge into knowledge-engine or retire,4 files,types,Low,Low,merge into published-view
+knowledge-engine,CONSOLIDATE,Merge into published-view,4 files,types,Low,Low,merge into published-view
+matching-engine,REPLACE,Biobanking marketplace concept,3 files,types,High,High,remove from core
+fulfillment-engine,REPLACE,Biobanking marketplace concept,3 files,types,High,High,remove from core
+financial-engine,REPLACE,Biobanking marketplace concept,3 files,types,High,High,remove from core
+intelligence-engine,REPLACE,No actual intelligence code,3 files,types,High,Low,delete or archive
+sponsor-intelligence,POSTPONE,After MVP,8 files,types,Medium,N/A,postpone
+integration-engine,POSTPONE,After MVP,3 files,types,Medium,N/A,postpone
+kpe-generator,RETIRE,Superseded by delivery-domain,1 file,none,Low,Low,archive
+ui,RETIRE,Empty package,0 files,none,High,High,rebuild from scratch
+marketplace API routes,RETIRE,Old vision quarantine,~20 route files,api,matching-engine,Medium,Low,quarantine under /api/v1/marketplace/

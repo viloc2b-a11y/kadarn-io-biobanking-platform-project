@@ -1,0 +1,37 @@
+component,category,purpose,files,implementation_level,dependencies,consumers,tests,runtime_status,domain_alignment,reuse_classification
+apps/api,application,Next.js HTTP API server,187,implemented,@kadarn/* packages,external clients,1 health test,healthy,high,KEEP
+apps/web,application,Customer-facing UI (Next.js),56,partial,@kadarn/* packages,end users,none,builds lint fails,medium,ADAPT
+packages/evidence-core,library,Core evidence model (claims,evidence,workflow,confidence,passport),58,implemented,types,auth,api,4 suites,healthy,high,KEEP
+packages/evidence-discovery,library,Document classification and entity extraction pipeline,110,partial,types,institutional-knowledge,none,healthy,medium,ADAPT
+packages/delivery-domain,library,Target domain model for evidence delivery,73,partial,types,published-view,1 suite,healthy,medium,ADAPT
+packages/institutional-knowledge,library,Knowledge extraction from documents,34,partial,evidence-discovery,api,8 suites (6 fail),healthy,medium,ADAPT
+packages/document-intake,library,Document ingestion from multiple sources,26,partial,types,evidence-discovery,none,healthy,medium,ADAPT
+packages/types,library,Shared TypeScript types and Zod schemas,17,implemented,none,all packages,12 suites,healthy,high,KEEP
+packages/platform-services,library,API keys, background jobs, platform utilities,17,implemented,types,api,none,healthy,high,KEEP
+packages/evidence-lineage,library,Claim generation and evidence lineage,16,scaffolded,evidence-core,api,none,healthy,medium,CONSOLIDATE
+packages/policy-engine,library,Policy evaluation and compliance rules,10,partial,types,api,none,healthy,medium,ADAPT
+packages/instrumentation,library,Observability and metrics collection,10,implemented,types,api,none,healthy,high,KEEP
+packages/published-view,library,Evidence packs and discovery report generation,9,partial,delivery-domain,api,none,healthy,medium,ADAPT
+packages/readiness-engine,library,Site readiness evaluation and scoring,9,partial,types,api,1 suite,healthy,medium,ADAPT
+packages/sponsor-intelligence,library,Sponsor decision views and DTOs,8,scaffolded,types,none,none,healthy,low,POSTPONE
+packages/workflow-engine,library,Workflow state machine abstractions,7,partial,types,api,2 suites,healthy,medium,ADAPT
+packages/trust-engine,library,Organization trust scoring and decay model,4,scaffolded,types,none,none,healthy,low,ADAPT
+packages/operational-twins,library,Twin abstractions for operational entities,4,scaffolded,types,none,none,healthy,low,CONSOLIDATE
+packages/knowledge-engine,library,Knowledge graph management,4,scaffolded,types,none,none,healthy,medium,CONSOLIDATE
+packages/graph-query,library,Graph query layer for knowledge navigation,4,scaffolded,types,none,none,healthy,low,CONSOLIDATE
+packages/evidence-validation,library,Evidence validation and quality checks,4,scaffolded,types,evidence-core,1 suite,healthy,medium,CONSOLIDATE
+packages/provenance-graph,library,Provenance graph management,3,scaffolded,types,none,none,healthy,low,CONSOLIDATE
+packages/provenance,library,PROV mapping for provenance tracking,3,scaffolded,types,none,none,healthy,low,CONSOLIDATE
+packages/matching-engine,library,Capability matching for marketplace,3,scaffolded,types,none,none,healthy,none,REPLACE
+packages/intelligence-engine,library,Intelligence layer for insights,3,scaffolded,types,none,none,healthy,none,REPLACE
+packages/integration-engine,library,System integration connectors,3,scaffolded,types,none,none,healthy,none,POSTPONE
+packages/fulfillment-engine,library,Order fulfillment tracking,3,scaffolded,types,none,none,healthy,none,REPLACE
+packages/financial-engine,library,Financial settlement processing,3,scaffolded,types,none,none,healthy,none,REPLACE
+packages/domain-events,library,Event bus runtime for domain events,2,implemented,types,workflow-engine,none,healthy,high,KEEP
+packages/ai-layer,library,AI/LLM integration utilities,2,implemented,types,evidence-discovery,none,healthy,high,KEEP
+packages/sdk,library,Public SDK for external integration,1,scaffolded,types,none,none,healthy,high,KEEP
+packages/kpe-generator,library,KPE document generation,1,scaffolded,types,api,none,healthy,low,RETIRE
+packages/cli,library,CLI tool for developer operations,1,implemented,types,none,none,healthy,high,KEEP
+packages/auth,library,Authentication types and helpers,1,implemented,types,api,none,healthy,high,KEEP
+packages/ui,library,Shared UI component library,0,empty,none,none,none,n/a,none,RETIRE
+packages/telemetry,library,OpenTelemetry integration,3,implemented,types,api,none,healthy,high,KEEP

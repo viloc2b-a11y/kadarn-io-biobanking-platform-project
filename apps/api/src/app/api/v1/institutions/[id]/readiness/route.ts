@@ -1,79 +1,91 @@
 // ==========================================================================
-// GET /api/v1/institutions/{id}/readiness
+// KAD-011 — Readiness API
 // ==========================================================================
-// All readiness evaluations for a specific institution. RLS-scoped: users
-// can only see their own org unless visibility_scope = 'network'.
+// GET  /api/v1/institutions/[id]/readiness — Get/Compute readiness score
 // ==========================================================================
 
-import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
-import { withAsyncTracing, SPAN_API_REQUEST } from '@kadarn/telemetry'
-import type { ReadinessSummary, ProgramReadiness, CapabilitySummary, EvidenceGap } from '@kadarn/readiness-engine/dto'
+import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server';
+import type { ReadinessDimension } from '@kadarn/types';
+import { computeReadinessLevel } from '@kadarn/types';
+import { z } from 'zod';
 
-export const GET = withAsyncTracing(
-  withAuth(async (_request, _user, params) => {
-    try {
-      const supabase = await createRouteClient()
-      const institutionId = params?.id
-      if (!institutionId) throw new ApiError(400, 'Missing institution id')
+const paramsSchema = z.object({ id: z.string().uuid() });
 
-      // 1. Get org name
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', institutionId)
-        .single()
+export const GET = withAuth(async (_request, _user, params) => {
+  try {
+    const { id } = paramsSchema.parse(params);
+    const supabase = await createRouteClient();
 
-      // 2. Fetch evaluations (RLS handles access)
-      const { data: evals, error } = await supabase
-        .from('readiness_evaluations')
-        .select(`
-          id, readiness_status, overall_confidence, computed_at,
-          evidence_graph_correlation_id, visibility_scope,
-          program_type_taxonomy!inner(type_key, name, readiness_threshold)
-        `)
-        .eq('organization_id', institutionId)
-        .order('computed_at', { ascending: false })
+    // 1. Try cache
+    const { data: cached } = await supabase
+      .from('readiness_scores')
+      .select('*')
+      .eq('organization_id', id)
+      .single();
 
-      if (error) throw new ApiError(500, 'Failed to fetch evaluations', error.message)
-
-      // 3. For each evaluation, get capability breakdown from snapshot
-      const evaluations: ProgramReadiness[] = (evals ?? []).map((ev: Record<string, unknown>) => {
-        const snapshot = (ev.evaluation_snapshot ?? {}) as Record<string, unknown>
-        const taxonomy = ev.program_type_taxonomy as Record<string, unknown> | null
-        return {
-          programTypeKey: taxonomy?.type_key as string ?? '',
-          programTypeName: taxonomy?.name as string ?? '',
-          readinessStatus: (ev.readiness_status as string ?? 'not_ready') as ProgramReadiness['readinessStatus'],
-          overallConfidence: (ev.overall_confidence as number) ?? 0,
-          capabilities: (snapshot.capabilitiesBreakdown as CapabilitySummary[]) ?? [],
-          evidenceGaps: (snapshot.evidenceGaps as EvidenceGap[]) ?? [],
-          lastEvaluatedAt: (ev.computed_at as string) ?? '',
-          evaluationId: ev.id as string,
-        }
-      })
-
-      const worstStatus = getWorstStatus(evaluations.map(e => e.readinessStatus))
-
-      const summary: ReadinessSummary = {
-        organizationId: institutionId,
-        organizationName: (org?.name as string) ?? 'Unknown',
-        evaluations,
-        overallReadiness: worstStatus,
+    // If cached less than 1 hour old, return it
+    if (cached) {
+      const age = Date.now() - new Date(cached.computed_at).getTime();
+      if (age < 3_600_000) {
+        return Response.json({ data: cached, cached: true, error: null });
       }
-
-      return Response.json({ data: summary })
-    } catch (err) {
-      return handleApiError(err)
     }
-  }),
-  SPAN_API_REQUEST,
-  { attributes: { 'kadarn.api.route': 'institutions/{id}/readiness', 'kadarn.api.method': 'GET' } },
-)
 
-function getWorstStatus(statuses: string[]): ReadinessSummary['overallReadiness'] {
-  const order = ['ready', 'conditionally_ready', 'partial', 'not_ready']
-  for (const s of order) {
-    if (statuses.includes(s)) return s as ReadinessSummary['overallReadiness']
+    // 2. Compute dimensions
+    const [peopleCount, locationCount, capabilityCount, passportCount, evidenceCount] =
+      await Promise.all([
+        supabase.from('organization_memberships').select('id', { count: 'exact', head: true }).eq('organization_id', id),
+        supabase.from('locations').select('id', { count: 'exact', head: true }).eq('institution_id', id),
+        supabase.from('capabilities').select('id', { count: 'exact', head: true }).eq('organization_id', id),
+        supabase.from('passport_entries').select('id', { count: 'exact', head: true }).eq('organization_id', id).eq('status', 'published'),
+        supabase.from('evidence_nodes').select('id', { count: 'exact', head: true }),
+      ]);
+
+    const people = peopleCount.count ?? 0;
+    const locations = locationCount.count ?? 0;
+    const capabilities = capabilityCount.count ?? 0;
+    const passport = passportCount.count ?? 0;
+    const evidence = evidenceCount.count ?? 0;
+
+    const dimensions: ReadinessDimension[] = [
+      { name: 'profile_completeness', score: Math.min((people * 0.1 + locations * 0.15) / 1, 1), weight: 0.20, reason: `${people} members, ${locations} locations` },
+      { name: 'evidence_coverage', score: Math.min(evidence / 10, 1), weight: 0.20, reason: `${evidence} evidence nodes` },
+      { name: 'credential_validity', score: 0.5, weight: 0.15, reason: 'Credential registry pending' },
+      { name: 'recruitment_capability', score: Math.min(people * 0.1, 1), weight: 0.15, reason: `${people} members` },
+      { name: 'passport_completeness', score: Math.min(passport / 5, 1), weight: 0.15, reason: `${passport} published entries` },
+      { name: 'capability_coverage', score: Math.min(capabilities / 3, 1), weight: 0.15, reason: `${capabilities} capabilities declared` },
+    ];
+
+    const overall = dimensions.reduce((s, d) => s + d.score * d.weight, 0);
+
+    // 3. Store
+    const { data: saved } = await supabase
+      .from('readiness_scores')
+      .upsert({
+        organization_id: id,
+        overall_score: Math.round(overall * 100) / 100,
+        profile_completeness: dimensions[0].score,
+        evidence_coverage: dimensions[1].score,
+        credential_validity: dimensions[2].score,
+        recruitment_capability: dimensions[3].score,
+        passport_completeness: dimensions[4].score,
+        operational_metrics: dimensions[5].score,
+        breakdown: { dimensions },
+        computed_at: new Date().toISOString(),
+      }, { onConflict: 'organization_id' })
+      .select()
+      .single();
+
+    return Response.json({
+      data: {
+        ...saved,
+        level: computeReadinessLevel(overall),
+        dimensions,
+      },
+      cached: false,
+      error: null,
+    });
+  } catch (error) {
+    return handleApiError(error);
   }
-  return 'not_ready'
-}
+});

@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@kadarn/published-view": "*",
-    "@supabase/supabase-js": "^2.49.0",
+    "@supabase/supabase-js": "^2.110.8",
     "@types/node": "^26.0.1",
     "typescript": "^5.8.0",
     "vitest": "^3.1.0"
