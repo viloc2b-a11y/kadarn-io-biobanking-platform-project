@@ -65,3 +65,25 @@ export type ClaimLegacyType =
   | 'experience_phase3'
   | 'experience_phase4'
   | 'site_capability'
+
+// ─── Claim-Evidence Link (KAD-LOOP-CANONICALIZATION-001, Package D) ───
+export const ClaimEvidenceRelationshipType = z.enum([
+  'SUPPORTS',
+  'PARTIALLY_SUPPORTS',
+  'CONTRADICTS',
+  'REQUIRES_REVIEW',
+  'OBSOLETES',
+])
+export type ClaimEvidenceRelationship = z.infer<typeof ClaimEvidenceRelationshipType>
+
+export const ClaimEvidenceLinkSchema = z.object({
+  claim_id: z.string().uuid(),
+  evidence_id: z.string().uuid(),
+  relationship_type: ClaimEvidenceRelationshipType,
+  tenant_id: z.string().uuid(),
+  created_at: z.string().datetime({ offset: true }),
+  created_by: z.string().uuid().optional().nullable(),
+  rationale: z.string().optional().nullable(),
+  provenance: z.string().optional().nullable(),
+})
+export type ClaimEvidenceLink = z.infer<typeof ClaimEvidenceLinkSchema>
