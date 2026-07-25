@@ -1,0 +1,18 @@
+capability,current_implementations,level,gaps,overlaps,reuse,priority
+Institution Management,organizations API,v1/institution,onboarding flows,implemented,Missing canonical status model,None,KEEP,P0
+People and Locations,workspace/profile,workspace/consent,onboarding/people,partial,No dedicated Person or Location table exists,workspace/profile overlaps with onboarding/people,ADAPT,P0
+Capability Management,readiness/capabilities,marketplace/capabilities,implemented,Necds alignment with KFL domain canon,readiness and marketplace have duplicate capability lists,ADAPT,P1
+Claim Management,evidence-core/claims,continuity/claims,implemented,Dual implementation must consolidate,evidence-core.claims and continuity_experience_claims overlap,CONSOLIDATE,P1
+Evidence Management,evidence-core/evidence,document-intake,implemented,JSONB schema diverges from KFL spec,None,KEEP,P1
+Document Storage,workspace/documents,document-intake,implemented,No access control on document-intake tables,workspace/documents is UI-only,ADAPT,P2
+Provenance,evidence-core/process-state,provenance-graph,provenance,partial,Three separate implementations must unify,significant overlap between all three,CONSOLIDATE,P1
+Review Workflow,review/tasks,workflow-engine,implemented,UI not fully connected,workflow-engine is generic scaffold,evidence-core has concrete,ADAPT,P2
+Confidence Computation,evidence-core/confidence-state,partial,Algorithm not fully wired,None,ADAPT,P1
+Knowledge Publication,published-view,knowledge-engine,partial,Both are partial implementations,Both packages have 4-9 files only,POSTPONE,P2
+Passport Generation,v1/passport,sponsor-passport,implemented,Multiple representations,apps/api/lib/sponsor-passport is separate from v1/passport,CONSOLIDATE,P1
+Package Generation,delivery-domain,kpe-generator,implemented,kpe-generator superseded by delivery-domain,kpe-generator should retire,ADAPT,P2
+Sharing/Access Control,passport/shares,sponsor/passports,implemented,Needs audience model,None,KEEP,P1
+Readiness,readiness-engine,onboarding/readiness,implemented,Needs domain realignment,readiness-engine and onboarding/readiness overlap,ADAPT,P2
+Audit Trail,audit-events,evidence-core/audit,implemented,Multiple audit tables,audit_events in evidence-core overlaps with audit_log,CONSOLIDATE,P2
+Authentication,auth,Supabase Auth,implemented,Role hierarchy not implemented,None,KEEP,P1
+Marketplace,exchange,marketplace/*,financial-engine,implemented,Old domain - must quarantine from core,Extensive overlaps between exchange and marketplace routes,RETIRE,P1
