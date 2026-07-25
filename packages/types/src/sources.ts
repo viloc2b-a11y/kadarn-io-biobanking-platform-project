@@ -1,6 +1,7 @@
 // ─── KADARN v2 — Evidence Source Intelligence Types ────────────────────
 // Authority: Architecture Constitution v2.0, Ratified Minimal Schema
 // Sprint 1 — Block A
+// KAD-LOOP-002: Added supersession fields + UpdateSourceRecordSchema.
 
 import { z } from 'zod'
 
@@ -120,7 +121,7 @@ export const UpdateEvidenceSourceSchema = CreateEvidenceSourceSchema.partial().e
 })
 export type UpdateEvidenceSource = z.infer<typeof UpdateEvidenceSourceSchema>
 
-// ─── SourceRecord ──────────────────────────────────────────────────────
+// ─── SourceRecord (KAD-LOOP-002: added supersession fields) ─────────────
 
 export const SourceRecordSchema = z.object({
   id: z.string().uuid(),
@@ -137,6 +138,10 @@ export const SourceRecordSchema = z.object({
   locator_uri: z.string().optional().nullable(),
   acquisition_status: AcquisitionStatus.default('acquired'),
   raw_metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  // Supersession fields (added by migration 076, exposed in types by LOOP-002)
+  superseded_by: z.string().uuid().optional().nullable(),
+  supersession_reason: z.string().optional().nullable(),
+  invalidation_status: z.enum(['active', 'superseded', 'invalidated']).default('active'),
   created_at: z.string().datetime({ offset: true }),
   updated_at: z.string().datetime({ offset: true }),
 })
@@ -157,3 +162,11 @@ export const CreateSourceRecordSchema = z.object({
   raw_metadata: z.record(z.string(), z.unknown()).optional(),
 })
 export type CreateSourceRecord = z.infer<typeof CreateSourceRecordSchema>
+
+export const UpdateSourceRecordSchema = z.object({
+  acquisition_status: AcquisitionStatus.optional(),
+  invalidation_status: z.enum(['active', 'superseded', 'invalidated']).optional(),
+  superseded_by: z.string().uuid().optional(),
+  supersession_reason: z.string().optional(),
+})
+export type UpdateSourceRecord = z.infer<typeof UpdateSourceRecordSchema>
