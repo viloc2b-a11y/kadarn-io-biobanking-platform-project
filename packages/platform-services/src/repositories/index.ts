@@ -16,3 +16,8 @@ export { EventRepository } from './event-repository'
 export { SourceRecordRepository } from './source-record-repository'
 export { EvidenceSourceRepository } from './evidence-source-repository'
 export { GenerationRuleRepository } from './generation-rule-repository'
+
+// ─── KAD-LOOP-003 — Claims & Capabilities Repositories ─────────────────
+export { ClaimRepository } from './claim-repository'
+export { CapabilityRepository } from './capability-repository'
+export { ClaimVersionRepository } from './claim-version-repository'
