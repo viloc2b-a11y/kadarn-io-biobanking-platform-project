@@ -69,3 +69,11 @@ export { ClaimService } from './claim-service';
 export { CapabilityService } from './capability-service';
 export { EvidenceSufficiencyService } from './evidence-sufficiency-service';
 export { KnowledgeGraphService } from './knowledge-graph-service';
+
+// KAD-LOOP-004 — Confidence Services
+export { ConfidenceEligibilityService } from './confidence-eligibility-service';
+export { ConfidenceCalculationService } from './confidence-calculation-service';
+export { ConfidenceReplayService } from './confidence-replay-service';
+export { ConfidenceStalenessService } from './confidence-staleness-service';
+export { ConfidenceExplanationService } from './confidence-explanation-service';
+export { ConfidenceScoringEngine } from './confidence-scoring-engine';
