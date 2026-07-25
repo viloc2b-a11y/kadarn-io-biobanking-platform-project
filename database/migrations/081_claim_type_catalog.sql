@@ -61,10 +61,12 @@ ON CONFLICT (key) DO NOTHING;
 
 ALTER TABLE public.claim_types ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS claim_types_select_service ON public.claim_types;
 CREATE POLICY claim_types_select_service ON public.claim_types
     FOR SELECT
     USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS claim_types_all_service ON public.claim_types;
 CREATE POLICY claim_types_all_service ON public.claim_types
     FOR ALL
     USING (auth.role() = 'service_role');

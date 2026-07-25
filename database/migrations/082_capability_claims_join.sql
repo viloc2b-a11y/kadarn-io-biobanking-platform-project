@@ -66,6 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_capability_claims_relationship
 
 ALTER TABLE public.capability_claims ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS cc_select_org ON public.capability_claims;
 CREATE POLICY cc_select_org ON public.capability_claims
     FOR SELECT
     USING (
@@ -79,6 +80,7 @@ CREATE POLICY cc_select_org ON public.capability_claims
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS cc_insert_org ON public.capability_claims;
 CREATE POLICY cc_insert_org ON public.capability_claims
     FOR INSERT
     WITH CHECK (
@@ -92,6 +94,7 @@ CREATE POLICY cc_insert_org ON public.capability_claims
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS cc_update_org ON public.capability_claims;
 CREATE POLICY cc_update_org ON public.capability_claims
     FOR UPDATE
     USING (
@@ -105,6 +108,7 @@ CREATE POLICY cc_update_org ON public.capability_claims
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS cc_delete_org ON public.capability_claims;
 CREATE POLICY cc_delete_org ON public.capability_claims
     FOR DELETE
     USING (
@@ -118,6 +122,7 @@ CREATE POLICY cc_delete_org ON public.capability_claims
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS cc_all_service ON public.capability_claims;
 CREATE POLICY cc_all_service ON public.capability_claims
     FOR ALL
     USING (auth.role() = 'service_role');
