@@ -8,7 +8,8 @@ export * from './person';
 export * from './location';
 export * from './membership';
 export * from './capability';
-export * from './claim';
+export * from './claim'
+export * from './claim-version';
 export * from './confidence';
 export * from './review';
 export * from './knowledge';
