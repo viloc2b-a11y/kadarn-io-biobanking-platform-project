@@ -65,12 +65,13 @@ export class BaseRepository<T extends Record<string, unknown>> {
     filters?: Record<string, unknown>
     limit?: number
   }): Promise<{ data: T[]; error: RepositoryError | null }> {
-    let query = this.db.from(this.tableName).select(options?.select ?? '*')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = this.db.from(this.tableName).select(options?.select ?? '*')
 
     if (options?.filters) {
       for (const [key, value] of Object.entries(options.filters)) {
         if (value !== undefined && value !== null) {
-          query = (query as unknown as ReturnType<typeof query.eq>)
+          query = query.eq(key, value)
         }
       }
     }
@@ -83,7 +84,7 @@ export class BaseRepository<T extends Record<string, unknown>> {
       query = query.limit(options.limit)
     }
 
-    const { data, error } = await (query as unknown as Promise<{ data: unknown[]; error: { code?: string; message?: string } | null }>)
+    const { data, error } = await query as { data: unknown[]; error: { code?: string; message?: string } | null }
 
     if (error) return { data: [], error: mapError(error) }
 
