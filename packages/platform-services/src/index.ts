@@ -25,8 +25,8 @@ export type { NotificationService, Notification, SendEmailOptions, SendInAppOpti
 // File Service
 export type { FileService, FileMetadata, UploadOptions } from './file-service';
 
-// ─── KAD-002D — Repositories ──────────────────────────────────────────────
-export { PersonRepository, LocationRepository, MembershipRepository, EventRepository, SourceRecordRepository, EvidenceSourceRepository, GenerationRuleRepository, ClaimRepository, CapabilityRepository, ClaimVersionRepository } from './repositories';
+// ─── KAD-002D / LOOP-2 / LOOP-3 / LOOP-4 — Repositories ────────────────
+export { PersonRepository, LocationRepository, MembershipRepository, EventRepository, SourceRecordRepository, EvidenceSourceRepository, GenerationRuleRepository, ClaimRepository, CapabilityRepository, ClaimVersionRepository, ConfidenceModelRepository, ConfidenceRuleRepository, ConfidenceAssessmentRepository, ConfidenceFactorRepository, ConfidenceBlockerRepository } from './repositories';
 export type { PersonRecord, LocationRecord, MembershipRecord, RoleRecord, RoleAssignmentRecord } from './repositories';
 
 // Search
@@ -69,3 +69,11 @@ export { ClaimService } from './claim-service';
 export { CapabilityService } from './capability-service';
 export { EvidenceSufficiencyService } from './evidence-sufficiency-service';
 export { KnowledgeGraphService } from './knowledge-graph-service';
+
+// KAD-LOOP-004 — Confidence Services
+export { ConfidenceEligibilityService } from './confidence-eligibility-service';
+export { ConfidenceCalculationService } from './confidence-calculation-service';
+export { ConfidenceReplayService } from './confidence-replay-service';
+export { ConfidenceStalenessService } from './confidence-staleness-service';
+export { ConfidenceExplanationService } from './confidence-explanation-service';
+export { ConfidenceScoringEngine } from './confidence-scoring-engine';
