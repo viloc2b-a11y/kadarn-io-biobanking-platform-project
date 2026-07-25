@@ -1,3 +1,16 @@
+// ==========================================================================
+// KAD-004: DEPRECATED — Continuity Experience Claims Service
+// ==========================================================================
+// This service is LEGACY. The canonical Claim implementation lives in:
+//   - packages/evidence-core/src/claim.ts
+//   - packages/types/src/claim.ts (Zod schema)
+//   - apps/api/src/app/api/v1/evidence-core/claims/
+//
+// DO NOT add new functionality to this service.
+// DO NOT import this service into new modules.
+// Existing consumers should be migrated to evidence-core claims.
+// ==========================================================================
+
 // RC-0.2 NOTE: kadarn_verified references below are for claim verification workflow,
 // not institutional Trust/Verified labels. These persist per continuity engine design.
 // Future sprint may replace kadarn_verified with a non-Trust term.

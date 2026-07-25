@@ -25,6 +25,10 @@ export type { NotificationService, Notification, SendEmailOptions, SendInAppOpti
 // File Service
 export type { FileService, FileMetadata, UploadOptions } from './file-service';
 
+// ─── KAD-002D — Repositories ──────────────────────────────────────────────
+export { PersonRepository, LocationRepository, MembershipRepository } from './repositories';
+export type { PersonRecord, LocationRecord, MembershipRecord, RoleRecord, RoleAssignmentRecord } from './repositories';
+
 // Search
 export type { SearchService, SearchQuery, SearchResult, SearchResults, SearchableEntity } from './search';
 
