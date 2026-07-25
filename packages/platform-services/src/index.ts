@@ -68,3 +68,4 @@ export * from './lineage-service-impl';
 export { ClaimService } from './claim-service';
 export { CapabilityService } from './capability-service';
 export { EvidenceSufficiencyService } from './evidence-sufficiency-service';
+export { KnowledgeGraphService } from './knowledge-graph-service';
