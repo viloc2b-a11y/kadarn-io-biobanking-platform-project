@@ -61,6 +61,17 @@ export type UpdateMembership = z.infer<typeof UpdateMembershipSchema>
 export const RoleScope = z.enum(['institution', 'sponsor', 'system'])
 export type RoleScope = z.infer<typeof RoleScope>
 
+// ─── KadarnRole — system-level role for auth guards ───────────────────────
+// KAD-TYPECHECK-001: type-only addition. No schema, no migration.
+// Used by auth-guards.ts and operations/phase8-cutover/route.ts.
+export type KadarnRole =
+  | 'marketplace_user'
+  | 'org_admin'
+  | 'kadarn_internal'
+  | 'sponsor_user'
+  | 'reviewer'
+  | 'viewer'
+
 export const RoleSchema = z.object({
   id: z.string().uuid(),
   key: z.string().min(1).max(100),
