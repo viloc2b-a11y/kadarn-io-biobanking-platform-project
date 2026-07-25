@@ -63,3 +63,8 @@ export * from './lineage-service';
 // KAD-LOOP-002 — Generation Pipeline & Lineage Implementation
 export * from './generation-pipeline-service';
 export * from './lineage-service-impl';
+
+// KAD-LOOP-003 — Claims, Capabilities, Knowledge Graph Services
+export { ClaimService } from './claim-service';
+export { CapabilityService } from './capability-service';
+export { EvidenceSufficiencyService } from './evidence-sufficiency-service';
