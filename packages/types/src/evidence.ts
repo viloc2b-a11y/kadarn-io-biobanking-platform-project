@@ -94,3 +94,13 @@ export const ProvenanceRecordSchema = z.object({
   created_at: z.string().datetime({ offset: true }),
 })
 export type ProvenanceRecord = z.infer<typeof ProvenanceRecordSchema>
+
+// ─── Generation Provenance (KAD-LOOP-CANONICALIZATION-001, Package C) ───
+export const GenerationProvenanceSchema = z.object({
+  generation_rule_id: z.string().uuid().optional().nullable(),
+  input_hash: z.string().optional().nullable(),
+  generator: z.string().optional().nullable(),
+  generated_at: z.string().datetime({ offset: true }).optional().nullable(),
+  source_record_id: z.string().uuid().optional().nullable(),
+})
+export type GenerationProvenance = z.infer<typeof GenerationProvenanceSchema>
