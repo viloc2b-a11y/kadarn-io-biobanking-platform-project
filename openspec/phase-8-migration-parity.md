@@ -42,7 +42,7 @@ Discovery DDL for local Supabase lives at **050–054** in `supabase/migrations/
 | 055 | Discovery staging seed |
 | 056 | Public read grants (discovery, memberships) |
 | 057 | GoTrue seed user compatibility |
-| 058 | Phase 8 RLS + Evidence Core grants |
+| ~~058~~ | ~~Phase 8 RLS + Evidence Core grants~~ *(deleted in 05751139 — table `evidence_class` renamed to `evidence_class_ref` in 045; GRANT became invalid)* |
 
 ---
 

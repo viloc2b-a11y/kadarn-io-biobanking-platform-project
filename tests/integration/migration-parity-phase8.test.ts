@@ -27,10 +27,18 @@ describe('Phase 8 migration parity', () => {
     expect(existsSync(join(SUPABASE, '048_phase8_hybrid_index.sql'))).toBe(true)
   })
 
-  it('supabase has remediation migrations 056-058', () => {
-    for (const v of ['056_phase8_public_read_grants.sql', '057_gotrue_seed_compat.sql', '058_phase8_rls_and_evidence_grants.sql']) {
+  it('supabase has remediation migrations 056-057', () => {
+    for (const v of ['056_phase8_public_read_grants.sql', '057_gotrue_seed_compat.sql']) {
       expect(existsSync(join(SUPABASE, v))).toBe(true)
     }
+  })
+
+  it('058 was intentionally deleted (table evidence_class renamed to evidence_class_ref in 045)', () => {
+    // Commit 05751139 deleted 058_phase8_rls_and_evidence_grants.sql because
+    // evidence_class was renamed to evidence_class_ref in migration 045, and 058's
+    // GRANT referencing evidence_class became invalid. The RLS/grants were handled
+    // directly in 045 (see evidence_class_ref rename) and 056-057.
+    expect(existsSync(join(SUPABASE, '058_phase8_rls_and_evidence_grants.sql'))).toBe(false)
   })
 
   it('database 046 is discovery_core (not Phase 8 lineage)', () => {
