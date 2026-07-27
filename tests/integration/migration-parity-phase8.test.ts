@@ -27,10 +27,17 @@ describe('Phase 8 migration parity', () => {
     expect(existsSync(join(SUPABASE, '048_phase8_hybrid_index.sql'))).toBe(true)
   })
 
-  it('supabase has remediation migrations 056-058', () => {
-    for (const v of ['056_phase8_public_read_grants.sql', '057_gotrue_seed_compat.sql', '058_phase8_rls_and_evidence_grants.sql']) {
+  it('supabase has remediation migrations 056-057', () => {
+    for (const v of ['056_phase8_public_read_grants.sql', '057_gotrue_seed_compat.sql']) {
       expect(existsSync(join(SUPABASE, v))).toBe(true)
     }
+  })
+
+  it('058 exists (restored in KAD-002–012 with phase8 grants idempotent)', () => {
+    // Deleted in 05751139 (clean reset chain) because evidence_class→evidence_class_ref.
+    // Restored in 5b75948f (KAD-002–012 and Sprint 1) with idempotent DO blocks.
+    // File now exists and is intentionally part of the canonical migration chain.
+    expect(existsSync(join(SUPABASE, '058_phase8_rls_and_evidence_grants.sql'))).toBe(true)
   })
 
   it('database 046 is discovery_core (not Phase 8 lineage)', () => {
