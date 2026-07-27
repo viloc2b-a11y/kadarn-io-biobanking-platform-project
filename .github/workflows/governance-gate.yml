@@ -1,0 +1,127 @@
+name: Governance Gate
+
+# SCOPE Y LIMITES DE SEGURIDAD:
+# - Este workflow corre exclusivamente en el evento `pull_request` (NO `pull_request_target`),
+#   por lo tanto usa el token de solo-lectura por defecto y NUNCA tiene acceso a secrets del repo
+#   base ni permisos de escritura, incluso para PRs desde forks.
+# - `permissions` se declara explícitamente en modo lectura para reforzar el principio de menor
+#   privilegio, en caso de que la organización tenga defaults más permisivos.
+# - No hace checkout de forks con `ref` del PR para ejecutar nada que no sea lectura de diffs
+#   y linteo de texto; no instala dependencias del PR ni ejecuta scripts del repo del contribuidor.
+# - Lo que este workflow NO verifica: no evalúa si el contenido del PR es correcto semánticamente,
+#   no reemplaza code review humano, no puede impedir que alguien edite el body del PR después
+#   de que un humano ya aprobó (por eso el merge real debe depender de branch protection /
+#   CODEOWNERS / GitHub Environment approval, no solo de este checklist textual).
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  execution-report-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify execution report is filled out
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const rawBody = context.payload.pull_request.body || "";
+            const errors = [];
+
+            // Strip HTML comments FIRST. Sin esto, texto de ejemplo o un
+            // checkbox marcado dentro de un comentario del template podría
+            // satisfacer los checks de abajo sin que un humano lo haya escrito.
+            const body = rawBody.replace(/<!--[\s\S]*?-->/g, "");
+
+            function inlineFieldValue(label) {
+              const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              const re = new RegExp("\\*\\*" + escaped + ":\\*\\*\\s*(.*)");
+              const m = body.match(re);
+              return m ? m[1].trim() : null;
+            }
+
+            function blockSectionContent(heading) {
+              const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              const re = new RegExp("## " + escaped + "[ \\t]*\\n([\\s\\S]*?)(?=\\n## |\\n---|$)");
+              const m = body.match(re);
+              return m ? m[1].trim() : null;
+            }
+
+            // 1. Debe referenciar un Work Order issue real (con número)
+            const loopVal = inlineFieldValue("LOOP ID / Issue");
+            if (!loopVal || !/#\d+/.test(loopVal)) {
+              errors.push("PR debe referenciar un Work Order issue real (formato '**LOOP ID / Issue:** #123').");
+            }
+
+            // 2. Campos inline del bloque "Work Order" no pueden quedar vacíos
+            for (const label of ["Baseline verificado (HEAD inicial)", "HEAD final (este PR)", "Rama de trabajo"]) {
+              if (!inlineFieldValue(label)) {
+                errors.push(`Falta completar el campo: "${label}".`);
+              }
+            }
+
+            // 3. Secciones de bloque deben tener contenido real, no solo el header
+            for (const heading of ["Implementation summary", "Files modified", "Recommended next action"]) {
+              if (!blockSectionContent(heading)) {
+                errors.push(`La sección "${heading}" está vacía.`);
+              }
+            }
+
+            // 4. Campos inline de semantic review
+            for (const label of ["Scope alignment", "Architecture alignment", "Acceptance criteria"]) {
+              if (!inlineFieldValue(label)) {
+                errors.push(`Falta completar el campo de semantic review: "${label}".`);
+              }
+            }
+
+            // 5. Deviations no puede quedar en blanco (comentarios ya fueron eliminados)
+            if (!blockSectionContent("Deviations from work order")) {
+              errors.push('La sección "Deviations from work order" no puede quedar vacía. Escribir "Ninguna" si no aplica.');
+            }
+
+            // 6. El checkbox de merge gate humano debe estar marcado fuera de cualquier comentario
+            if (!/-\s*\[x\]\s*Confirmo que revis[eé] este execution report/i.test(body)) {
+              errors.push("El checkbox de 'Human merge gate' debe estar marcado antes de mergear.");
+            }
+
+            if (errors.length > 0) {
+              core.setFailed("Execution report incompleto:\n- " + errors.join("\n- "));
+            } else {
+              console.log("Execution report OK.");
+            }
+
+  forbidden-paths-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List changed files
+        id: changed
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=50
+          git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD > changed_files.txt
+          cat changed_files.txt
+
+      - name: Block edits to canonical/forbidden paths without scope-exception label
+        env:
+          HAS_EXCEPTION_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'scope-exception-approved') }}
+        run: |
+          FORBIDDEN_PATTERN='^(openspec/canonical-documents-registry|openspec/architecture-freeze|governance/|project.manifest.json)'
+
+          MATCHES=$(grep -E "$FORBIDDEN_PATTERN" changed_files.txt || true)
+
+          if [ -n "$MATCHES" ] && [ "$HAS_EXCEPTION_LABEL" != "true" ]; then
+            echo "Los siguientes archivos son canónicos/forbidden y requieren aprobación explícita:"
+            echo "$MATCHES"
+            echo ""
+            echo "Si este cambio fue autorizado por Work/human gate, agregar la label 'scope-exception-approved' al PR."
+            exit 1
+          fi
+
+          echo "OK: sin cambios no autorizados en paths canónicos."
