@@ -1,4 +1,4 @@
-> **Superseded Notice**
+> *Superseded Notice*
 >
 > This document contains pre-AF-2.0 terminology and is superseded by:
 > - KEMS-001 Confidence Graph Model
