@@ -33,12 +33,11 @@ describe('Phase 8 migration parity', () => {
     }
   })
 
-  it('058 was intentionally deleted (table evidence_class renamed to evidence_class_ref in 045)', () => {
-    // Commit 05751139 deleted 058_phase8_rls_and_evidence_grants.sql because
-    // evidence_class was renamed to evidence_class_ref in migration 045, and 058's
-    // GRANT referencing evidence_class became invalid. The RLS/grants were handled
-    // directly in 045 (see evidence_class_ref rename) and 056-057.
-    expect(existsSync(join(SUPABASE, '058_phase8_rls_and_evidence_grants.sql'))).toBe(false)
+  it('058 exists (restored in KAD-002–012 with phase8 grants idempotent)', () => {
+    // Deleted in 05751139 (clean reset chain) because evidence_class→evidence_class_ref.
+    // Restored in 5b75948f (KAD-002–012 and Sprint 1) with idempotent DO blocks.
+    // File now exists and is intentionally part of the canonical migration chain.
+    expect(existsSync(join(SUPABASE, '058_phase8_rls_and_evidence_grants.sql'))).toBe(true)
   })
 
   it('database 046 is discovery_core (not Phase 8 lineage)', () => {
