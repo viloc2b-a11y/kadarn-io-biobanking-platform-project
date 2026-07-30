@@ -39,6 +39,8 @@ export const LocationSchema = z.object({
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
   status: LocationStatus.default('active'),
+  valid_from: z.string().datetime({ offset: true }).optional().nullable(),
+  valid_until: z.string().datetime({ offset: true }).optional().nullable(),
   created_at: z.string().datetime({ offset: true }),
   updated_at: z.string().datetime({ offset: true }),
 })

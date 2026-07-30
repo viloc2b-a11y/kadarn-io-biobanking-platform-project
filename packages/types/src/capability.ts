@@ -182,3 +182,56 @@ export const CreateCapabilityClaimLinkSchema = z.object({
   weight: z.number().min(0).max(1).optional(),
 })
 export type CreateCapabilityClaimLink = z.infer<typeof CreateCapabilityClaimLinkSchema>
+
+// ─── Capability State (Block 02-C: Temporal Tracking) ───────────────────
+// Authority: Architecture Alignment Audit v2, Block 02-C
+//
+// Each capability has a chronological chain of state records.
+// When a capability transitions (declared → documented → verified),
+// a new row is inserted and the previous row's valid_until is set.
+//
+// The state enum values:
+//   - declared   — capability asserted by the institution, not yet backed
+//   - documented — capability has documentation/evidence submitted
+//   - verified   — capability has been independently verified/reviewed
+//
+// Maps to: DB `capability_state_type` enum (migration 092).
+
+export const CapabilityStateType = z.enum([
+  'declared',
+  'documented',
+  'verified',
+])
+export type CapabilityStateType = z.infer<typeof CapabilityStateType>
+
+export const CapabilityStateSchema = z.object({
+  id: z.string().uuid(),
+  capability_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  state: CapabilityStateType,
+  valid_from: z.string().datetime({ offset: true }),
+  valid_until: z.string().datetime({ offset: true }).optional().nullable(),
+  evidence_summary: z.record(z.string(), z.unknown()).optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  created_by: z.string().uuid().optional().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
+})
+export type CapabilityState = z.infer<typeof CapabilityStateSchema>
+
+export const CreateCapabilityStateSchema = z.object({
+  capability_id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  state: CapabilityStateType,
+  valid_from: z.string().datetime({ offset: true }).optional(),
+  evidence_summary: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateCapabilityState = z.infer<typeof CreateCapabilityStateSchema>
+
+export const UpdateCapabilityStateSchema = z.object({
+  valid_until: z.string().datetime({ offset: true }).optional().nullable(),
+  evidence_summary: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type UpdateCapabilityState = z.infer<typeof UpdateCapabilityStateSchema>

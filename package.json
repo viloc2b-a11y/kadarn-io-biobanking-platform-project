@@ -13,7 +13,7 @@
     "lint": "npm run lint -w apps/web",
     "test": "npm run test -w tests",
     "typecheck": "node node_modules/typescript/bin/tsc -p packages/types/tsconfig.json --noEmit && node node_modules/typescript/bin/tsc -p packages/instrumentation/tsconfig.json --noEmit && node node_modules/typescript/bin/tsc -p apps/api/tsconfig.json --noEmit",
-    "audit:deps": "npm audit --audit-level=high",
+    "audit:deps": "bash scripts/audit-deps.sh",
     "test:instrumentation": "npm run test -w @kadarn/instrumentation",
     "sbom:generate": "bash scripts/generate-sbom.sh",
     "arch:gate": "bash scripts/arch-gate.sh",

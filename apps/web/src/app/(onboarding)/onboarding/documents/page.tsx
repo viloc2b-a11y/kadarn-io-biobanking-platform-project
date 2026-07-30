@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { DomainHeader } from '../../components/domain-header'
 import { useOnboarding, type UploadedDoc } from '@/lib/onboarding/onboarding-context'
 import { DOCUMENT_IMPORTANCE, DOCUMENT_TAXONOMY, type CanonicalDocument, type DocumentImportance } from '@/lib/onboarding/document-taxonomy'
@@ -11,16 +11,17 @@ export default function DocumentsPage() {
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleFile = async (file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     setError(null)
     const uploadedAt = new Date().toISOString()
+    const label = file.name.replace(/\.[^/.]+$/, '')
     const doc: UploadedDoc = {
-      label: file.name.replace(/\.[^/.]+$/, ''),
+      label,
       type: 'uploaded',
       uploaded: true,
       fileName: file.name,
       fileSize: file.size,
-      status: 'uploaded',
+      status: 'converting',
       uploadedAt,
     }
     addDocument(doc)
@@ -44,8 +45,8 @@ export default function DocumentsPage() {
         status: 'converted',
         markdown: payload.markdown,
         characterCount: payload.characterCount,
-        convertedAt: payload.convertedAt,
-        converter: payload.converter,
+        convertedAt: payload.convertedAt ?? new Date().toISOString(),
+        converter: payload.converter ?? 'markitdown',
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Document conversion failed.'
@@ -58,19 +59,20 @@ export default function DocumentsPage() {
         ...(markdown ? { markdown, characterCount: markdown.length } : {}),
       })
     }
-  }
+  }, [addDocument])
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
     const files = Array.from(e.dataTransfer.files)
     void Promise.all(files.map(handleFile))
-  }
+  }, [handleFile])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     void Promise.all(files.map(handleFile))
-  }
+    e.target.value = ''
+  }, [handleFile])
 
   return (
     <div className="max-w-3xl mx-auto py-8">
@@ -124,20 +126,27 @@ export default function DocumentsPage() {
             {state.uploadedDocs.map((doc, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <span className={doc.status === 'failed' || doc.status === 'error' ? 'text-red-500' : doc.status === 'converted' || doc.status === 'uploaded' ? 'text-green-500' : 'text-amber-500'}>
-                    {doc.status === 'failed' || doc.status === 'error' ? '!' : doc.status === 'converted' || doc.status === 'uploaded' ? '✓' : '…'}
+                  <span className={doc.status === 'failed' || doc.status === 'error' ? 'text-red-500' : doc.status === 'converted' ? 'text-green-500' : doc.status === 'converting' ? 'text-blue-500' : doc.status === 'uploaded' ? 'text-green-500' : 'text-amber-500'}>
+                    {doc.status === 'failed' || doc.status === 'error' ? '!' : doc.status === 'converted' || doc.status === 'uploaded' ? '✓' : doc.status === 'converting' ? '⏳' : '…'}
                   </span>
                   <div>
                     <div className="font-medium text-sm text-gray-800">{doc.label}</div>
                     {doc.fileName && <div className="text-xs text-gray-400">{doc.fileName} · {(doc.fileSize ?? 0) > 0 ? `${Math.round((doc.fileSize ?? 0) / 1024)} KB` : ''}</div>}
                     <div className="mt-1 text-xs text-gray-500">
                       {doc.status === 'converted'
-                        ? `Converted with MarkItDown · ${doc.characterCount ?? 0} characters`
+                        ? `Converted with ${doc.converter ?? 'MarkItDown'} · ${(doc.characterCount ?? 0).toLocaleString()} characters`
                         : doc.status === 'failed' || doc.status === 'error'
                           ? `Uploaded; conversion unavailable: ${doc.error}`
+                        : doc.status === 'converting'
+                          ? 'Converting with MarkItDown…'
                           : doc.status === 'uploaded'
                             ? 'Uploaded and attached to onboarding state'
                           : 'Converting with MarkItDown…'}
+                      {doc.status === 'converting' && (
+                        <span className="ml-2 inline-block w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden align-middle">
+                          <span className="block h-full bg-blue-500 rounded-full animate-pulse w-3/4" />
+                        </span>
+                      )}
                     </div>
                     {doc.markdown && (
                       <pre className="mt-2 max-h-32 max-w-xl overflow-auto whitespace-pre-wrap rounded bg-gray-50 p-2 text-xs text-gray-700">
@@ -267,6 +276,7 @@ function normalizeDocumentName(value: string): string {
 function uploadStatusLabel(document: UploadedDoc): string {
   if (document.status === 'converted') return 'Uploaded and converted'
   if (document.status === 'error' || document.status === 'failed') return 'Uploaded; conversion unavailable'
+  if (document.status === 'converting') return 'Converting…'
   if (document.status === 'uploaded') return 'Uploaded'
   return 'Uploaded'
 }

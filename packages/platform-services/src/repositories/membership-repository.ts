@@ -20,6 +20,8 @@ export interface MembershipRecord {
   suspension_reason: string | null
   termination_reason: string | null
   metadata: unknown | null
+  valid_from: string | null
+  valid_until: string | null
   created_at: string
   updated_at: string
 }
@@ -41,6 +43,8 @@ export interface RoleAssignmentRecord {
   assigned_by: string | null
   assigned_at: string
   expires_at: string | null
+  valid_from: string | null
+  valid_until: string | null
 }
 
 function mapError(error: { code?: string; message?: string; details?: unknown }): { code: string; message: string; details?: unknown } | null {

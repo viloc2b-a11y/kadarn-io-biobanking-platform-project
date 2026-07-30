@@ -1,0 +1,39 @@
+id: WO-EXAMPLE-001
+version: "1.0"
+title: Replace with a bounded implementation objective
+program: KADARN Transformation Program
+workstream: engineering
+priority: medium
+risk_class: standard
+objective: State the measurable outcome.
+scope:
+  include:
+    - path/or/component
+  exclude:
+    - unrelated changes
+repository:
+  target: owner/repository
+  base_branch: master
+  working_branch: feat/wo-example-001
+  expected_head: "0000000000000000000000000000000000000000"
+paths:
+  authorized:
+    - path/or/component/
+  prohibited:
+    - secrets/
+deliverables:
+  - implementation
+acceptance_criteria:
+  - Observable behavior is verified.
+validation_commands:
+  - npm test
+evidence_requirements:
+  - test output
+rollback:
+  strategy: Revert the Work Order commit.
+adr_required: false
+human_gate:
+  required: false
+  decision_ref: null
+final_report:
+  path: governance/work-orders/WO-EXAMPLE-001/evidence/final-report.md

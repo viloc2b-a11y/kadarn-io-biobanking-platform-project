@@ -24,6 +24,7 @@ export const PersonSchema = z.object({
   profile_photo_url: z.string().url().optional().nullable(),
   status: PersonStatus.default('active'),
   auth_user_id: z.string().uuid().optional().nullable(),
+  alias_resolution_attributes: z.any().optional().nullable(),
   created_at: z.string().datetime({ offset: true }),
   updated_at: z.string().datetime({ offset: true }),
 })

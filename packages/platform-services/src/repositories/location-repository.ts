@@ -23,6 +23,8 @@ export interface LocationRecord {
   latitude: number | null
   longitude: number | null
   status: string
+  valid_from: string | null
+  valid_until: string | null
   created_at: string
   updated_at: string
 }

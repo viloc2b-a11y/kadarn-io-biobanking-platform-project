@@ -15,6 +15,7 @@ export * from './review';
 export * from './knowledge';
 export * from './passport';
 export * from './readiness';
+export * from './assessment';
 
 // Evidence & sources
 export * from './evidence';
