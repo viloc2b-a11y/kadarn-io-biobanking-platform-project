@@ -254,20 +254,43 @@ export default function OnboardingWizardPage() {
         </div>
       )}
 
-      {/* Step dots navigation (mobile-friendly) */}
+      {/* Step stepper navigation */}
       {!isResultsStep && (
-        <div className="mt-6 flex justify-center gap-1.5">
-          {WIZARD_STEPS.filter((s) => s !== 'results').map((s, i) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => goToStep(s)}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                i === stepIndex ? 'bg-blue-600' : i < stepIndex ? 'bg-green-400' : 'bg-gray-300'
-              }`}
-              title={`Go to ${STEP_LABELS[s]}`}
-            />
-          ))}
+        <div className="mt-8">
+          <div className="flex items-center justify-center gap-0">
+            {WIZARD_STEPS.filter((s) => s !== 'results').map((s, i) => (
+              <div key={s} className="flex items-center gap-0">
+                <button
+                  type="button"
+                  onClick={() => goToStep(s)}
+                  className={`group flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
+                    i === stepIndex
+                      ? 'bg-blue-600 text-white shadow-md scale-110'
+                      : i < stepIndex
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                        : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                  }`}
+                  title={`Go to ${STEP_LABELS[s]}`}
+                >
+                  <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                    i === stepIndex
+                      ? 'bg-white text-blue-600'
+                      : i < stepIndex
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-300 text-gray-500'
+                  }`}>
+                    {i < stepIndex ? '✓' : i + 1}
+                  </span>
+                  <span className="hidden sm:inline">{STEP_LABELS[s]}</span>
+                </button>
+                {i < WIZARD_STEPS.filter((s) => s !== 'results').length - 1 && (
+                  <div className={`w-6 h-0.5 ${
+                    i < stepIndex ? 'bg-green-400' : 'bg-gray-200'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
