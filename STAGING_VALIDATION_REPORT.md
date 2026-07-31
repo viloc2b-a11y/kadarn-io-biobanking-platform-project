@@ -106,17 +106,29 @@ Re-run of migration 098: **0 real errors.** Idempotent.
 
 ---
 
-## 9. Conclusion
+## 9. I1 Remediation — RLS Column Reference Fix (2026-07-30)
 
-**STAGING VALIDATION: CONDITIONAL PASS**
+**Issue:** Migration 095 had 5 RLS policies referencing `c.institution_id` — the claims table uses `organization_id`.
 
-- Data preserved: ✅
-- Tenant isolation: ✅
-- Smoke tests: ✅
-- Idempotency: ✅
-- Blocking issues: 0
+**Fix:** Changed all 5 occurrences of `c.institution_id` → `c.organization_id` in migration 095 (lines 246, 287, 317, 352, 388).
 
-**Recommendation:** Fix issue I1 (RLS column reference) before production. The migration chain is otherwise production-ready.
+**Verification:**
+| Test | Result |
+|---|---|
+| Migration 095 re-apply: 0 real errors | ✅ |
+| RLS policies active: 368 (was 363) | ✅ |
+| Vilo admin isolated to Vilo | ✅ |
+| Tenant2 admin isolated to Tenant2 | ✅ |
+| Data preserved: 9 orgs, 2 claims, 2 profiles | ✅ |
+
+## 10. Conclusion (Updated)
+
+**STAGING VALIDATION: PASS — I1 RESOLVED**
+- All 5 RLS policies corrected
+- 0 real errors on clean apply
+- Tenant isolation runtime verified
+- Data integrity confirmed
+- Ready for production decision
 
 ---
 

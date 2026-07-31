@@ -243,7 +243,7 @@ CREATE POLICY cext_select_org ON public.claims_ext
         EXISTS (
             SELECT 1 FROM public.claims c
             WHERE c.id = claims_ext.claim_id
-              AND c.institution_id IN (
+              AND c.organization_id IN (
                 SELECT om.organization_id
                 FROM public.organization_memberships om
                 WHERE om.user_id = auth.uid()
@@ -284,7 +284,7 @@ CREATE POLICY catt_select_org ON public.claim_attestations
         EXISTS (
             SELECT 1 FROM public.claims c
             WHERE c.id = claim_attestations.claim_id
-              AND c.institution_id IN (
+              AND c.organization_id IN (
                 SELECT om.organization_id
                 FROM public.organization_memberships om
                 WHERE om.user_id = auth.uid()
@@ -314,7 +314,7 @@ CREATE POLICY cdep_select_org ON public.claim_dependencies
         EXISTS (
             SELECT 1 FROM public.claims c
             WHERE c.id = claim_dependencies.parent_claim_id
-              AND c.institution_id IN (
+              AND c.organization_id IN (
                 SELECT om.organization_id
                 FROM public.organization_memberships om
                 WHERE om.user_id = auth.uid()
@@ -349,7 +349,7 @@ CREATE POLICY ccon_select_org ON public.claim_conflicts
         EXISTS (
             SELECT 1 FROM public.claims c
             WHERE c.id = claim_conflicts.claim_a
-              AND c.institution_id IN (
+              AND c.organization_id IN (
                 SELECT om.organization_id
                 FROM public.organization_memberships om
                 WHERE om.user_id = auth.uid()
@@ -385,7 +385,7 @@ CREATE POLICY crec_select_org ON public.claim_reconfirmations
         EXISTS (
             SELECT 1 FROM public.claims c
             WHERE c.id = claim_reconfirmations.claim_id
-              AND c.institution_id IN (
+              AND c.organization_id IN (
                 SELECT om.organization_id
                 FROM public.organization_memberships om
                 WHERE om.user_id = auth.uid()
