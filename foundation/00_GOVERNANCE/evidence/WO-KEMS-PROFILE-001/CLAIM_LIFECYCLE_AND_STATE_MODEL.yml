@@ -1,0 +1,319 @@
+# CLAIM LIFECYCLE AND STATE MODEL
+# KADARN Self-Claim Governance — Formal State Machine
+# Reference: W3C VC credentialStatus + Attestix UCAN delegation + KEMS-001
+# Baseline: WO-KEMS-DOC-001 ACCEPTED, WO-KEMS-DOC-002 ACCEPTED, WO-KEMS-DOC-003 REPORT_READY
+
+claim_lifecycle:
+  states:
+    - id: "submitted"
+      description: "User drafted the claim; not yet institutionally confirmed"
+      entry_action: "record_assertion"
+      allowed_by: ["any_authenticated_user"]
+      transitions_to: ["pending_attestation", "rejected"]
+
+    - id: "pending_attestation"
+      description: "Waiting for authorized role confirmation"
+      entry_action: "notify_authorized_reviewer"
+      allowed_by: ["authorized_role"]
+      transitions_to: ["declared_unsupported", "rejected", "submitted"]
+
+    - id: "declared_unsupported"
+      description: "Institution confirmed; no evidence attached. Cannot produce High Readiness."
+      entry_action: "set_confidence:low"
+      allowed_by: ["authorized_role"]
+      transitions_to: ["declared_documented", "disputed", "expired", "superseded", "withdrawn"]
+
+    - id: "declared_documented"
+      description: "Evidence linked and reviewed; not externally verified"
+      entry_action: "set_confidence:moderate"
+      allowed_by: ["evidence_linkage"]
+      transitions_to: ["verified", "disputed", "expired", "superseded", "withdrawn"]
+
+    - id: "verified"
+      description: "External corroboration confirmed (registry, third party, sponsor)"
+      entry_action: "set_confidence:high"
+      allowed_by: ["external_verification"]
+      transitions_to: ["disputed", "expired", "superseded"]
+
+    - id: "disputed"
+      description: "Counter-evidence or internal consistency conflict exists"
+      entry_action: "flag_for_review,notify_claim_owner"
+      allowed_by: ["counter_evidence_detection", "consistency_check"]
+      transitions_to: ["declared_documented", "verified", "withdrawn", "superseded"]
+
+    - id: "expired"
+      description: "Claim or supporting evidence temporal validity expired"
+      entry_action: "degrade_readiness,notify_site"
+      allowed_by: ["expiration_cron", "document_expired"]
+      transitions_to: ["declared_documented", "verified", "superseded"]
+
+    - id: "superseded"
+      description: "Replaced by a newer version (v1 → v2)"
+      entry_action: "link_superseded_by,preserve_history"
+      allowed_by: ["claim_correction"]
+      transitions_to: []  # Terminal for this version
+
+    - id: "withdrawn"
+      description: "Institution removed the claim"
+      entry_action: "archive_claim,update_passport"
+      allowed_by: ["authorized_role"]
+      transitions_to: []  # Terminal
+
+    - id: "rejected"
+      description: "Failed boundedness test, taxonomy review, or duplicate detection"
+      entry_action: "notify_submitter_with_reason"
+      allowed_by: ["boundedness_test", "taxonomy_review"]
+      transitions_to: ["submitted"]
+
+    - id: "unknown"
+      description: "Not yet assessed — user hasn't answered or hasn't been asked"
+      entry_action: null
+      allowed_by: []
+      transitions_to: ["submitted", "not_applicable"]
+
+    - id: "not_applicable"
+      description: "Does not apply to this entity (e.g., pharmacy for site with no pharmacy)"
+      entry_action: null
+      allowed_by: ["any_authenticated_user"]
+      transitions_to: ["submitted"]
+
+  # ─── Transition Guard Conditions ────────────────────────────────────
+  guards:
+    record_assertion:
+      requires: ["authenticated_user"]
+      validates: ["boundedness_test"]
+      produces: ["claim_hash", "assertion_record"]
+
+    boundedness_test:
+      validates:
+        - "WHO: asserting_entity is not null"
+        - "WHAT: capability_statement is specific and verifiable"
+        - "WHERE: entity_scope is defined"
+        - "CONTEXT: applicable_conditions provided"
+        - "SINCE: effective_date is set"
+      rejects_if_vague:
+        - "Generic superlatives (expert, leader, compliant, best)"
+        - "Unbounded capabilities (any study, all phases)"
+        - "Missing entity scope"
+
+    evidence_linkage:
+      requires: ["evidence_node_id"]
+      validates: ["evidence_class"]
+      produces: ["claim_evidence_link", "confidence_score_update"]
+
+    external_verification:
+      requires: ["verification_source", "verification_method", "verification_date"]
+      validates: ["source_authenticity"]
+      produces: ["verification_record", "confidence_score_update:high"]
+
+    consistency_check:
+      triggers_on: ["claim_vs_document_conflict", "two_claims_conflict", "claim_vs_profile_conflict"]
+      produces: ["INTERNAL_CONSISTENCY_CONFLICT"]
+      auto_resolve: false
+
+    expiration_cron:
+      checks: ["claim_valid_until", "evidence_expiration_date"]
+      action_on_expiry: "transition_to:expired"
+      notify: ["site_contact", "claim_owner"]
+
+    claim_correction:
+      requires: ["correction_reason", "corrected_by"]
+      produces: ["new_claim_version", "supersedes_link"]
+      preserves: ["original_claim_v1", "correction_audit_trail"]
+
+  # ─── Confidence Scoring Rules ────────────────────────────────────────
+  confidence_rules:
+    declared_unsupported:
+      min: 0.0
+      max: 0.3
+      readiness_impact: "may_establish_applicability_only"
+      passport_visible: true
+      strength_indicator: "low"
+
+    declared_documented:
+      min: 0.3
+      max: 0.7
+      readiness_impact: "contributes_to_moderate_readiness"
+      passport_visible: true
+      strength_indicator: "moderate"
+      required_for: ["capability_portfolio", "readiness_assessment"]
+
+    verified:
+      min: 0.7
+      max: 1.0
+      readiness_impact: "may_produce_high_readiness"
+      passport_visible: true
+      strength_indicator: "high"
+      required_for: ["sponsor_package_transfer"]
+
+    disputed:
+      confidence: "suspended"
+      readiness_impact: "blocks_readiness_contribution"
+      passport_visible: true
+      strength_indicator: "conflict"
+      display_rule: "show_dispute_with_evidence"
+
+    expired:
+      confidence: "degraded_to_baseline"
+      readiness_impact: "removed_from_readiness"
+      passport_visible: false
+      retention: "preserve_as_history"
+
+  # ─── Claim Type Ontology ─────────────────────────────────────────────
+  claim_types:
+    SELF_DECLARED_CLAIM:
+      weight_base: 0.1
+      evidence_required: false
+      can_elevate_readiness: false
+      transfer_eligible: false
+
+    DOCUMENT_DERIVED_CLAIM:
+      weight_base: 0.5
+      evidence_required: true
+      can_elevate_readiness: true
+      transfer_eligible: true
+
+    EXTERNALLY_ASSERTED_CLAIM:
+      weight_base: 1.0
+      evidence_required: true
+      can_elevate_readiness: true
+      transfer_eligible: true
+
+    OPERATIONALLY_OBSERVED_CLAIM:
+      weight_base: 0.7
+      evidence_required: true
+      can_elevate_readiness: true
+      transfer_eligible: false
+
+    SYSTEM_INFERRED_CLAIM:
+      weight_base: 0.0
+      evidence_required: false
+      can_elevate_readiness: false
+      transfer_eligible: false
+
+    NEGATIVE_DECLARATION:
+      weight_base: 0.5
+      evidence_required: false
+      can_elevate_readiness: false
+      transfer_eligible: true
+      special: "useful_for_qualification_not_capability"
+
+    CUSTOM_CLAIM_PROPOSAL:
+      weight_base: 0.0
+      evidence_required: false
+      can_elevate_readiness: false
+      transfer_eligible: false
+      requires: ["terminology_review", "duplicate_detection", "boundedness_test", "taxonomy_approval"]
+
+# ─── Assertion Authority Matrix ────────────────────────────────────────
+assertion_authority:
+  roles:
+    site_administrator:
+      can_declare:
+        - "institutional_identity"
+        - "locations"
+        - "contacts"
+        - "general_information"
+      cannot_declare:
+        - "clinical_capabilities"
+        - "lab_certifications"
+        - "regulatory_compliance"
+        - "equipment_certifications"
+      attestation_level: "institutional"
+
+    principal_investigator:
+      can_declare:
+        - "clinical_experience"
+        - "therapeutic_areas"
+        - "study_phases"
+        - "own_credentials"
+        - "research_personnel"
+      cannot_declare:
+        - "institutional_licenses"
+        - "equipment_certifications"
+        - "pharmacy_capabilities"
+      attestation_level: "professional"
+
+    laboratory_director:
+      can_declare:
+        - "lab_capabilities"
+        - "lab_certifications"
+        - "lab_equipment"
+        - "lab_sops"
+        - "biospecimen_processing"
+      cannot_declare:
+        - "clinical_experience"
+        - "pharmacy"
+        - "regulatory_startup"
+      attestation_level: "technical"
+
+    equipment_manager:
+      can_declare:
+        - "equipment_inventory"
+        - "calibration_records"
+        - "maintenance_records"
+      cannot_declare:
+        - "lab_certifications"
+        - "clinical_claims"
+      attestation_level: "operational"
+
+    quality_manager:
+      can_declare:
+        - "capa_records"
+        - "internal_audits"
+        - "quality_metrics"
+      cannot_declare:
+        - "clinical_claims"
+        - "investigator_credentials"
+      attestation_level: "internal"
+
+  delegation_rules:
+    - "Authority can be delegated with scope restriction (UCAN capability attenuation)"
+    - "Delegate cannot expand beyond delegator's own authority scope"
+    - "Delegation has expiry; auto-revoked unless renewed"
+    - "Delegation chain is fully verified before any claim is accepted"
+
+# ─── Periodic Reconfirmation ────────────────────────────────────────────
+reconfirmation:
+  applicable_to: ["SELF_DECLARED_CLAIM", "DOCUMENT_DERIVED_CLAIM"]
+  default_interval_days: 365
+  prompt: "Do you still maintain this capability?"
+  responses:
+    confirmed_unchanged:
+      action: "extend_valid_until_by_interval"
+    confirmed_with_changes:
+      action: "create_new_version_with_changes"
+    temporarily_unavailable:
+      action: "suspend_claim_days:90"
+    no_longer_available:
+      action: "withdraw_claim"
+    unknown:
+      action: "escalate_to_reviewer"
+  no_response:
+    after_days: 30
+    action: "mark_pending_review"
+    after_days: 90
+    action: "mark_expired"
+    after_days: 180
+    action: "archive"
+
+# ─── Internal Consistency Checks ────────────────────────────────────────
+consistency:
+  triggers:
+    - type: "claim_vs_document"
+      detection: "Claim statement contradicts uploaded document content"
+      severity: "high"
+      action: "flag_for_review, notify_both_sources"
+    - type: "two_claims_conflict"
+      detection: "Two claims make mutually exclusive statements"
+      severity: "high"
+      action: "flag_for_review, present_both_with_evidence"
+    - type: "claim_vs_profile"
+      detection: "Claim contradicts institutional profile data"
+      severity: "medium"
+      action: "flag_for_review"
+  resolution:
+    auto_resolve: false
+    requires: "human_reviewer"
+    display: "public_with_both_sources_cited"
+    never: ["auto_select_one_claim", "delete_contradicting_evidence"]
