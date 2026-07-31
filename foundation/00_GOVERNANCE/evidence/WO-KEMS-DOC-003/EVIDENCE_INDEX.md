@@ -62,16 +62,16 @@ implementation_destinations:
 
 ## Revision Findings Applied
 
-| Finding | Correction |
-|---|---|
-| C1: Numerical discrepancy | 48 total, 34 reusable seeds confirmed |
-| C2: Unclassified→PROHIBITED | Reclassified as QUARANTINE_PENDING_CLASSIFICATION |
-| C3: Missing state transitions | Added ACCEPTED, REVISION_REQUIRED, REJECTED |
-| C4: Missing EVIDENCE_INDEX | Created (this file) |
-| C5: DOC-002 Rev 3 non-authoritative | Noted as classification input only |
-| C6: Package contradictions | FDA 1572 → Study Workspace only; lifecycle endpoints separated |
-| C7: seed_candidate binary | Replaced with implementation_destination (6 values) |
-| C8: Study/structured/restricted | Correct destinations assigned |
+| Finding | Correction | Files Modified |
+|---|---|---|
+| C1: Numerical discrepancy | 48 total, 34 REUSABLE_DOCUMENT_TAXONOMY confirmed | state.yml, KPO_RECONCILIATION_REPORT.md |
+| C2: Unclassified→PROHIBITED | Reclassified as QUARANTINE_PENDING_CLASSIFICATION; PROHIBITED_CONTENT separated | DOCUMENT_TAXONOMY_CLASSIFICATION_MATRIX.md ✅ |
+| C3: Missing state transitions | Added ACCEPTED, REVISION_REQUIRED, REJECTED | state.yml |
+| C4: Missing EVIDENCE_INDEX | Created (this file) | EVIDENCE_INDEX.md |
+| C5: DOC-002 Rev 3 non-authoritative | Noted as classification input only | KPO_RECONCILIATION_REPORT.md |
+| C6: Package contradictions | FDA 1572 → Study Workspace only (TRANSFER_PROHIBITED); lifecycle endpoints separated | DOCUMENT_PACKAGE_BEHAVIOR_MATRIX.md ✅ (218 lines changed) |
+| C7: seed_candidate binary | Replaced with implementation_destination (6 values) | DOCUMENT_TAXONOMY_CLASSIFICATION_MATRIX.md ✅ (170 lines changed) |
+| C8: Entity ownership terminology | legal_owner, record_subject, custodian, issuing_authority applied | DOCUMENT_ENTITY_OWNERSHIP_MATRIX.md ✅ (229 lines changed) |
 
 ---
 

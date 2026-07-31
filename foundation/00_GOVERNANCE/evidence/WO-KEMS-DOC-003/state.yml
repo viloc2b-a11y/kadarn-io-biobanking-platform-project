@@ -3,13 +3,14 @@
 
 work_order_id: WO-KEMS-DOC-003
 title: Site Evidence Requirements Catalog and Taxonomy Classification
-current_state: REVISION_REQUIRED
-previous_state: REPORT_READY
+current_state: REPORT_READY
+previous_state: REVISION_REQUIRED
 created: "2026-07-30T21:30:00Z"
-updated: "2026-07-30T22:15:00Z"
+updated: "2026-07-30T22:45:00Z"
 revision_count: 1
 revision_baseline: 1e1b0836c7dc1fbe5449f0b1580d334f541a62a1
-revision_requested_by: Vilo (Human Gate)
+revision_completed_at: "2026-07-30T22:45:00Z"
+revision_findings_resolved: 8
 revision_findings:
   - "C1: Numerical discrepancy (35 vs 34 seeds; 46 vs 48 types)"
   - "C2: Unclassified Document incorrectly classified as PROHIBITED"
