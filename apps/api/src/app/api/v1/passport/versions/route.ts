@@ -11,9 +11,6 @@ const versionsQuerySchema = z.object({
   profileId: z.string().uuid(),
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DbClient = any;
-
 // ─── GET — list version history for a profile ────────────────────────────
 export const GET = withAuth(async (request, _user, _params) => {
   try {
@@ -28,10 +25,10 @@ export const GET = withAuth(async (request, _user, _params) => {
     }
 
     const { profileId } = parsed.data;
-    const db = createServiceClient() as unknown as DbClient;
+    const supabase = createServiceClient();
 
     // Fetch the profile to verify it exists
-    const { data: profile, error: profileErr } = await db
+    const { data: profile, error: profileErr } = await supabase
       .from('site_profiles')
       .select('id, name, profile_type, state, current_version')
       .eq('id', profileId)
@@ -42,7 +39,7 @@ export const GET = withAuth(async (request, _user, _params) => {
     }
 
     // Fetch all version snapshots, newest first
-    const { data: versions, error: versionsErr } = await db
+    const { data: versions, error: versionsErr } = await supabase
       .from('site_profile_versions')
       .select('*')
       .eq('profile_id', profileId)
@@ -53,23 +50,16 @@ export const GET = withAuth(async (request, _user, _params) => {
     }
 
     // Fetch publication events
-    const { data: publications, error: pubErr } = await db
+    const { data: publications } = await supabase
       .from('profile_publications')
       .select('id, profile_version_id, visibility, published_at, published_by, public_uri, registry_id')
       .eq('profile_id', profileId)
       .order('published_at', { ascending: false });
 
-    if (pubErr) {
-      // Publications are optional — don't fail the request
-    }
-
     // Enrich versions with publication info
     const enrichedVersions = (versions ?? []).map((version: any) => {
       const pub = (publications ?? []).find((p: any) => p.profile_version_id === version.id);
-      return {
-        ...version,
-        publication: pub ?? null,
-      };
+      return { ...version, publication: pub ?? null };
     });
 
     return Response.json({

@@ -12,10 +12,6 @@ import {
   type ProfileServiceLike,
   type CapabilityServiceLike,
   type ClaimServiceLike,
-  type CapabilityInstanceRepositoryLike,
-  type CapabilityStateRepositoryLike,
-  type CapabilityActivationEventRepositoryLike,
-  type ReadinessContributionRepositoryLike,
   type CapabilityGap,
   type ProfileReadinessContribution,
 } from '@kadarn/platform-services';
@@ -31,15 +27,12 @@ const publishBodySchema = z.object({
   profileId: z.string().uuid(),
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DbClient = any;
-
 // ─── ProfileServiceLike adapter ──────────────────────────────────────────
 
-function createProfileServiceLike(db: DbClient): ProfileServiceLike {
+function createProfileServiceLike(supabase: ReturnType<typeof createServiceClient>): ProfileServiceLike {
   return {
     async getProfile(profileId: string) {
-      const { data: profile, error } = await db
+      const { data: profile, error } = await supabase
         .from('site_profiles')
         .select('*')
         .eq('id', profileId)
@@ -48,13 +41,13 @@ function createProfileServiceLike(db: DbClient): ProfileServiceLike {
         throw new Error(`Profile not found: ${profileId}`);
       }
 
-      const { data: versions } = await db
+      const { data: versions } = await supabase
         .from('site_profile_versions')
         .select('*')
         .eq('profile_id', profileId)
         .order('version', { ascending: false });
 
-      const { data: attestations } = await db
+      const { data: attestations } = await supabase
         .from('profile_attestations')
         .select('*')
         .eq('profile_id', profileId);
@@ -67,7 +60,7 @@ function createProfileServiceLike(db: DbClient): ProfileServiceLike {
     },
 
     async calculateCompleteness(profileId: string) {
-      const { data: profile } = await db
+      const { data: profile } = await supabase
         .from('site_profiles')
         .select('content')
         .eq('id', profileId)
@@ -75,16 +68,13 @@ function createProfileServiceLike(db: DbClient): ProfileServiceLike {
 
       const content = (profile?.content as Record<string, unknown>) ?? {};
       const totalSections = Object.keys(content).length;
-
-      // Simple completeness: count non-null, non-empty sections
       const filled = Object.values(content).filter(
-        (v) => v !== null && v !== undefined && v !== '' && JSON.stringify(v) !== '{}' && JSON.stringify(v) !== '[]',
+        (v) => v !== null && v !== undefined && v !== '' &&
+          JSON.stringify(v) !== '{}' && JSON.stringify(v) !== '[]',
       ).length;
-
       const completenessPct = totalSections > 0 ? Math.round((filled / totalSections) * 100) : 0;
 
-      // Attestation coverage
-      const { count: attestationCount } = await db
+      const { count: attestationCount } = await supabase
         .from('profile_attestations')
         .select('*', { count: 'exact', head: true })
         .eq('profile_id', profileId);
@@ -103,87 +93,60 @@ function createProfileServiceLike(db: DbClient): ProfileServiceLike {
 
 // ─── CapabilityServiceLike adapter ───────────────────────────────────────
 
-function createCapabilityServiceLike(db: DbClient): CapabilityServiceLike {
-  // Build a minimal CapabilityService with KEMS repos for gaps + readiness
-  const instanceRepo: CapabilityInstanceRepositoryLike = {
-    async findById(id: string) {
-      const { data, error } = await db.from('kems_capabilities').select('*').eq('id', id).single();
-      if (error) {
-        if (error.code === 'PGRST116') return { data: null, error: null };
-        return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
-      }
-      return { data, error: null };
-    },
-    async listByProfile(profileId: string, filters?) {
-      let query = db.from('kems_capabilities').select('*').eq('profile_id', profileId);
-      if (filters?.lifecycleState) query = query.eq('lifecycle_state', filters.lifecycleState as string);
-      if (filters?.area) query = query.eq('area', filters.area as string);
-      const { data, error } = await query;
-      if (error) return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
-      return { data: data ?? [], error: null };
-    },
-    async update(_id: string, _patch: any) {
-      return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only adapter' } };
-    },
-  };
-
-  const stateRepo: CapabilityStateRepositoryLike = {
-    async create(_input: any) {
-      return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only adapter' } };
-    },
-    async listByCapability(_capabilityId: string) {
-      return { data: [], error: null };
-    },
-    async endCurrentState(_capabilityId: string, _validUntil: string) {
-      return { data: null, error: null };
-    },
-  };
-
-  const eventRepo: CapabilityActivationEventRepositoryLike = {
-    async create(_input: any) {
-      return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only adapter' } };
-    },
-    async listByCapability(_capabilityId: string) {
-      return { data: [], error: null };
-    },
-  };
-
-  const readinessRepo: ReadinessContributionRepositoryLike = {
-    async findByCapability(capabilityId: string) {
-      const { data, error } = await db.from('kems_readiness_contributions').select('*').eq('capability_id', capabilityId).single();
-      if (error) {
-        if (error.code === 'PGRST116') return { data: null, error: null };
-        return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
-      }
-      return { data, error: null };
-    },
-    async findByProfile(profileId: string) {
-      const { data, error } = await db.from('kems_readiness_contributions').select('*').eq('profile_id', profileId);
-      if (error) return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
-      return { data: data ?? [], error: null };
-    },
-    async upsert(_capabilityId: string, _input: any) {
-      return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only adapter' } };
-    },
-  };
-
-  const stubCapRepo = {
-    findById: async () => ({ data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }),
-    create: async () => ({ data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }),
-    update: async () => ({ data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }),
-    list: async () => ({ data: [] as any[], error: null }),
-    addClaimLink: async () => ({ data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }),
-    removeClaimLink: async () => ({ data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }),
-    listClaimLinks: async () => ({ data: [] as any[], error: null }),
-    setClaimCount: async () => ({ data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }),
-  } as any;
-
+function createCapabilityServiceLike(supabase: ReturnType<typeof createServiceClient>): CapabilityServiceLike {
   const capabilityService = new CapabilityService(
-    stubCapRepo,
-    instanceRepo,
-    stateRepo,
-    eventRepo,
-    readinessRepo,
+    {} as any,
+    {
+      async findById(id: string) {
+        const { data, error } = await supabase.from('kems_capabilities').select('*').eq('id', id).single();
+        if (error) {
+          if (error.code === 'PGRST116') return { data: null, error: null };
+          return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        }
+        return { data, error: null };
+      },
+      async listByProfile(profileId: string, filters?: { lifecycleState?: string; area?: string }) {
+        let query = supabase.from('kems_capabilities').select('*').eq('profile_id', profileId);
+        if (filters?.lifecycleState) query = query.eq('lifecycle_state', filters.lifecycleState);
+        if (filters?.area) query = query.eq('area', filters.area);
+        const { data, error } = await query;
+        if (error) return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        return { data: data ?? [], error: null };
+      },
+      async update() {
+        return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only' } };
+      },
+    },
+    // capability states
+    {
+      async create() { return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }; },
+      async listByCapability() { return { data: [], error: null }; },
+      async endCurrentState() { return { data: null, error: null }; },
+    },
+    // activation events
+    {
+      async create() { return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }; },
+      async listByCapability() { return { data: [], error: null }; },
+    },
+    // readiness contributions
+    {
+      async findByCapability(capabilityId: string) {
+        const { data, error } = await supabase.from('kems_readiness_contributions').select('*').eq('capability_id', capabilityId).single();
+        if (error) {
+          if (error.code === 'PGRST116') return { data: null, error: null };
+          return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        }
+        return { data, error: null };
+      },
+      async findByProfile(profileId: string) {
+        const { data, error } = await supabase.from('kems_readiness_contributions').select('*').eq('profile_id', profileId);
+        if (error) return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        return { data: data ?? [], error: null };
+      },
+      async upsert() {
+        return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only' } };
+      },
+    },
   );
 
   return {
@@ -198,19 +161,17 @@ function createCapabilityServiceLike(db: DbClient): CapabilityServiceLike {
 
 // ─── ClaimServiceLike adapter ────────────────────────────────────────────
 
-function createClaimServiceLike(db: DbClient): ClaimServiceLike {
+function createClaimServiceLike(supabase: ReturnType<typeof createServiceClient>): ClaimServiceLike {
   return {
     async getClaimWithEvidence(claimId: string) {
-      const { data: claim, error } = await db.from('claims').select('*').eq('id', claimId).single();
+      const { data: claim, error } = await supabase.from('claims').select('*').eq('id', claimId).single();
       if (error || !claim) {
         throw new Error(`Claim not found: ${claimId}`);
       }
-
-      const { data: evidenceLinks } = await db
+      const { data: evidenceLinks } = await supabase
         .from('claim_evidence')
         .select('evidence_id')
         .eq('claim_id', claimId);
-
       return {
         claim: claim as any,
         evidenceLinks: (evidenceLinks ?? []) as any[],
@@ -222,11 +183,11 @@ function createClaimServiceLike(db: DbClient): ClaimServiceLike {
 // ─── Service factory ──────────────────────────────────────────────────────
 
 function getPublicationService(): PublicationService {
-  const db = createServiceClient() as unknown as DbClient;
+  const supabase = createServiceClient();
   return new PublicationService(
-    createProfileServiceLike(db),
-    createCapabilityServiceLike(db),
-    createClaimServiceLike(db),
+    createProfileServiceLike(supabase),
+    createCapabilityServiceLike(supabase),
+    createClaimServiceLike(supabase),
   );
 }
 
@@ -245,7 +206,6 @@ export const GET = withAuth(async (request, _user, _params) => {
 
     const { profileId } = parsed.data;
     const service = getPublicationService();
-
     const passport = await service.generatePassportProjection(profileId);
 
     return Response.json({ data: passport, error: null });
@@ -254,7 +214,7 @@ export const GET = withAuth(async (request, _user, _params) => {
   }
 });
 
-// ─── POST — publish profile (validate eligibility) ────────────────────────
+// ─── POST — publish profile (validate eligibility + generate) ─────────────
 export const POST = withAuth(async (request, _user, _params) => {
   try {
     const body = await request.json() as Record<string, unknown>;
@@ -269,31 +229,19 @@ export const POST = withAuth(async (request, _user, _params) => {
     const { profileId } = parsed.data;
     const service = getPublicationService();
 
-    // Step 1: Validate eligibility
     const eligibility = await service.validatePublicationEligibility(profileId);
 
     if (!eligibility.isEligible) {
       return Response.json(
-        {
-          data: null,
-          error: 'Profile is not eligible for publication',
-          eligibility,
-        },
+        { data: null, error: 'Profile is not eligible for publication', eligibility },
         { status: 422 },
       );
     }
 
-    // Step 2: Generate the passport projection
     const passport = await service.generatePassportProjection(profileId);
 
     return Response.json(
-      {
-        data: {
-          passport,
-          eligibility,
-        },
-        error: null,
-      },
+      { data: { passport, eligibility }, error: null },
       { status: 200 },
     );
   } catch (error) {
