@@ -1,0 +1,125 @@
+# SITE PROFILE STATE MACHINE — Executable Specification
+# WO-KEMS-PRODUCTION-001 — Fase 0
+# Schema: profile-state-machine/v1
+
+schema: profile-state-machine/v1
+version: "1.0.0"
+baseline: WO-KEMS-DOC-003 ACCEPTED (da31b78)
+
+states:
+  - id: DRAFT
+    description: "Profile created but no substantive data entered"
+    entry_action: "create_empty_profile"
+    allowed_actors: ["site_administrator", "authorized_representative"]
+    transitions_to: ["DATA_COLLECTION", "ARCHIVED"]
+
+  - id: DATA_COLLECTION
+    description: "Structured facts and onboarding answers being collected"
+    entry_action: "activate_onboarding_modules"
+    allowed_actors: ["site_administrator", "pi", "lab_director", "coordinator"]
+    transitions_to: ["CLAIM_CONFIRMATION_REQUIRED", "EVIDENCE_PENDING"]
+
+  - id: CLAIM_CONFIRMATION_REQUIRED
+    description: "Claims drafted; awaiting institutional confirmation"
+    entry_action: "notify_authorized_confirmers"
+    allowed_actors: ["authorized_representative", "pi", "lab_director"]
+    transitions_to: ["EVIDENCE_PENDING", "DATA_COLLECTION", "UNDER_REVIEW"]
+
+  - id: EVIDENCE_PENDING
+    description: "Claims confirmed; evidence gaps identified"
+    entry_action: "generate_evidence_requests"
+    allowed_actors: ["any_profile_editor"]
+    transitions_to: ["UNDER_REVIEW", "PUBLISHABLE"]
+
+  - id: UNDER_REVIEW
+    description: "Profile submitted for institutional review"
+    entry_action: "notify_reviewers, lock_profile_for_editing"
+    allowed_actors: ["authorized_representative"]
+    transitions_to: ["PUBLISHABLE", "DATA_COLLECTION", "SUSPENDED"]
+
+  - id: PUBLISHABLE
+    description: "Profile reviewed and eligible for publication"
+    entry_action: "calculate_readiness, generate_passport_preview"
+    allowed_actors: ["authorized_representative"]
+    transitions_to: ["PUBLISHED", "UPDATE_REQUIRED"]
+
+  - id: PUBLISHED
+    description: "Profile published — visible to network/sponsors per visibility policy"
+    entry_action: "generate_passport_version, record_publication_event"
+    allowed_actors: []
+    transitions_to: ["UPDATE_REQUIRED", "SUSPENDED", "ARCHIVED"]
+
+  - id: UPDATE_REQUIRED
+    description: "Evidence expired, claim decayed, or reconfirmation overdue"
+    entry_action: "notify_site, flag_expired_items"
+    allowed_actors: ["any_profile_editor"]
+    transitions_to: ["DATA_COLLECTION", "PUBLISHABLE"]
+
+  - id: SUSPENDED
+    description: "Profile temporarily unavailable (dispute, legal hold, administrative)"
+    entry_action: "hide_passport, notify_dependents"
+    allowed_actors: ["kadarn_admin", "authorized_representative"]
+    transitions_to: ["UNDER_REVIEW", "ARCHIVED"]
+
+  - id: ARCHIVED
+    description: "Profile permanently deactivated"
+    entry_action: "archive_all_claims_and_evidence, remove_passport"
+    allowed_actors: ["authorized_representative"]
+    transitions_to: []  # Terminal
+
+transitions:
+  - from: DRAFT
+    to: DATA_COLLECTION
+    guard: "at_least_one_onboarding_section_started"
+    actor: "any_profile_editor"
+
+  - from: DATA_COLLECTION
+    to: CLAIM_CONFIRMATION_REQUIRED
+    guard: "at_least_one_claim_drafted AND no_evidence_attached"
+    actor: "any_profile_editor"
+
+  - from: DATA_COLLECTION
+    to: EVIDENCE_PENDING
+    guard: "claims_confirmed AND evidence_gaps_exist"
+    actor: "authorized_representative"
+
+  - from: EVIDENCE_PENDING
+    to: UNDER_REVIEW
+    guard: "all_critical_evidence_uploaded OR site_requests_review"
+    actor: "authorized_representative"
+
+  - from: UNDER_REVIEW
+    to: PUBLISHABLE
+    guard: "review_approved AND minimum_readiness_reached"
+    actor: "authorized_representative"
+
+  - from: PUBLISHABLE
+    to: PUBLISHED
+    guard: "attestation_valid AND publication_authorized"
+    actor: "authorized_representative"
+
+  - from: PUBLISHED
+    to: UPDATE_REQUIRED
+    guard: "evidence_expired OR claim_decayed OR reconfirmation_overdue"
+    actor: "system"
+
+  - from: UPDATE_REQUIRED
+    to: DATA_COLLECTION
+    guard: "site_acknowledges_update"
+    actor: "any_profile_editor"
+
+completion_dimensions:
+  - identity_completeness
+  - people_completeness
+  - location_completeness
+  - structured_data_completeness
+  - claim_completeness
+  - evidence_coverage
+  - evidence_currency
+  - attestation_completeness
+  - review_completeness
+
+rule:
+  - "No single completion percentage represents readiness"
+  - "completion ≠ readiness"
+  - "readiness requires evidence-backed + reviewed claims"

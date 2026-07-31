@@ -1,0 +1,90 @@
+# CLAIM STATE MACHINE — Executable Specification
+# WO-KEMS-PRODUCTION-001
+# Schema: claim-state-machine/v1
+
+schema: claim-state-machine/v1
+version: "1.0.0"
+baseline: WO-KEMS-DOC-003 ACCEPTED, CLAIM_LIFECYCLE_AND_STATE_MODEL.yml
+
+states:
+  - DRAFT
+  - SUBMITTED
+  - PENDING_CONFIRMATION
+  - DECLARED_UNSUPPORTED
+  - EVIDENCE_ASSOCIATED
+  - UNDER_REVIEW
+  - SUPPORTED
+  - CONTRADICTED
+  - LIMITED
+  - EXPIRED
+  - TEMPORARILY_UNAVAILABLE
+  - WITHDRAWN
+  - SUPERSEDED
+  - ARCHIVED
+
+claim_types:
+  SELF_DECLARED:
+    weight_base: 0.1
+    can_elevate_readiness: false
+  DOCUMENT_DERIVED:
+    weight_base: 0.5
+    can_elevate_readiness: true
+  EXTERNALLY_ASSERTED:
+    weight_base: 0.8
+    can_elevate_readiness: true
+    requires_corroboration: true
+  OPERATIONALLY_OBSERVED:
+    weight_base: 0.7
+    can_elevate_readiness: true
+  SYSTEM_INFERRED:
+    weight_base: 0.0
+    can_elevate_readiness: false
+
+capture_states:
+  - NOT_COLLECTED
+  - UNKNOWN
+  - PENDING_CONFIRMATION
+  - DECLARED_YES
+  - EXPLICIT_NO
+  - NOT_APPLICABLE
+
+transitions:
+  draft_to_submitted:
+    guard: "boundedness_test_passed AND actor_authorized"
+  submitted_to_pending_confirmation:
+    guard: "institution_confirmation_required AND claim_is_self_declared"
+  pending_confirmation_to_declared_unsupported:
+    guard: "authorized_representative_confirmed"
+  declared_to_evidence_associated:
+    guard: "at_least_one_evidence_link_created"
+  evidence_associated_to_supported:
+    guard: "evidence_reviewed AND confidence_at_least_moderate"
+  supported_to_contradicted:
+    guard: "counter_evidence_detected OR internal_consistency_conflict"
+  any_to_expired:
+    guard: "claim_expired OR evidence_expired OR reconfirmation_failed"
+  any_to_superseded:
+    guard: "new_version_created AND correction_reason_provided"
+  any_to_withdrawn:
+    guard: "authorized_actor_withdraws"
+
+boundedness_test:
+  dimensions:
+    - who: { required: true, min_score: 1 }
+    - what: { required: true, min_score: 1 }
+    - where: { required: true, min_score: 1 }
+    - context: { required: false, min_score: 0 }
+    - since: { required: true, min_score: 1 }
+    - until: { required: false }
+    - volume: { required: false }
+    - limitations: { required: false }
+  minimum_total_score: 10
+  maximum_total_score: 16
+
+rules:
+  - "Self-claim alone → DECLARED_UNSUPPORTED maximum"
+  - "DECLARED_UNSUPPORTED → cannot produce HIGH readiness"
+  - "System suggestion → DRAFT, never auto-confirmed"
+  - "High-impact claim → requires human_review OR external_corroboration"
+  - "Contradiction → never deleted; displayed with both sources"
+  - "Correction → new version, old superseded, audit preserved"

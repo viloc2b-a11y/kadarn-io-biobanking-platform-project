@@ -1,0 +1,105 @@
+# ONBOARDING RULES — Executable Specification
+# WO-KEMS-PRODUCTION-001
+# Schema: onboarding-rules/v1
+
+schema: onboarding-rules/v1
+version: "1.0.0"
+
+institution_types:
+  clinical_research_site:
+    required_sections: [organization, locations, people, infrastructure, equipment, capabilities, claims]
+    conditional_sections: [pharmacy, biospecimen, imaging]
+    n/a_sections: []
+    evidence_expectations: "standard_clinical"
+
+  community_research_site:
+    required_sections: [organization, locations, people, capabilities, claims]
+    conditional_sections: [pharmacy, lab_infrastructure]
+    n/a_sections: [phase1_unit]
+    evidence_expectations: "community_based"
+
+  phase1_unit:
+    required_sections: [organization, locations, people, infrastructure, equipment, pharmacy, capabilities, claims]
+    conditional_sections: [biospecimen]
+    n/a_sections: []
+    evidence_expectations: "phase1_enhanced"
+
+  central_laboratory:
+    required_sections: [organization, locations, people, lab_infrastructure, equipment, capabilities, claims]
+    conditional_sections: [pharmacy]
+    n/a_sections: [patient_recruitment, clinical_trials_experience]
+    evidence_expectations: "lab_intensive"
+
+  biorepository:
+    required_sections: [organization, locations, equipment, capabilities, claims]
+    conditional_sections: [lab_infrastructure, pharmacy]
+    n/a_sections: [clinical_trials_experience, patient_recruitment]
+    evidence_expectations: "storage_focused"
+
+  biospecimen_collection_site:
+    required_sections: [organization, locations, people, infrastructure, equipment, capabilities, claims]
+    conditional_sections: [lab_infrastructure]
+    n/a_sections: [pharmacy]
+    evidence_expectations: "collection_focused"
+
+  diagnostics_ivd_lab:
+    required_sections: [organization, locations, people, lab_infrastructure, equipment, capabilities, claims]
+    conditional_sections: []
+    n/a_sections: [pharmacy, patient_recruitment]
+    evidence_expectations: "diagnostics_focused"
+
+  specialty_practice:
+    required_sections: [organization, locations, people, capabilities, claims]
+    conditional_sections: [equipment, lab_infrastructure]
+    n/a_sections: [phase1_unit, biospecimen]
+    evidence_expectations: "practice_based"
+
+  processing_laboratory:
+    required_sections: [organization, locations, people, lab_infrastructure, equipment, capabilities, claims]
+    conditional_sections: []
+    n/a_sections: [pharmacy, patient_recruitment]
+    evidence_expectations: "processing_intensive"
+
+  imaging_center:
+    required_sections: [organization, locations, people, equipment, capabilities, claims]
+    conditional_sections: [lab_infrastructure]
+    n/a_sections: [pharmacy, biospecimen]
+    evidence_expectations: "imaging_focused"
+
+  recruitment_network:
+    required_sections: [organization, locations, capabilities, claims]
+    conditional_sections: [people]
+    n/a_sections: [lab_infrastructure, pharmacy, equipment, biospecimen]
+    evidence_expectations: "recruitment_focused"
+
+  technology_data_provider:
+    required_sections: [organization, technology_systems, capabilities, claims]
+    conditional_sections: [locations]
+    n/a_sections: [lab_infrastructure, pharmacy, biospecimen, patient_recruitment]
+    evidence_expectations: "technology_focused"
+
+answer_to_claim_pipeline:
+  steps:
+    - "Onboarding Answer"
+    - "Structured Fact"
+    - "Claim Candidate"
+    - "Institution Confirmation"
+    - "Evidence Association"
+    - "Reviewed Claim"
+    - "Capability Projection"
+  rule: "An answer must not auto-convert to a published claim"
+
+onboarding_behavior:
+  dynamic_branching: true
+  skip_irrelevant_sections: true
+  allow_unknown: true
+  allow_not_applicable: true
+  max_sections_per_session: 10
+  progress_tracking: "per_dimension"
+
+time_target:
+  first_useful_passport_minutes: 60
+
+evidence_requests:
+  auto_generate_on: ["claim_confirmed", "high_impact_claim", "capability_activation_attempt"]
+  priority_order: ["critical_gaps_first", "expired_first", "missing_mandatory_first"]
