@@ -69,13 +69,18 @@ dependencies:
 
 ---
 
-## Contradictions Detected
+## Contradictions Detected (Revised)
 
-| # | Contradiction | Severity |
-|---|---|---|
-| C1 | WO-KEMS-DOC-002 was ACCEPTED at Revision 2 (e9581aa), but Revision 3 (982313a) added 24 gap types to the taxonomy after acceptance. The KPO LOOP instructs: "No reabrir WO-KEMS-DOC-002." The 24 types in Revision 3 should be treated as gap identification candidates for WO-KEMS-DOC-003 classification, not as accepted seeds. | 🟡 LOW — resolvable by classification in DOC-003 |
-| C2 | Missing governance documents: KPO_DECISION_REGISTER.md, WORK_ORDER_CATALOG.yml, KPO_CURRENT_STATE.yml, per-WO EVIDENCE_INDEX.md files. These are structural gaps in the governance framework. | 🟡 MEDIUM — should be created as part of DOC-003 |
-| C3 | The 24 gap types identified in the gap analysis were directly added to the WO-KEMS-DOC-002 taxonomy document without going through classification. Per LOOP §2, each must be classified into one of 9 primary classes before being considered a taxonomy seed. | 🟡 MEDIUM — resolved by WO-KEMS-DOC-003 classification |
+| # | Contradiction | Severity | Resolution |
+|---|---|---|---|
+| C1 | WO-KEMS-DOC-002 Revision 3 (982313a) added 24 gap types after acceptance. KPO LOOP instructs: "No reabrir WO-KEMS-DOC-002." | 🟡 LOW | Resolved: DOC-003 treats these as classification input only. Post-acceptance Revision 3 of DOC-002 is non-authoritative for design and seed approval. |
+| C2 | Missing governance documents: KPO_DECISION_REGISTER.md, WORK_ORDER_CATALOG.yml, KPO_CURRENT_STATE.yml. | 🟡 MEDIUM | Noted. These global registers are outside DOC-003 scope. DOC-003 creates its own EVIDENCE_INDEX.md. |
+| C3 | Unclassified Document incorrectly classified as PROHIBITED. D13 requires backfill conservador — unclassified ≠ prohibited. | 🔴 HIGH | Resolved: Unclassified reclassified as QUARANTINE_PENDING_CLASSIFICATION. PROHIBITED_CONTENT is a separate concept from taxonomy types. |
+| C4 | State transitions missing ACCEPTED/REVISE/REJECTED from allowed_next_states in state.yml. | 🔴 HIGH | Resolved: allowed_next_states now includes ACCEPTED, REVISION_REQUIRED, REJECTED, BLOCKED. |
+| C5 | seed_candidate binary (yes/no) conflates different outcomes. Study-specific ≠ rejected, structured data ≠ rejected. | 🟡 MEDIUM | Resolved: Replaced with implementation_destination (6 values). |
+| C6 | Package behavior contradictions: FDA 1572 had external_transfer_prohibited=true but lifecycle ending in authorized. | 🔴 HIGH | Resolved: Lifecycle endpoints separated. FDA 1572 → Study Workspace only. |
+| C7 | Entity ownership terminology conflates legal_owner, custodian, record_subject. | 🟡 LOW | Resolved: Entity matrix now uses legal_owner, record_subject, custodian, issuing_authority. |
+| C8 | Count discrepancy: 46 vs 48 types, 34 vs 35 seeds. | 🟡 LOW | Resolved: Authoritative count is 48 total, 34 REUSABLE_DOCUMENT_TAXONOMY. |
 
 ---
 
