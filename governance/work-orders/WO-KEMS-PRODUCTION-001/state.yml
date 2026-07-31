@@ -1,8 +1,8 @@
 # WO-KEMS-PRODUCTION-001 — State Machine
 work_order_id: WO-KEMS-PRODUCTION-001
-current_state: REVISION_REQUIRED
-previous_state: READY_FOR_PRODUCTION_REVIEW
-review_commit: b9c2cebf0512da828ba386d1c76e981d5079b549
+current_state: READY_FOR_PRODUCTION_REVIEW
+previous_state: REVISION_REQUIRED
+revision_completed: true
 implementation_commit: 6ef7b117
 starting_commit: da31b78284245aadc5cfd6c0b6b465f2d17f2c47
 branch: feat/kems-site-profile-production
