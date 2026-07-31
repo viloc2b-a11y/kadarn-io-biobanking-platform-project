@@ -22,6 +22,11 @@ export * from './evidence';
 export * from './sources';
 export * from './kems-claim';
 
+// KEMS Site Profile Production types
+export * from './site-profile';
+export * from './claim-extended';
+export * from './evidence-governance';
+
 // Forward-port types (KAD-LOOP-CANONICALIZATION-001)
 export * from './events';
 export * from './generation-rule';
