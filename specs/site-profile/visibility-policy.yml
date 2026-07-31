@@ -1,0 +1,55 @@
+# VISIBILITY POLICY — Executable Specification
+# WO-KEMS-PRODUCTION-001
+# Schema: visibility-policy/v1
+
+schema: visibility-policy/v1
+version: "1.0.0"
+
+levels:
+  PUBLIC:
+    applies_to: ["institution_name", "therapeutic_areas", "study_phase_experience", "capability_summaries"]
+    default_for: ["institutional_identity"]
+  NETWORK_VISIBLE:
+    applies_to: ["capability_details_aggregated", "readiness_levels", "geographic_reach"]
+    default_for: ["structured_profile_data"]
+  RECIPIENT_AUTHORIZED:
+    applies_to: ["detailed_capacity", "equipment_inventory", "staff_credentials_redacted", "document_metadata"]
+    requires: "recipient_specific_authorization"
+  KADARN_INTERNAL:
+    applies_to: ["internal_review_notes", "quality_metrics"]
+  SITE_ONLY:
+    applies_to: ["exact_volumes", "vendor_relationships", "internal_audit_detail", "prior_sponsor_detail"]
+  RESTRICTED:
+    applies_to: ["proprietary_workflows", "contractual_terms", "financial_data"]
+  PROHIBITED:
+    applies_to: ["PHI", "patient_lists", "credentials", "secrets"]
+
+projection_rules:
+  detailed_to_summary:
+    example: "Three validated -80°C freezers, 180K aliquots → Validated ultra-low-temperature storage available"
+    applies_to: ["equipment_capacity", "storage_volume", "personnel_count"]
+  redaction_required_for: ["staff_names_external", "exact_patient_volumes", "sponsor_names_non_authorized"]
+  metadata_only_for: ["restricted_documents", "confidential_contracts"]
+
+visibility_matrix:
+  claims:
+    SELF_DECLARED: "NETWORK_VISIBLE"
+    DOCUMENT_DERIVED: "RECIPIENT_AUTHORIZED"
+    EXTERNALLY_ASSERTED: "RECIPIENT_AUTHORIZED"
+    NEGATIVE_DECLARATION: "NETWORK_VISIBLE"
+  evidence:
+    stored_evidence: "RECIPIENT_AUTHORIZED"
+    reviewed_not_stored: "METADATA_ONLY"
+    private_restricted: "SITE_ONLY"
+    restricted_evidence: "KADARN_INTERNAL"
+  capabilities:
+    ACTIVE: "PUBLIC"
+    EVIDENCE_BACKED: "NETWORK_VISIBLE"
+    DECLARED: "NETWORK_VISIBLE"
+    INACTIVE: "SITE_ONLY"
+
+rules:
+  - "Published Passport ≠ authorized file transfer"
+  - "Passport must reference a specific profile version"
+  - "Visibility of contradictions matches visibility of affected claims"
+  - "Document visibility is per-document; claim visibility is per-claim"

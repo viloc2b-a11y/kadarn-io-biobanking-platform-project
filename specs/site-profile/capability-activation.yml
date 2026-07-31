@@ -1,0 +1,66 @@
+# CAPABILITY ACTIVATION — Executable Specification
+# WO-KEMS-PRODUCTION-001
+# Schema: capability-activation/v1
+
+schema: capability-activation/v1
+version: "1.0.0"
+
+states:
+  - DECLARED
+  - PARTIALLY_SUPPORTED
+  - EVIDENCE_BACKED
+  - REVIEWED
+  - ACTIVE
+  - LIMITED
+  - TEMPORARILY_UNAVAILABLE
+  - INACTIVE
+
+activation_conditions:
+  from_declared_to_partially_supported:
+    requires: "at_least_one_component_claim_supported"
+  from_partial_to_evidence_backed:
+    requires: "all_critical_claims_supported AND no_expired_evidence"
+  from_evidence_backed_to_reviewed:
+    requires: "human_review_completed OR auto_validated"
+  from_reviewed_to_active:
+    requires: "all_dependencies_active AND no_blocking_contradictions"
+  active_to_limited:
+    triggers: ["dependency_degraded", "evidence_expired_minor"]
+  any_to_inactive:
+    triggers: ["critical_dependency_failed", "all_evidence_expired", "capability_withdrawn"]
+
+dependency_types:
+  ALL_REQUIRED:
+    degradation: "parent_degraded_if_any_component_fails"
+  ANY_SUFFICIENT:
+    degradation: "parent_degraded_if_all_components_fail"
+  N_OF_M:
+    degradation: "parent_degraded_if_below_n"
+
+capability_areas:
+  - clinical_trials_phase_1
+  - clinical_trials_phase_2_4
+  - biospecimen_collection
+  - sample_processing
+  - biobanking_storage
+  - diagnostics_ivd
+  - international_shipping
+  - patient_recruitment
+  - imaging_services
+  - pharmacy_ip_management
+
+readiness_contribution:
+  DECLARED: 0.1
+  PARTIALLY_SUPPORTED: 0.3
+  EVIDENCE_BACKED: 0.6
+  REVIEWED: 0.8
+  ACTIVE: 1.0
+  LIMITED: 0.4
+  TEMPORARILY_UNAVAILABLE: 0.0
+  INACTIVE: 0.0
+
+rules:
+  - "Capability at Location A does not propagate to Location B"
+  - "No KADARN-certified label"
+  - "Confidence from source authority × recency × specificity × consistency"
+  - "Self-claim alone → DECLARED max; never → ACTIVE without evidence"

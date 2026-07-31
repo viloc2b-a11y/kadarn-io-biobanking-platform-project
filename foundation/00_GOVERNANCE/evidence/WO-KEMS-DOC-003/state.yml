@@ -1,0 +1,72 @@
+# WO-KEMS-DOC-003 — State Machine
+# KPO Governance — REVISION_REQUIRED (Human Gate feedback applied)
+
+work_order_id: WO-KEMS-DOC-003
+title: Site Evidence Requirements Catalog and Taxonomy Classification
+current_state: REPORT_READY
+previous_state: REVISION_REQUIRED
+created: "2026-07-30T21:30:00Z"
+updated: "2026-07-30T22:45:00Z"
+revision_count: 1
+revision_baseline: 1e1b0836c7dc1fbe5449f0b1580d334f541a62a1
+revision_completed_at: "2026-07-30T22:45:00Z"
+revision_findings_resolved: 8
+revision_findings:
+  - "C1: Numerical discrepancy (35 vs 34 seeds; 46 vs 48 types)"
+  - "C2: Unclassified Document incorrectly classified as PROHIBITED"
+  - "C3: State transitions missing ACCEPTED/REVISE/REJECTED"
+  - "C4: Missing EVIDENCE_INDEX.md"
+  - "C5: Post-acceptance Revision 3 of DOC-002 non-authoritative for seeds"
+  - "C6: Package behavior contradictions (external_transfer_prohibited vs authorized)"
+  - "C7: seed_candidate binary replaced with implementation_destination"
+  - "C8: Study-specific/structured-data/restricted need correct destinations"
+
+phase: DOCUMENTATION_ONLY
+runtime_changes: NONE
+database_changes: NONE
+code_changes: NONE
+
+dependencies:
+  WO-KEMS-DOC-001: "ACCEPTED (76e3625)"
+  WO-KEMS-DOC-002: "ACCEPTED (design: e9581aa, governance: 2ef87f7)"
+  authoritative_note: "Post-acceptance Revision 3 of WO-KEMS-DOC-002 (982313a) is not an authoritative design baseline. Its 24 added types are classification input only for DOC-003."
+
+deliverables:
+  - KPO_RECONCILIATION_REPORT.md
+  - DOCUMENT_TAXONOMY_CLASSIFICATION_MATRIX.md
+  - SITE_DOCUMENT_REQUEST_PROFILES.md
+  - DOCUMENT_ENTITY_OWNERSHIP_MATRIX.md
+  - DOCUMENT_PACKAGE_BEHAVIOR_MATRIX.md
+  - SITE_EVIDENCE_REQUIREMENTS_CATALOG.md
+  - state.yml
+  - EVIDENCE_INDEX.md
+
+classification_results:
+  primary_classes: 9
+  total_types: 48
+  implementation_destinations:
+    REUSABLE_DOCUMENT_TAXONOMY: 34
+    STUDY_SPECIFIC_DOCUMENT_TAXONOMY: 5
+    STRUCTURED_PROFILE_DATA: 5
+    RESTRICTED_EVIDENCE_TAXONOMY: 2
+    QUARANTINE_PENDING_CLASSIFICATION: 1
+    PROHIBITED_INGESTION: 1
+  seed_candidates_deprecated: "Replaced by implementation_destination. The 34 REUSABLE_DOCUMENT_TAXONOMY types are the seed candidates for migration 096."
+
+key_rules_preserved:
+  - "D1-D17: All accepted design decisions preserved"
+  - "D17 rule: Eligible ≠ Selected ≠ Authorized"
+  - "No reopening WO-KEMS-DOC-002 design"
+
+allowed_next_states:
+  - REPORT_READY
+  - ACCEPTED
+  - REVISION_REQUIRED
+  - REJECTED
+  - BLOCKED
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  kpo_mode: required
+  next_human_gate: "WO-KEMS-DOC-003 ACCEPT/REVISE/REJECT (after REVISION_REQUIRED → REPORT_READY)"

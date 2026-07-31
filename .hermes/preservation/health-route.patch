@@ -1,0 +1,46 @@
+diff --git a/apps/api/src/app/api/health/route.ts b/apps/api/src/app/api/health/route.ts
+index 9d91bc03..d2b20a53 100644
+--- a/apps/api/src/app/api/health/route.ts
++++ b/apps/api/src/app/api/health/route.ts
+@@ -1,3 +1,4 @@
++import { readFileSync } from 'node:fs'
+ import {
+   apiSuccessResponse,
+   createLivenessReport,
+@@ -5,8 +6,35 @@ import {
+ } from '@kadarn/instrumentation'
+ import { bootstrapInstrumentation } from '@/lib/instrumentation-bootstrap'
+ 
++/**
++ * Resolve the service version at module load using the following priority:
++ * 1. KADARN_VERSION env var — allows Docker/CI to inject the exact version.
++ *
++ *    Dockerfile usage:
++ *      ARG VERSION
++ *      ENV KADARN_VERSION=$VERSION
++ *
++ *    This pattern is future-proof for CI/CD pipelines: the build system sets
++ *    VERSION at build time, and the container runtime always reads it from the
++ *    env var without touching the filesystem.
++ *
++ * 2. Read apps/api/package.json at import time (filesystem fallback).
++ * 3. Degrade to "0.0.0-unknown" if both sources fail.
++ */
++function readVersion(): string {
++  try {
++    return (
++      JSON.parse(
++        readFileSync(new URL('../../../../package.json', import.meta.url), 'utf-8'),
++      ) as { version: string }
++    ).version
++  } catch {
++    return '0.0.0-unknown'
++  }
++}
++
+ const START_TIME = Date.now()
+-const VERSION = process.env.npm_package_version ?? '0.2.0'
++const VERSION = process.env.KADARN_VERSION ?? readVersion()
+ 
+ bootstrapInstrumentation()
+ 

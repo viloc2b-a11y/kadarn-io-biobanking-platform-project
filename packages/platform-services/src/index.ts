@@ -77,3 +77,53 @@ export { ConfidenceReplayService } from './confidence-replay-service';
 export { ConfidenceStalenessService } from './confidence-staleness-service';
 export { ConfidenceExplanationService } from './confidence-explanation-service';
 export { ConfidenceScoringEngine } from './confidence-scoring-engine';
+
+// ─── KEMS Site Profile Production — Domain Services ────────────────────
+export { ProfileService, ProfileServiceError } from './profile-service';
+export type {
+  ProfileRepositoryLike,
+  ProfileVersionRepositoryLike,
+  ProfileAttestationRepositoryLike,
+  ProfilePublicationRepositoryLike,
+  PaginatedProfiles,
+  ProfileWithVersions,
+  AttestationData,
+  ProfileVisibilityLevel,
+} from './profile-service';
+
+export { PublicationService, PublicationServiceError } from './publication-service';
+export type {
+  VisibilityLevel,
+  ProfileProjection,
+  InternalView,
+  DiscoveryProfile,
+  PassportProjection,
+  SponsorView,
+  PublicationEligibility,
+  ProfileServiceLike,
+  CapabilityServiceLike,
+  ClaimServiceLike,
+} from './publication-service';
+
+// ─── KEMS Extended claim types (re-exported from claim-service) ─────────
+export type {
+  ClaimExtendedRepositoryLike,
+  ClaimEvidenceLinkRepositoryLike,
+  ClaimReconfirmationRepositoryLike,
+  ClaimCandidateData,
+  BoundednessValidation,
+  ActorAuthorityValidation,
+  ClaimConfirmationResult,
+} from './claim-service';
+
+// ─── KEMS Extended capability types (re-exported from capability-service) ─
+export type {
+  CapabilityInstanceRepositoryLike,
+  CapabilityStateRepositoryLike,
+  CapabilityActivationEventRepositoryLike,
+  ReadinessContributionRepositoryLike,
+  CapabilityEvaluation,
+  ActivationState,
+  CapabilityGap,
+  ProfileReadinessContribution,
+} from './capability-service';

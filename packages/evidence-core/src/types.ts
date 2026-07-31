@@ -57,6 +57,9 @@ export interface VisibilityMetadata {
 
 export type EvidenceNodeStatus = 'active' | 'superseded' | 'disputed' | 'resolved';
 
+/** Canonical epistemic type v2 — Block 01-E (migration 091). */
+export type EpistemicTypeV2 = 'direct' | 'derived' | 'inferred';
+
 export interface EvidenceNode {
   /** Unique identifier */
   id: string;
@@ -80,6 +83,12 @@ export interface EvidenceNode {
   visibility: VisibilityMetadata;
   /** Temporal metadata including decay */
   temporal: TemporalMetadata;
+  /** Block 01-E: FK to evidence_sources — the originating logical source (migration 091) */
+  sourceId?: string;
+  /** Block 01-E: FK to source_records — the acquired record that produced this evidence (migration 076/077/091) */
+  sourceRecordId?: string;
+  /** Block 01-E: Canonical epistemic type — direct, derived, or inferred (migration 091) */
+  epistemicTypeV2?: EpistemicTypeV2;
 }
 
 // --------------------------------------------------------------------------

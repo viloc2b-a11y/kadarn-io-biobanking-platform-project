@@ -1,132 +1,249 @@
-// ============================================================================
-// Passport API
-// ============================================================================
-// GET  /api/v1/passport — Get aggregated passport for current org
-// POST /api/v1/passport/publish — Publish selected claims
-// ============================================================================
+// ==========================================================================
+// KEMS — Passport API (service-backed)
+// ==========================================================================
+// GET  /api/v1/passport?profileId=<uuid> — Get passport projection by profile
+// POST /api/v1/passport — Publish a profile (validate eligibility + projection)
+// ==========================================================================
 
-import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server';
-import { requireValidatedActiveOrg } from '@/lib/workspace';
-import { getClaimsByOrganizationId, getEvidenceNodesByClaim } from '@kadarn/evidence-core';
-import { evaluateClaim } from '@kadarn/readiness-engine';
+import { withAuth, handleApiError, createServiceClient, ApiError } from '@/lib/supabase-server';
+import {
+  PublicationService,
+  CapabilityService,
+  type ProfileServiceLike,
+  type CapabilityServiceLike,
+  type ClaimServiceLike,
+  type CapabilityGap,
+  type ProfileReadinessContribution,
+} from '@kadarn/platform-services';
+import { z } from 'zod';
 
-export const GET = withAuth(async (request, user) => {
+// ─── Query params schema ──────────────────────────────────────────────────
+const passportQuerySchema = z.object({
+  profileId: z.string().uuid(),
+});
+
+// ─── POST body schema ─────────────────────────────────────────────────────
+const publishBodySchema = z.object({
+  profileId: z.string().uuid(),
+});
+
+// ─── ProfileServiceLike adapter ──────────────────────────────────────────
+
+function createProfileServiceLike(supabase: ReturnType<typeof createServiceClient>): ProfileServiceLike {
+  return {
+    async getProfile(profileId: string) {
+      const { data: profile, error } = await supabase
+        .from('site_profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+      if (error || !profile) {
+        throw new Error(`Profile not found: ${profileId}`);
+      }
+
+      const { data: versions } = await supabase
+        .from('site_profile_versions')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('version', { ascending: false });
+
+      const { data: attestations } = await supabase
+        .from('profile_attestations')
+        .select('*')
+        .eq('profile_id', profileId);
+
+      return {
+        profile: profile as any,
+        versions: (versions ?? []) as any[],
+        attestations: (attestations ?? []) as any[],
+      };
+    },
+
+    async calculateCompleteness(profileId: string) {
+      const { data: profile } = await supabase
+        .from('site_profiles')
+        .select('content')
+        .eq('id', profileId)
+        .single();
+
+      const content = (profile?.content as Record<string, unknown>) ?? {};
+      const totalSections = Object.keys(content).length;
+      const filled = Object.values(content).filter(
+        (v) => v !== null && v !== undefined && v !== '' &&
+          JSON.stringify(v) !== '{}' && JSON.stringify(v) !== '[]',
+      ).length;
+      const completenessPct = totalSections > 0 ? Math.round((filled / totalSections) * 100) : 0;
+
+      const { count: attestationCount } = await supabase
+        .from('profile_attestations')
+        .select('*', { count: 'exact', head: true })
+        .eq('profile_id', profileId);
+
+      return {
+        completeness_pct: completenessPct,
+        filled_sections: filled,
+        total_sections: totalSections,
+        attestation_pct: attestationCount ? Math.min(100, Math.round((attestationCount / 2) * 100)) : 0,
+        required_sections_count: totalSections,
+        optional_sections_count: 0,
+      } as any;
+    },
+  };
+}
+
+// ─── CapabilityServiceLike adapter ───────────────────────────────────────
+
+function createCapabilityServiceLike(supabase: ReturnType<typeof createServiceClient>): CapabilityServiceLike {
+  const capabilityService = new CapabilityService(
+    {} as any,
+    {
+      async findById(id: string) {
+        const { data, error } = await supabase.from('kems_capabilities').select('*').eq('id', id).single();
+        if (error) {
+          if (error.code === 'PGRST116') return { data: null, error: null };
+          return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        }
+        return { data, error: null };
+      },
+      async listByProfile(profileId: string, filters?: { lifecycleState?: string; area?: string }) {
+        let query = supabase.from('kems_capabilities').select('*').eq('profile_id', profileId);
+        if (filters?.lifecycleState) query = query.eq('lifecycle_state', filters.lifecycleState);
+        if (filters?.area) query = query.eq('area', filters.area);
+        const { data, error } = await query;
+        if (error) return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        return { data: data ?? [], error: null };
+      },
+      async update() {
+        return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only' } };
+      },
+    },
+    // capability states
+    {
+      async create() { return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }; },
+      async listByCapability() { return { data: [], error: null }; },
+      async endCurrentState() { return { data: null, error: null }; },
+    },
+    // activation events
+    {
+      async create() { return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Not used' } }; },
+      async listByCapability() { return { data: [], error: null }; },
+    },
+    // readiness contributions
+    {
+      async findByCapability(capabilityId: string) {
+        const { data, error } = await supabase.from('kems_readiness_contributions').select('*').eq('capability_id', capabilityId).single();
+        if (error) {
+          if (error.code === 'PGRST116') return { data: null, error: null };
+          return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        }
+        return { data, error: null };
+      },
+      async findByProfile(profileId: string) {
+        const { data, error } = await supabase.from('kems_readiness_contributions').select('*').eq('profile_id', profileId);
+        if (error) return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+        return { data: data ?? [], error: null };
+      },
+      async upsert() {
+        return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only' } };
+      },
+    },
+  );
+
+  return {
+    async getGaps(profileId: string): Promise<CapabilityGap[]> {
+      return capabilityService.getGaps(profileId);
+    },
+    async getReadinessContribution(profileId: string): Promise<ProfileReadinessContribution> {
+      return capabilityService.getReadinessContribution(profileId);
+    },
+  };
+}
+
+// ─── ClaimServiceLike adapter ────────────────────────────────────────────
+
+function createClaimServiceLike(supabase: ReturnType<typeof createServiceClient>): ClaimServiceLike {
+  return {
+    async getClaimWithEvidence(claimId: string) {
+      const { data: claim, error } = await supabase.from('claims').select('*').eq('id', claimId).single();
+      if (error || !claim) {
+        throw new Error(`Claim not found: ${claimId}`);
+      }
+      const { data: evidenceLinks } = await supabase
+        .from('claim_evidence')
+        .select('evidence_id')
+        .eq('claim_id', claimId);
+      return {
+        claim: claim as any,
+        evidenceLinks: (evidenceLinks ?? []) as any[],
+      };
+    },
+  };
+}
+
+// ─── Service factory ──────────────────────────────────────────────────────
+
+function getPublicationService(): PublicationService {
+  const supabase = createServiceClient();
+  return new PublicationService(
+    createProfileServiceLike(supabase),
+    createCapabilityServiceLike(supabase),
+    createClaimServiceLike(supabase),
+  );
+}
+
+// ─── GET — passport projection by profile ─────────────────────────────────
+export const GET = withAuth(async (request, _user, _params) => {
   try {
-    const supabase = await createRouteClient();
-    const organizationId = await requireValidatedActiveOrg(user);
+    const url = new URL(request.url);
+    const rawParams = Object.fromEntries(url.searchParams.entries());
+    const parsed = passportQuerySchema.safeParse(rawParams);
+    if (!parsed.success) {
+      return Response.json(
+        { data: null, error: 'Validation failed', details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
 
-    // Get all claims for this org
-    const claims = await getClaimsByOrganizationId(supabase as any, organizationId);
+    const { profileId } = parsed.data;
+    const service = getPublicationService();
+    const passport = await service.generatePassportProjection(profileId);
 
-    // Get published entries
-    const { data: entries } = await supabase
-      .from('passport_entries')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
-
-    // Evaluate each published claim
-    const publishedClaims = await Promise.all(
-      (entries ?? []).map(async (entry: any) => {
-        const claim = claims.find((c: any) => c.id === entry.claim_id);
-        let confidence = null;
-        try {
-          const evidenceNodes = await getEvidenceNodesByClaim(supabase as any, entry.claim_id);
-          if (claim) {
-            confidence = evaluateClaim({
-              claimId: entry.claim_id,
-              claims: [claim],
-              evidenceNodes,
-              actorId: user.id,
-              correlationId: crypto.randomUUID(),
-            });
-          }
-        } catch { /* not evaluable */ }
-        return {
-          passportEntryId: entry.id,
-          claimId: entry.claim_id,
-          claimName: claim?.name ?? 'Unknown',
-          domain: claim?.domain ?? '',
-          publicationStatus: entry.publication_status,
-          visibility: entry.visibility_scope,
-          publishedAt: entry.published_at,
-          confidence,
-        };
-      }),
-    );
-
-    // Count summary
-    const summary = {
-      totalClaims: claims.length,
-      publishedClaims: publishedClaims.filter((c: any) => c.publicationStatus === 'published').length,
-      draftClaims: publishedClaims.filter((c: any) => c.publicationStatus === 'draft').length,
-      restrictedClaims: publishedClaims.filter((c: any) => c.publicationStatus === 'restricted').length,
-      notPublished: claims.length - (entries?.length ?? 0),
-    };
-
-    return Response.json({ data: { summary, publishedClaims } }, { status: 200 });
+    return Response.json({ data: passport, error: null });
   } catch (error) {
     return handleApiError(error);
   }
 });
 
-export const POST = withAuth(async (request, user) => {
+// ─── POST — publish profile (validate eligibility + generate) ─────────────
+export const POST = withAuth(async (request, _user, _params) => {
   try {
-    const supabase = await createRouteClient();
-    const organizationId = await requireValidatedActiveOrg(user);
     const body = await request.json() as Record<string, unknown>;
-
-    if (!body.claimIds || !Array.isArray(body.claimIds)) {
+    const parsed = publishBodySchema.safeParse(body);
+    if (!parsed.success) {
       return Response.json(
-        { data: null, error: 'Missing required field: claimIds (array)' },
+        { data: null, error: 'Validation failed', details: parsed.error.flatten() },
         { status: 400 },
       );
     }
 
-    const now = new Date().toISOString();
-    const results = [];
+    const { profileId } = parsed.data;
+    const service = getPublicationService();
 
-    for (const claimId of body.claimIds as string[]) {
-      // Upsert passport entry
-      const { data: existing } = await supabase
-        .from('passport_entries')
-        .select('id')
-        .eq('claim_id', claimId)
-        .eq('organization_id', organizationId)
-        .single();
+    const eligibility = await service.validatePublicationEligibility(profileId);
 
-      if (existing) {
-        await supabase
-          .from('passport_entries')
-          .update({
-            publication_status: 'published',
-            visibility_scope: (body.visibility as string) ?? 'sponsor_authorized',
-            authorized_sponsor_ids: (body.authorizedSponsorIds as string[]) ?? [],
-            published_at: now,
-            published_by: user.id,
-            updated_at: now,
-          })
-          .eq('id', existing.id);
-        results.push({ claimId, passportEntryId: existing.id, action: 'updated' });
-      } else {
-        const id = crypto.randomUUID();
-        await supabase
-          .from('passport_entries')
-          .insert({
-            id,
-            organization_id: organizationId,
-            claim_id: claimId,
-            publication_status: 'published',
-            visibility_scope: (body.visibility as string) ?? 'sponsor_authorized',
-            authorized_sponsor_ids: (body.authorizedSponsorIds as string[]) ?? [],
-            published_at: now,
-            published_by: user.id,
-          });
-        results.push({ claimId, passportEntryId: id, action: 'created' });
-      }
+    if (!eligibility.isEligible) {
+      return Response.json(
+        { data: null, error: 'Profile is not eligible for publication', eligibility },
+        { status: 422 },
+      );
     }
 
-    return Response.json({ data: { published: results.length, results } }, { status: 200 });
+    const passport = await service.generatePassportProjection(profileId);
+
+    return Response.json(
+      { data: { passport, eligibility }, error: null },
+      { status: 200 },
+    );
   } catch (error) {
     return handleApiError(error);
   }

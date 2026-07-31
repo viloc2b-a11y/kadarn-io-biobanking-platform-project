@@ -1,0 +1,16 @@
+id: WO-KPO-002
+version: "1.0"
+state: blocked
+requested_transition: authorize
+admissible_transitions:
+  - authorize
+dependencies:
+  - WO-KPO-001 governance bootstrap accepted
+unlock_conditions:
+  - Verify the current full HEAD of master.
+  - Verify or create the authorized working branch.
+  - Record the Human Gate decision reference.
+blockers:
+  - Target repository checkout is not present in this environment.
+  - Current full HEAD is not verified.
+accepted_evidence: []

@@ -2,6 +2,7 @@
 // Authority: KADARN Product Constitution, Evidence Core
 // Canonical Evidence model. Aligns evidence-core with @kadarn/types.
 // KAD-LOOP-002: Reconciled EvidenceClassEnum to DB canonical 6-value model.
+// Block 01-E: Added EpistemicTypeV2, Observation, EvidenceLink, ProvenanceRecordV2 types.
 
 import { z } from 'zod'
 
@@ -52,6 +53,13 @@ export const EvidenceNodeStatus = z.enum([
 ])
 export type EvidenceNodeStatus = z.infer<typeof EvidenceNodeStatus>
 
+// ─── Epistemic Type v2 (Block 01-E, migration 091) ─────────────────────
+// Canonical v2 values: direct (extracted/observed), derived (rule-computed),
+// inferred (AI/LLM). Supplements the migration 076 epistemic_type enum.
+
+export const EpistemicTypeV2 = z.enum(['direct', 'derived', 'inferred'])
+export type EpistemicTypeV2 = z.infer<typeof EpistemicTypeV2>
+
 export const EvidenceSchema = z.object({
   id: z.string().uuid(),
   claim_id: z.string().uuid(),
@@ -70,6 +78,9 @@ export const EvidenceSchema = z.object({
   generator: z.string().optional().nullable(),
   generated_at: z.string().datetime({ offset: true }).optional().nullable(),
   source_record_id: z.string().uuid().optional().nullable(),
+  // Block 01-E v2 fields (migration 091)
+  source_id: z.string().uuid().optional().nullable(),
+  epistemic_type_v2: EpistemicTypeV2.optional().nullable(),
   created_at: z.string().datetime({ offset: true }),
   updated_at: z.string().datetime({ offset: true }),
 })
@@ -114,6 +125,132 @@ export const ReplayResultSchema = z.object({
   replayed_at: z.string().datetime({ offset: true }),
 })
 export type ReplayResult = z.infer<typeof ReplayResultSchema>
+
+// ─── Observation (Block 01-E, migration 091) ───────────────────────────
+// Raw observation extracted from a source record before becoming evidence.
+
+export const ObservationStatus = z.enum([
+  'raw',
+  'processed',
+  'extracted',
+  'superseded',
+  'invalidated',
+])
+export type ObservationStatus = z.infer<typeof ObservationStatus>
+
+export const ObservationSchema = z.object({
+  id: z.string().uuid(),
+  source_record_id: z.string().uuid(),
+  institution_id: z.string().uuid().optional().nullable(),
+  observed_at: z.string().datetime({ offset: true }),
+  observed_by: z.string().uuid().optional().nullable(),
+  content: z.record(z.string(), z.unknown()),
+  content_hash: z.string().optional().nullable(),
+  status: ObservationStatus.default('raw'),
+  locator_json: z.record(z.string(), z.unknown()).optional().nullable(),
+  extraction_run_id: z.string().uuid().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
+})
+export type Observation = z.infer<typeof ObservationSchema>
+
+export const CreateObservationSchema = z.object({
+  source_record_id: z.string().uuid(),
+  institution_id: z.string().uuid().optional(),
+  observed_at: z.string().datetime({ offset: true }).default(() => new Date().toISOString()),
+  observed_by: z.string().uuid().optional(),
+  content: z.record(z.string(), z.unknown()).default({}),
+  content_hash: z.string().optional(),
+  locator_json: z.record(z.string(), z.unknown()).optional(),
+  extraction_run_id: z.string().uuid().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateObservation = z.infer<typeof CreateObservationSchema>
+
+// ─── EvidenceLink (Block 01-E, migration 091) ──────────────────────────
+// Directed, typed links between evidence nodes.
+
+export const EvidenceLinkRelationship = z.enum([
+  'supports',
+  'contradicts',
+  'qualifies',
+])
+export type EvidenceLinkRelationship = z.infer<typeof EvidenceLinkRelationship>
+
+export const EvidenceLinkSchema = z.object({
+  id: z.string().uuid(),
+  evidence_node_id: z.string().uuid(),
+  target_evidence_node_id: z.string().uuid(),
+  relationship_type: EvidenceLinkRelationship,
+  claim_id: z.string().uuid().optional().nullable(),
+  rationale: z.string().optional().nullable(),
+  created_by: z.string().uuid().optional().nullable(),
+  provenance: z.record(z.string(), z.unknown()).default({}),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
+})
+export type EvidenceLink = z.infer<typeof EvidenceLinkSchema>
+
+export const CreateEvidenceLinkSchema = z.object({
+  evidence_node_id: z.string().uuid(),
+  target_evidence_node_id: z.string().uuid(),
+  relationship_type: EvidenceLinkRelationship,
+  claim_id: z.string().uuid().optional(),
+  rationale: z.string().optional(),
+  created_by: z.string().uuid().optional(),
+  provenance: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateEvidenceLink = z.infer<typeof CreateEvidenceLinkSchema>
+
+// ─── ProvenanceRecordV2 (Block 01-E, migration 091) ────────────────────
+// Append-only provenance log aligned with W3C PROV model.
+
+export const ProvenanceActionV2 = z.enum([
+  'created',
+  'updated',
+  'deleted',
+  'linked',
+  'unlinked',
+  'published',
+  'reviewed',
+  'approved',
+  'rejected',
+  'superseded',
+])
+export type ProvenanceActionV2 = z.infer<typeof ProvenanceActionV2>
+
+export const ProvenanceRecordV2Schema = z.object({
+  id: z.string().uuid(),
+  entity_type: z.string().min(1),
+  entity_id: z.string().uuid(),
+  action: ProvenanceActionV2,
+  actor_id: z.string().uuid().optional().nullable(),
+  organization_id: z.string().uuid().optional().nullable(),
+  previous_state: z.record(z.string(), z.unknown()).optional().nullable(),
+  new_state: z.record(z.string(), z.unknown()).optional().nullable(),
+  correlation_id: z.string().uuid().optional().nullable(),
+  causation_id: z.string().uuid().optional().nullable(),
+  summary: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+})
+export type ProvenanceRecordV2 = z.infer<typeof ProvenanceRecordV2Schema>
+
+export const CreateProvenanceRecordV2Schema = z.object({
+  entity_type: z.string().min(1),
+  entity_id: z.string().uuid(),
+  action: ProvenanceActionV2,
+  actor_id: z.string().uuid().optional(),
+  organization_id: z.string().uuid().optional(),
+  previous_state: z.record(z.string(), z.unknown()).optional(),
+  new_state: z.record(z.string(), z.unknown()).optional(),
+  correlation_id: z.string().uuid().optional(),
+  causation_id: z.string().uuid().optional(),
+  summary: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateProvenanceRecordV2 = z.infer<typeof CreateProvenanceRecordV2Schema>
 
 // ─── Provenance ─────────────────────────────────────────────────────────
 

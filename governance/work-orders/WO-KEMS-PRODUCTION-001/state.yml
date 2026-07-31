@@ -1,0 +1,17 @@
+# WO-KEMS-PRODUCTION-001 — State Machine
+work_order_id: WO-KEMS-PRODUCTION-001
+current_state: CLOSED
+previous_state: READY_FOR_PRODUCTION_REVIEW
+final_result: ACCEPTED
+production_deployment: PASS
+vilo_activation: PASS
+closed_by: Human Gate (Vilo)
+accepted_head_sha: 78af767633ee0f6ca319b164f4ca5b1db8f0314e
+closed_at: "2026-07-30T23:45:00Z"
+rollback: AVAILABLE (DELETE FROM feature_flag_activations WHERE organization_id='f0000000-0000-0000-0000-000000000001')
+implementation_commit: 6ef7b117
+starting_commit: da31b78284245aadc5cfd6c0b6b465f2d17f2c47
+branch: feat/kems-site-profile-production
+revision_completed: false
+revision_number: 2
+allowed_next_states: [READY_FOR_PRODUCTION_REVIEW, BLOCKED, REJECTED]

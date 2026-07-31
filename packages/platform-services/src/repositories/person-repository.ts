@@ -15,6 +15,7 @@ export interface PersonRecord {
   profile_photo_url: string | null
   status: string
   auth_user_id: string | null
+  alias_resolution_attributes: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

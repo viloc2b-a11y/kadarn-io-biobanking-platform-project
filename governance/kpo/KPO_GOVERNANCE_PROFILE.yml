@@ -1,0 +1,48 @@
+version: "1.0"
+default_mode: advisory
+
+modes:
+  advisory:
+    incomplete_contract: warning
+    stale_projection: warning
+    human_gate: required_for_protected_actions
+  required:
+    incomplete_contract: error
+    stale_projection: error
+    human_gate: required_for_external_actions
+  protected:
+    incomplete_contract: error
+    stale_projection: error
+    human_gate: always_required
+
+protected_paths:
+  - ".github/workflows/"
+  - "database/migrations/"
+  - "supabase/migrations/"
+  - "infrastructure/"
+  - "security/"
+  - "governance/kpo/"
+
+protected_risk_classes:
+  - production
+  - security
+  - regulated_data
+  - schema_migration
+  - destructive
+  - external_write
+
+non_blocking_states:
+  - draft
+  - discovery
+  - proposed
+
+executable_states:
+  - authorized
+  - in_progress
+  - ready_for_review
+
+terminal_states:
+  - accepted
+  - rejected
+  - cancelled
+  - superseded

@@ -12,6 +12,7 @@ export type {
   VisibilityMetadata,
   EvidenceNodeStatus,
   EvidenceNode,
+  EpistemicTypeV2,
   ClaimStatus,
   Claim,
   RelationshipType,

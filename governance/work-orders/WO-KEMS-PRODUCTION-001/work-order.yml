@@ -1,0 +1,49 @@
+# WO-KEMS-PRODUCTION-001 — Work Order
+# Site Profile and Evidence Production Vertical Slice
+
+work_order_id: WO-KEMS-PRODUCTION-001
+title: Site Profile and Evidence Production Vertical Slice
+type: TECHNICAL_IMPLEMENTATION
+execution_mode: CONSOLIDATED
+governance_mode: LEAN
+
+repository:
+  url: https://github.com/viloc2b-a11y/kadarn-io-biobanking-platform-project.git
+  base_branch: master
+  working_branch: feat/kems-site-profile-production
+  starting_baseline: da31b78284245aadc5cfd6c0b6b465f2d17f2c47
+
+accepted_dependencies:
+  WO-KEMS-DOC-001: 76e3625ee8c3ddcc0fe292a598f46568ec11f452
+  WO-KEMS-DOC-002: e9581aa2ebe3d0a9638e1e64b7d80eb1a2b1dce3
+  WO-KEMS-DOC-003: da31b78284245aadc5cfd6c0b6b465f2d17f2c47
+
+design_inputs:
+  PROFILE_SELF_CLAIM_BASELINE: 70c11881814a1b9abf050a786e970090eff63019
+
+human_gates:
+  - gate: 1
+    type: AUTHORIZATION_TO_START
+    status: GRANTED
+  - gate: 2
+    type: PRODUCTION_ACCEPTANCE
+    status: PENDING
+
+implementation_commits:
+  - a9f7e69: "Fase 0: Executable specs (5 YAML)"
+  - 8823d05: "Fase 1: DB 095-097 + 4 type modules"
+  - 2542d6f: "Fase 1: Migration 098 — capability + 48 seeds"
+  - 31cf0aa: "Fase 2: Domain services (4 modules)"
+  - e70c838: "Fase 3-4: API (15 EP) + UI (10 screens)"
+  - 7442461: "Fase 5+8: Onboarding engine + 132 tests"
+  - 6ef7b11: "Fase 7+9: Security (099) + pilot + observability"
+
+governance:
+  kpo_mode: required
+  auto_merge: false
+  feature_flags:
+    - site_profile_v2
+    - self_claims
+    - evidence_linking
+    - capability_activation
+    - passport_publication

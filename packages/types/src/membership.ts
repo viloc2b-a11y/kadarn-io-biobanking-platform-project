@@ -34,6 +34,8 @@ export const MembershipSchema = z.object({
   suspension_reason: z.string().optional().nullable(),
   termination_reason: z.string().optional().nullable(),
   metadata: z.any().optional().nullable(),
+  valid_from: z.string().datetime({ offset: true }).optional().nullable(),
+  valid_until: z.string().datetime({ offset: true }).optional().nullable(),
   created_at: z.string().datetime({ offset: true }),
   updated_at: z.string().datetime({ offset: true }),
 })
@@ -91,6 +93,8 @@ export const RoleAssignmentSchema = z.object({
   assigned_by: z.string().uuid().optional().nullable(),
   assigned_at: z.string().datetime({ offset: true }),
   expires_at: z.string().datetime({ offset: true }).optional().nullable(),
+  valid_from: z.string().datetime({ offset: true }).optional().nullable(),
+  valid_until: z.string().datetime({ offset: true }).optional().nullable(),
 })
 
 export type RoleAssignment = z.infer<typeof RoleAssignmentSchema>

@@ -8,17 +8,24 @@ export * from './person';
 export * from './location';
 export * from './membership';
 export * from './capability';
+export * from './confidence'
 export * from './claim'
 export * from './claim-version';
-export * from './confidence';
 export * from './review';
 export * from './knowledge';
 export * from './passport';
 export * from './readiness';
+export * from './assessment';
 
 // Evidence & sources
 export * from './evidence';
 export * from './sources';
+export * from './kems-claim';
+
+// KEMS Site Profile Production types
+export * from './site-profile';
+export * from './claim-extended';
+export * from './evidence-governance';
 
 // Forward-port types (KAD-LOOP-CANONICALIZATION-001)
 export * from './events';

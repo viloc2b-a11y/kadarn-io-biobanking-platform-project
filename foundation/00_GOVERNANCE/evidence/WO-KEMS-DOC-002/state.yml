@@ -1,0 +1,103 @@
+# WO-KEMS-DOC-002 — State Machine
+# KPO Governance — Design Phase — REVISED
+
+work_order_id: WO-KEMS-DOC-002
+title: Type Extension and Migration Design
+current_state: ACCEPTED
+previous_state: REVISED
+created: 2026-07-30T20:10:00Z
+updated: 2026-07-30T21:00:00Z
+revision_count: 3
+accepted_by: Vilo (Human Gate)
+accepted_at: 2026-07-30T21:00:00Z
+baseline_commit: e9581aa2ebe3d0a9638e1e64b7d80eb1a2b1dce3
+parent_baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625ee8c3ddcc0fe292a598f46568ec11f452)
+
+revision_3_changes:
+  - "Taxonomy expanded from 22 → 46 document types"
+  - "New categories: Regulatory (FDA 1572, Financial Disclosure, State License, Delegation Log)"
+  - "New categories: Quality (CAPA Records, Internal Audit Reports)"
+  - "New categories: Emergency & Safety (Emergency Plan, Business Continuity, Hazardous Materials)"
+  - "New categories: Equipment Ops (Backup Power Logs, Alarm Logs, Environmental Logs, Radiation, BSL)"
+  - "New categories: Technology (EMR Validation, Data Security, Part 11 Compliance)"
+  - "New categories: Operational (Recruitment Plan, Diversity Plan, Community Board, Translator, Training Matrix)"
+  - "New categories: Legal (MTA Agreements, Indemnification)"
+
+phase: DESIGN_ONLY
+runtime_changes: NONE
+database_changes: NONE
+code_changes: NONE
+
+deliverables:
+  - foundation/00_GOVERNANCE/evidence/WO-KEMS-DOC-002/TYPE_EXTENSION_AND_MIGRATION_DESIGN.md
+
+corrections_applied:
+  - id: C1
+    issue: "private_restricted aparecía como elegible para paquetes"
+    fix: "Separado vaultEligible de packageHandlingEligible. private_restricted bloquea explícitamente paquetes con mensaje de error."
+
+  - id: C2
+    issue: "computeValidityStatus() no manejaba periodic_review_required ni valid_until_replaced"
+    fix: "Función refactorizada con objeto de contexto. Maneja las 5 clasificaciones. expires_on_date valida que expirationDate exista."
+
+  - id: C3
+    issue: "isExpirationValidForPackage() tenía semántica insuficiente"
+    fix: "Renombrada a isExpirationClassificationResolvable(). La validez real se determina en computeValidityStatus() + computePackageEligibility()."
+
+  - id: C4
+    issue: "is_package_eligible booleano no distinguía propósitos"
+    fix: "Reemplazado por PackagePurpose[] (feasibility|site_qualification|study_startup|study_assignment|internal_evidence). computeEligiblePurposes() determina qué propósitos aplican."
+
+  - id: C5
+    issue: "La autorización no se evaluaba dentro de Package Eligibility"
+    fix: "Creado TransferEligibility con tres booleanos separados: documentEligible, packageEligible, transferAuthorized. computeTransferEligibility() recibe la autorización."
+
+  - id: C6
+    issue: "pii_detected requería transición post-redacción"
+    fix: "Definida PIIRedactionTransition: original_sensitivity → processed_sensitivity + redaction_status + deidentification_method. Flujo documentado en §2.2."
+
+  - id: C7
+    issue: "Taxonomía incompleta (13 tipos vs. 22 requeridos)"
+    fix: "Ampliada a 22 tipos: cv, gcp, iata, human_subjects_protection, medical_license, board_certification, acls_bls, study_specific_training, clia, cap, institutional_license, pharmacy_license, controlled_substance, irb_reliance, facility_certification, insurance, sop, equipment_calibration, equipment_maintenance, equipment_qualification, temperature_mapping, shipping_validation + prohibited + unclassified."
+
+  - id: C8
+    issue: "Posible duplicación de estado entre columnas y tablas normalizadas"
+    fix: "Single Authority Rule en §2.1: evidencia derivable por query NO debe ser columna. Sin is_package_eligible, is_authorized, is_on_legal_hold en evidence_sources."
+
+allowed_next_states:
+  - ACCEPTED (Human Gate: Vilo)
+  - REJECTED (Human Gate: Vilo)
+  - REVISED (requires further corrections)
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  kpo_mode: required
+
+design_decisions:
+  - id: D12
+    decision: "Migration split into 095 (ALTER evidence_sources) + 096 (CREATE 7 new tables)"
+    rationale: "ALTER-only migration is reversible; new tables can be created independently."
+
+  - id: D13
+    decision: "Existing evidence_sources rows default to sensitivity='unknown', expiration='expiration_unknown'"
+    rationale: "Cannot assume safety of pre-existing documents. All require manual review."
+
+  - id: D14
+    decision: "Retention policies are versioned with superseded_by chain; existing assignments are NOT auto-updated"
+    rationale: "Policy changes should not retroactively alter destruction schedules without review."
+
+  - id: D15
+    decision: "DOCUMENT_TAXONOMY is a database table with seed data, not a hardcoded TypeScript constant"
+    rationale: "Taxonomy must be updatable without code deployment. Clients read from DB."
+
+  - id: D16
+    decision: "Single Authority Rule: no column in evidence_sources may duplicate state derivable from related tables"
+    rationale: "Package eligibility, transfer authorization, scheduled destruction, and legal hold status must be queried from canonical tables — not stored redundantly."
+
+  - id: D17
+    decision: "Human-directed package composition — taxonomy recommends, user selects"
+    rationale: "KADARN may recommend documents by protocol stage, but final composition is via chat request or manual selection. System suggestions are always pending confirmation. Eligible ≠ Selected ≠ Authorized."
+
+parent_work_order: WO-KEMS-DOC-001
+parent_workstream: Evidence Core / Document Governance

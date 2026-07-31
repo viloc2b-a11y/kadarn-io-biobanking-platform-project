@@ -1,0 +1,12 @@
+id: WO-EXAMPLE-001
+version: "1.0"
+state: draft
+requested_transition: authorize
+admissible_transitions:
+  - authorize
+dependencies: []
+unlock_conditions: []
+blockers: []
+latest_human_gate: null
+accepted_evidence: []
+updated_at: "2026-07-28T00:00:00-05:00"

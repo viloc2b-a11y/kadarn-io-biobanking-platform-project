@@ -1,0 +1,99 @@
+# WO-KEMS-DOC-001 — State Machine
+# KPO Governance — Design Phase
+
+work_order_id: WO-KEMS-DOC-001
+title: Evidence Minimization and Selective Custody Contract
+current_state: ACCEPTED
+previous_state: DESIGN_PROPOSAL
+created: 2026-07-30T19:30:00Z
+updated: 2026-07-30T20:00:00Z
+accepted_by: Vilo (Human Gate)
+accepted_at: 2026-07-30T20:00:00Z
+baseline_commit: 76e3625ee8c3ddcc0fe292a598f46568ec11f452
+
+phase: DESIGN_ONLY
+runtime_changes: NONE
+database_changes: NONE
+api_changes: NONE
+
+deliverables:
+  - foundation/00_GOVERNANCE/evidence/WO-KEMS-DOC-001/EVIDENCE_MINIMIZATION_CONTRACT.md
+
+scope:
+  - Inventory of existing document model
+  - Document taxonomy (20+ types)
+  - Decision matrix (Intake × Handling × Sensitivity × Retention)
+  - Retention policy (versioned, lookup-based)
+  - Prohibited documents list
+  - PHI/PII control flow
+  - Legal hold semantics
+  - Destruction semantics
+  - Entity proposal (design, not SQL)
+  - API endpoint design (not implemented)
+  - Acceptance criteria for technical phase
+
+excluded:
+  - No database migrations
+  - No API implementation
+  - No UI changes
+  - No runtime enforcement code
+  - No cron jobs
+  - No embedding pipeline modifications
+
+allowed_next_states:
+  - ACCEPTED (Human Gate: Vilo)
+  - REJECTED (Human Gate: Vilo)
+  - REVISED (requires design changes)
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  kpo_mode: required
+
+design_decisions:
+  - id: D1
+    decision: "reject belongs in IntakeDisposition, not DocumentHandlingMode"
+    rationale: "Rejection is an admission decision, not a treatment modality."
+
+  - id: D2
+    decision: "Retention duration resolved via policy lookup, not hardcoded"
+    rationale: "Different jurisdictions, contracts, and document types require different retention periods."
+
+  - id: D3
+    decision: "PHI/PII detection must occur BEFORE extraction or embedding"
+    rationale: "Current pipeline sends text to OpenAI embeddings before any sensitivity check."
+
+  - id: D4
+    decision: "unknown sensitivity must trigger quarantine, not default processing"
+    rationale: "Unclassified documents cannot be assumed safe."
+
+  - id: D5
+    decision: "Destruction must cascade to chunks, embeddings, previews, caches, and backups"
+    rationale: "Deleting only the PDF while embeddings persist is not complete destruction."
+
+  - id: D6
+    decision: "Backend enforcement must precede UI"
+    rationale: "UI warnings that users can ignore do not constitute security controls."
+
+  - id: D7
+    decision: "KADARN must not auto-claim Safe Harbor or Expert Determination compliance"
+    rationale: "De-identification requires qualified assessment; pattern detection alone is insufficient."
+
+  - id: D8
+    decision: "Feasibility Folder was incorrectly defined — prioritized historical study docs over current credentials"
+    rationale: "Activation letters, closeout letters, and sponsor correspondence are internal experience evidence, not default package items. The correct model is Site Qualification Document Vault + Study-Specific Package Generator."
+
+  - id: D9
+    decision: "Documents must be associated with entity hierarchy: Person→Role→Credential; Institution→Location→Equipment→Record"
+    rationale: "Association at institution-level only is insufficient for equipment calibrations, personnel credentials, and location-specific certifications."
+
+  - id: D10
+    decision: "Every document must have expiration classification: expires_on_date | periodic_review | valid_until_replaced | no_expiration | expiration_unknown"
+    rationale: "expiration_unknown documents are ineligible for feasibility packages."
+
+  - id: D11
+    decision: "Feasibility packages are study-specific, not one-size-fits-all"
+    rationale: "No sample collection → no IATA. Phase I → ACLS, pharmacy, temp monitoring. Controlled IP → additional licenses."
+
+linked_pr: https://github.com/viloc2b-a11y/kadarn-io-biobanking-platform-project/pull/29
+parent_workstream: Evidence Core / Document Governance

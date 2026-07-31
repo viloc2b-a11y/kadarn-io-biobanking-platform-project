@@ -1,0 +1,61 @@
+id: WO-KPO-002
+version: "1.0"
+title: Integrate risk-calibrated executable governance
+program: KADARN Transformation Program
+workstream: Governance / Production Reliability
+priority: high
+risk_class: standard
+objective: Install and validate executable Work Order controls without blocking routine discovery and drafting.
+scope:
+  - Install the validator, policy profile, templates, tests, and GitHub Actions workflow.
+  - Validate advisory, required, and protected behavior.
+exclusions:
+  - No product runtime changes.
+  - No database migrations.
+  - No deployment.
+  - No merge without a separate Human Gate.
+repository:
+  target: viloc2b-a11y/kadarn-io-biobanking-platform-project
+  base_branch: master
+  working_branch: feat/kpo-executable-governance
+  expected_head:
+working_tree_precondition: Existing unrelated changes must remain unstaged and unmodified.
+paths:
+  authorized:
+    - scripts/kpo_validate.py
+    - docs/governance/KPO_PRACTICAL_EXECUTION_POLICY.md
+    - governance/kpo/KPO_GOVERNANCE_PROFILE.yml
+    - governance/work-orders/
+    - .github/workflows/kpo-governance.yml
+    - tests/kpo/
+  prohibited:
+    - apps/
+    - packages/
+    - database/
+    - supabase/
+deliverables:
+  - Executable validator
+  - Risk-calibrated policy
+  - Work Order templates
+  - CI validation workflow
+  - Automated tests
+acceptance_criteria:
+  - Advisory mode warns on incomplete drafts without failing.
+  - Required mode fails incomplete executable records.
+  - Protected mode requires a recorded Human Gate.
+  - Existing non-identical target files are never overwritten automatically.
+validation_commands:
+  - python scripts/kpo_validate.py --root . --mode advisory
+  - python -m unittest discover -s tests/kpo -p "test_*.py"
+evidence_requirements:
+  - Installer preflight output
+  - Validator output
+  - Unit test output
+  - Git diff limited to authorized paths
+rollback:
+  strategy: Remove only newly installed files before commit, using the recorded diff.
+human_gate:
+  required: true
+  decision_ref:
+final_report:
+  format: KPO execution report with baseline, changed files, tests, gaps, and continuation point.

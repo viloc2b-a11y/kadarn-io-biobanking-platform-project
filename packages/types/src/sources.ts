@@ -87,6 +87,7 @@ export const EvidenceSourceSchema = z.object({
   canonical_name: z.string().min(1).max(255),
   producer_type: ProducerType,
   producer_name: z.string().min(1).max(255),
+  producer_id: z.string().uuid().optional().nullable(),
   authority_level: AuthorityLevel,
   acquisition_method: AcquisitionMethod.default('manual_entry'),
   freshness_policy: FreshnessPolicyConfigSchema,
@@ -106,6 +107,7 @@ export const CreateEvidenceSourceSchema = z.object({
   canonical_name: z.string().min(1).max(255),
   producer_type: ProducerType,
   producer_name: z.string().min(1).max(255),
+  producer_id: z.string().uuid().optional(),
   authority_level: AuthorityLevel,
   acquisition_method: AcquisitionMethod.default('manual_entry'),
   freshness_policy: FreshnessPolicyConfigSchema,
@@ -170,3 +172,131 @@ export const UpdateSourceRecordSchema = z.object({
   supersession_reason: z.string().optional(),
 })
 export type UpdateSourceRecord = z.infer<typeof UpdateSourceRecordSchema>
+
+// ─── EvidenceSource v2 — extended with producer_id (Block 01-S) ────────────
+
+export const UpdateEvidenceSourceV2Schema = CreateEvidenceSourceSchema.partial().extend({
+  active: z.boolean().optional(),
+  producer_id: z.string().uuid().optional().nullable(),
+})
+export type UpdateEvidenceSourceV2 = z.infer<typeof UpdateEvidenceSourceV2Schema>
+
+// ─── Run Status ────────────────────────────────────────────────────────────
+
+export const RunStatus = z.enum([
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+])
+export type RunStatus = z.infer<typeof RunStatus>
+
+// ─── Extractor Type ────────────────────────────────────────────────────────
+
+export const ExtractorType = z.enum([
+  'markitdown',
+  'ocr',
+  'api_extract',
+  'manual_extract',
+  'llm_extract',
+  'other',
+])
+export type ExtractorType = z.infer<typeof ExtractorType>
+
+// ─── EvidenceProducer ──────────────────────────────────────────────────────
+
+export const EvidenceProducerSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(255),
+  producer_type: ProducerType,
+  contact: z.string().optional().nullable(),
+  institution_id: z.string().uuid().optional().nullable(),
+  active: z.boolean().default(true),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
+})
+export type EvidenceProducer = z.infer<typeof EvidenceProducerSchema>
+
+export const CreateEvidenceProducerSchema = z.object({
+  name: z.string().min(1).max(255),
+  producer_type: ProducerType,
+  contact: z.string().optional(),
+  institution_id: z.string().uuid().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateEvidenceProducer = z.infer<typeof CreateEvidenceProducerSchema>
+
+export const UpdateEvidenceProducerSchema = CreateEvidenceProducerSchema.partial().extend({
+  active: z.boolean().optional(),
+})
+export type UpdateEvidenceProducer = z.infer<typeof UpdateEvidenceProducerSchema>
+
+// ─── AcquisitionRun ────────────────────────────────────────────────────────
+
+export const AcquisitionRunSchema = z.object({
+  id: z.string().uuid(),
+  source_id: z.string().uuid(),
+  institution_id: z.string().uuid().optional().nullable(),
+  started_at: z.string().datetime({ offset: true }).optional().nullable(),
+  completed_at: z.string().datetime({ offset: true }).optional().nullable(),
+  status: RunStatus.default('pending'),
+  record_count: z.number().int().nonnegative().default(0),
+  error_message: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
+})
+export type AcquisitionRun = z.infer<typeof AcquisitionRunSchema>
+
+export const CreateAcquisitionRunSchema = z.object({
+  source_id: z.string().uuid(),
+  institution_id: z.string().uuid().optional(),
+  started_at: z.string().datetime({ offset: true }).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateAcquisitionRun = z.infer<typeof CreateAcquisitionRunSchema>
+
+export const UpdateAcquisitionRunSchema = z.object({
+  status: RunStatus.optional(),
+  completed_at: z.string().datetime({ offset: true }).optional(),
+  record_count: z.number().int().nonnegative().optional(),
+  error_message: z.string().optional(),
+})
+export type UpdateAcquisitionRun = z.infer<typeof UpdateAcquisitionRunSchema>
+
+// ─── ExtractionRun ─────────────────────────────────────────────────────────
+
+export const ExtractionRunSchema = z.object({
+  id: z.string().uuid(),
+  source_record_id: z.string().uuid(),
+  institution_id: z.string().uuid().optional().nullable(),
+  started_at: z.string().datetime({ offset: true }).optional().nullable(),
+  completed_at: z.string().datetime({ offset: true }).optional().nullable(),
+  extractor_type: ExtractorType.default('manual_extract'),
+  status: RunStatus.default('pending'),
+  extraction_count: z.number().int().nonnegative().default(0),
+  error_message: z.string().optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
+})
+export type ExtractionRun = z.infer<typeof ExtractionRunSchema>
+
+export const CreateExtractionRunSchema = z.object({
+  source_record_id: z.string().uuid(),
+  institution_id: z.string().uuid().optional(),
+  extractor_type: ExtractorType.default('manual_extract'),
+  started_at: z.string().datetime({ offset: true }).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
+export type CreateExtractionRun = z.infer<typeof CreateExtractionRunSchema>
+
+export const UpdateExtractionRunSchema = z.object({
+  status: RunStatus.optional(),
+  completed_at: z.string().datetime({ offset: true }).optional(),
+  extraction_count: z.number().int().nonnegative().optional(),
+  error_message: z.string().optional(),
+})
+export type UpdateExtractionRun = z.infer<typeof UpdateExtractionRunSchema>
