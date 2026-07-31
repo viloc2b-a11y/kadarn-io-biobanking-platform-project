@@ -96,9 +96,14 @@ export type ExpirationClassification =
   | 'no_expiration'
   | 'expiration_unknown'
 
-/** Whether the document is eligible for feasibility packages based on expiration */
-export function isExpirationValidForPackage(e: ExpirationClassification): boolean {
+/** Whether the expiration classification can be resolved to a validity state */
+export function isExpirationClassificationResolvable(e: ExpirationClassification): boolean {
   return e !== 'expiration_unknown'
+}
+
+/** Whether this classification requires an explicit expiration date */
+export function requiresExpirationDate(e: ExpirationClassification): boolean {
+  return e === 'expires_on_date'
 }
 ```
 
@@ -243,33 +248,102 @@ export type ValidityStatus =
   | 'unknown'
   | 'not_applicable'
 
-export function computeValidityStatus(
-  expirationClassification: ExpirationClassification,
-  expirationDate: string | null,
-): ValidityStatus {
-  if (expirationClassification === 'no_expiration') return 'current'
-  if (expirationClassification === 'expiration_unknown') return 'unknown'
-  if (!expirationDate) return 'unknown'
+export function computeValidityStatus(context: {
+  expirationClassification: ExpirationClassification
+  expirationDate: string | null
+  lastReviewedAt: string | null
+  nextReviewDueAt: string | null
+  reviewIntervalDays: number | null
+  supersededByDocumentId: string | null
+  isCurrentVersion: boolean
+  replacedAt: string | null
+}): { status: ValidityStatus; errors: string[] } {
+  const errors: string[] = []
+  const { expirationClassification, expirationDate, lastReviewedAt, nextReviewDueAt,
+          supersededByDocumentId, isCurrentVersion, replacedAt } = context
 
-  const now = new Date()
-  const exp = new Date(expirationDate)
-  const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  switch (expirationClassification) {
+    case 'no_expiration':
+      return { status: 'current', errors: [] }
 
-  if (daysUntil < 0) return 'expired'
-  if (daysUntil <= 30) return 'expiring_imminent'
-  if (daysUntil <= 90) return 'expiring_soon'
-  return 'current'
+    case 'expiration_unknown':
+      return { status: 'unknown', errors: ['Expiration classification is unknown'] }
+
+    case 'expires_on_date': {
+      if (!expirationDate) {
+        return { status: 'unknown', errors: ['expires_on_date requires expirationDate — missing'] }
+      }
+      const now = new Date()
+      const exp = new Date(expirationDate)
+      const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysUntil < 0) return { status: 'expired', errors: [] }
+      if (daysUntil <= 30) return { status: 'expiring_imminent', errors: [] }
+      if (daysUntil <= 90) return { status: 'expiring_soon', errors: [] }
+      return { status: 'current', errors: [] }
+    }
+
+    case 'periodic_review_required': {
+      if (!lastReviewedAt && !nextReviewDueAt) {
+        return { status: 'unknown', errors: ['periodic_review requires lastReviewedAt or nextReviewDueAt'] }
+      }
+      const now = new Date()
+      // If nextReviewDueAt is set, use it directly
+      if (nextReviewDueAt) {
+        const due = new Date(nextReviewDueAt)
+        if (due < now) return { status: 'expired', errors: ['Periodic review overdue'] }
+        const daysUntil = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (daysUntil <= 30) return { status: 'expiring_imminent', errors: [] }
+        if (daysUntil <= 90) return { status: 'expiring_soon', errors: [] }
+        return { status: 'current', errors: [] }
+      }
+      // Compute from lastReviewedAt + reviewIntervalDays
+      if (lastReviewedAt && context.reviewIntervalDays) {
+        const reviewed = new Date(lastReviewedAt)
+        const due = new Date(reviewed)
+        due.setDate(due.getDate() + context.reviewIntervalDays)
+        if (due < now) return { status: 'expired', errors: ['Periodic review overdue'] }
+        const daysUntil = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (daysUntil <= 30) return { status: 'expiring_imminent', errors: [] }
+        if (daysUntil <= 90) return { status: 'expiring_soon', errors: [] }
+        return { status: 'current', errors: [] }
+      }
+      return { status: 'unknown', errors: ['Insufficient data for periodic review calculation'] }
+    }
+
+    case 'valid_until_replaced': {
+      if (!isCurrentVersion) {
+        return { status: 'expired', errors: [`Superseded by ${supersededByDocumentId || 'unknown'}`] }
+      }
+      if (replacedAt) {
+        return { status: 'expired', errors: [`Replaced at ${replacedAt}`] }
+      }
+      // Still current version and not replaced → remains valid
+      return { status: 'current', errors: [] }
+    }
+
+    default:
+      return { status: 'unknown', errors: [`Unhandled expiration classification: ${expirationClassification}`] }
+  }
 }
 ```
 
 ### 1.10 PackageEligibility
 
 ```typescript
+// ─── Package Purpose (replaces boolean is_package_eligible) ─────────────
+
+export type PackagePurpose =
+  | 'feasibility'          // Initial feasibility response
+  | 'site_qualification'   // Formal site qualification visit
+  | 'study_startup'        // Regulatory startup package
+  | 'study_assignment'     // Study-specific staff/equipment assignment
+  | 'internal_evidence'    // Internal audit, KADARN review only
+
 export interface PackageEligibility {
   document_id: string
   is_current: boolean
   is_vault_eligible: boolean
-  is_package_eligible: boolean
+  eligible_purposes: PackagePurpose[]
   blocking_reasons: string[]
   validity_status: ValidityStatus
   disclosure_status: DisclosureStatus
@@ -278,209 +352,395 @@ export interface PackageEligibility {
   last_reviewed_at: string | null
 }
 
+// ─── Transfer Eligibility (separates doc eligibility from authorization) ─
+
+export interface TransferEligibility {
+  documentEligible: boolean       // Document meets technical requirements
+  packageEligible: boolean        // Document is eligible for this purpose
+  transferAuthorized: boolean     // Site has authorized transfer to this recipient
+  blockingReasons: string[]
+  requiresAuthorization: boolean
+  authorizedBy: string | null
+  authorizedAt: string | null
+  authorizationScope: 'full' | 'metadata_only' | 'redacted' | null
+}
+
 export function computePackageEligibility(
   handlingMode: DocumentHandlingMode,
   validityStatus: ValidityStatus,
   disclosureStatus: DisclosureStatus,
   sensitivityClass: DocumentSensitivityClass,
-): PackageEligibilityResult {
+  purpose: PackagePurpose,
+): PackageEligibility {
   const blocking: string[] = []
+
+  // ─── Vault eligibility ──────────────────────────────────────────────
+  const vaultEligible = ['stored_evidence', 'feasibility_folder', 'private_restricted'].includes(handlingMode)
+
+  // ─── Package handling eligibility ───────────────────────────────────
+  // CRITICAL: private_restricted is vault-eligible but NEVER package-eligible
+  const packageHandlingEligible = ['stored_evidence', 'feasibility_folder'].includes(handlingMode)
 
   if (handlingMode === 'ephemeral_processing') blocking.push('Document is ephemeral — no original retained')
   if (handlingMode === 'reviewed_not_stored') blocking.push('Original destroyed after review')
   if (handlingMode === 'reference_only') blocking.push('External reference only — no file in KADARN')
+  if (handlingMode === 'private_restricted') blocking.push('Document is private-restricted — cannot be included in sponsor packages')
+
+  // ─── Validity ───────────────────────────────────────────────────────
   if (validityStatus === 'expired') blocking.push('Document has expired')
   if (validityStatus === 'unknown') blocking.push('Validity cannot be determined')
+
+  // ─── Sensitivity ────────────────────────────────────────────────────
   if (sensitivityClass === 'phi_detected') blocking.push('PHI detected — not eligible for sharing')
   if (sensitivityClass === 'prohibited') blocking.push('Document type is prohibited')
+
+  // ─── Disclosure ─────────────────────────────────────────────────────
   if (disclosureStatus === 'not_eligible') blocking.push('Not eligible for disclosure')
   if (disclosureStatus === 'access_revoked') blocking.push('Disclosure access revoked')
 
-  const vaultEligible = ['stored_evidence', 'feasibility_folder', 'private_restricted'].includes(handlingMode)
-  const packageEligible = vaultEligible && blocking.length === 0
+  // ─── Purpose-specific eligibility ───────────────────────────────────
+  const eligiblePurposes = computeEligiblePurposes(handlingMode, sensitivityClass, validityStatus)
+  if (!eligiblePurposes.includes(purpose)) {
+    blocking.push(`Document not eligible for purpose: ${purpose}`)
+  }
 
-  return { is_vault_eligible: vaultEligible, is_package_eligible: packageEligible, blocking_reasons: blocking }
+  return {
+    document_id: '',
+    is_current: validityStatus === 'current',
+    is_vault_eligible: vaultEligible,
+    eligible_purposes: eligiblePurposes,
+    blocking_reasons: blocking,
+    validity_status: validityStatus,
+    disclosure_status: disclosureStatus,
+    requires_site_authorization: ['feasibility', 'site_qualification', 'study_startup', 'study_assignment'].includes(purpose),
+    expiration_date: null,
+    last_reviewed_at: null,
+  }
 }
 
-interface PackageEligibilityResult {
-  is_vault_eligible: boolean
-  is_package_eligible: boolean
-  blocking_reasons: string[]
+function computeEligiblePurposes(
+  handlingMode: DocumentHandlingMode,
+  sensitivityClass: DocumentSensitivityClass,
+  validityStatus: ValidityStatus,
+): PackagePurpose[] {
+  // Private/restricted docs: internal evidence only
+  if (handlingMode === 'private_restricted') return ['internal_evidence']
+  if (handlingMode === 'ephemeral_processing') return ['internal_evidence']
+  if (handlingMode === 'reviewed_not_stored') return ['internal_evidence']
+  if (handlingMode === 'reference_only') return ['internal_evidence']
+
+  // Expired/unknown validity: not eligible for external purposes
+  if (validityStatus === 'expired' || validityStatus === 'unknown') return ['internal_evidence']
+
+  // Sensitive: internal only
+  if (['confidential', 'restricted', 'pii_detected', 'regulated_record'].includes(sensitivityClass)) {
+    return ['internal_evidence', 'feasibility']
+  }
+
+  // Full eligibility
+  return ['feasibility', 'site_qualification', 'study_startup', 'study_assignment', 'internal_evidence']
+}
+
+// ─── Transfer Eligibility (with authorization) ───────────────────────────
+
+export function computeTransferEligibility(
+  packageEligibility: PackageEligibility,
+  purpose: PackagePurpose,
+  authorization?: DisclosureAuthorization | null,
+): TransferEligibility {
+  const blocking: string[] = [...packageEligibility.blocking_reasons]
+
+  const documentEligible = packageEligibility.eligible_purposes.includes(purpose)
+  if (!documentEligible) blocking.push(`Document not eligible for purpose: ${purpose}`)
+
+  // Check authorization
+  let transferAuthorized = false
+  let authorizedBy: string | null = null
+  let authorizedAt: string | null = null
+  let authorizationScope: 'full' | 'metadata_only' | 'redacted' | null = null
+
+  if (purpose === 'internal_evidence') {
+    transferAuthorized = true  // Internal use doesn't require site authorization
+  } else if (authorization) {
+    if (authorization.revoked_at) {
+      blocking.push('Authorization has been revoked')
+    } else if (authorization.expires_at && new Date(authorization.expires_at) < new Date()) {
+      blocking.push('Authorization has expired')
+    } else {
+      transferAuthorized = true
+      authorizedBy = authorization.authorized_by
+      authorizedAt = authorization.authorized_at
+      authorizationScope = authorization.scope
+    }
+  } else {
+    blocking.push('Site authorization required for transfer')
+  }
+
+  return {
+    documentEligible,
+    packageEligible: documentEligible && blocking.filter(b =>
+      !b.includes('authorization') || b === 'Site authorization required for transfer'
+    ).length === 0,
+    transferAuthorized,
+    blockingReasons: blocking,
+    requiresAuthorization: purpose !== 'internal_evidence',
+    authorizedBy,
+    authorizedAt,
+    authorizationScope,
+  }
+}
+
+interface DisclosureAuthorization {
+  authorized_by: string
+  authorized_at: string
+  recipient_type: string
+  recipient_id: string
+  study_id: string | null
+  scope: 'full' | 'metadata_only' | 'redacted'
+  expires_at: string | null
+  revoked_at: string | null
 }
 ```
 
-### 1.11 DocumentTaxonomy (the full lookup table)
+### 1.11 DocumentTaxonomyRule (corrected with PackagePurpose[])
 
 ```typescript
+export interface DocumentTaxonomyRule {
+  document_type: string
+  default_sensitivity: DocumentSensitivityClass
+  default_intake: DocumentIntakeDisposition
+  default_handling: DocumentHandlingMode
+  default_retention_basis: RetentionPolicy['retention_basis']
+  requires_review: boolean
+  is_prohibited: boolean
+  prohibition_reason: string | null
+  applicable_entity_types: ('institution' | 'person' | 'location' | 'equipment')[]
+  eligible_purposes: PackagePurpose[]      // Replaces boolean is_package_eligible
+  is_vault_eligible: boolean
+}
+```typescript
 export const DOCUMENT_TAXONOMY: Record<string, DocumentTaxonomyRule> = {
-  'clia_certificate': {
-    document_type: 'CLIA Certificate',
-    default_sensitivity: 'internal',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'regulatory',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
-    applicable_entity_types: ['institution', 'location'],
-    is_package_eligible: true,
-    is_vault_eligible: true,
-  },
-  'cap_accreditation': {
-    document_type: 'CAP Accreditation',
-    default_sensitivity: 'internal',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'regulatory',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
-    applicable_entity_types: ['institution', 'location'],
-    is_package_eligible: true,
-    is_vault_eligible: true,
-  },
-  'professional_license': {
-    document_type: 'Professional License',
-    default_sensitivity: 'pii_detected',
-    default_intake: 'accepted_with_redaction',
-    default_handling: 'reviewed_not_stored',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
-    applicable_entity_types: ['person'],
-    is_package_eligible: true,
-    is_vault_eligible: false,
-  },
+  // ─── Personnel documents ───────────────────────────────────────────
   'cv': {
     document_type: 'Curriculum Vitae',
-    default_sensitivity: 'pii_detected',
-    default_intake: 'accepted_ephemeral',
-    default_handling: 'ephemeral_processing',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
+    default_sensitivity: 'pii_detected', default_intake: 'accepted_ephemeral',
+    default_handling: 'ephemeral_processing', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['person'],
-    is_package_eligible: true,
+    eligible_purposes: ['feasibility', 'site_qualification', 'study_startup'],
     is_vault_eligible: false,
   },
   'gcp_certificate': {
     document_type: 'GCP Training Certificate',
-    default_sensitivity: 'internal',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['person'],
-    is_package_eligible: true,
+    eligible_purposes: ['feasibility', 'site_qualification', 'study_startup', 'study_assignment'],
     is_vault_eligible: true,
   },
   'iata_certificate': {
     document_type: 'IATA Training Certificate',
-    default_sensitivity: 'internal',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['person'],
-    is_package_eligible: true,
+    eligible_purposes: ['feasibility', 'site_qualification', 'study_startup', 'study_assignment'],
+    is_vault_eligible: true,
+  },
+  'human_subjects_protection': {
+    document_type: 'Human Subjects Protection Training',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['person'],
+    eligible_purposes: ['feasibility', 'site_qualification', 'study_startup', 'study_assignment'],
     is_vault_eligible: true,
   },
   'medical_license': {
     document_type: 'Medical License',
-    default_sensitivity: 'pii_detected',
-    default_intake: 'accepted_with_redaction',
-    default_handling: 'reviewed_not_stored',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
+    default_sensitivity: 'pii_detected', default_intake: 'accepted_with_redaction',
+    default_handling: 'reviewed_not_stored', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['person'],
-    is_package_eligible: true,
+    eligible_purposes: ['feasibility', 'site_qualification', 'study_startup'],
     is_vault_eligible: false,
   },
-  'equipment_calibration': {
-    document_type: 'Equipment Calibration Record',
-    default_sensitivity: 'internal',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
-    applicable_entity_types: ['location', 'equipment'],
-    is_package_eligible: true,
+  'board_certification': {
+    document_type: 'Board Certification',
+    default_sensitivity: 'pii_detected', default_intake: 'accepted_with_redaction',
+    default_handling: 'reviewed_not_stored', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['person'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: false,
+  },
+  'acls_bls': {
+    document_type: 'ACLS/BLS Certification',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['person'],
+    eligible_purposes: ['study_startup', 'study_assignment'],
     is_vault_eligible: true,
   },
-  'equipment_maintenance': {
-    document_type: 'Preventive Maintenance Record',
-    default_sensitivity: 'internal',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'institutional',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
-    applicable_entity_types: ['location', 'equipment'],
-    is_package_eligible: true,
+  'study_specific_training': {
+    document_type: 'Study-Specific Training Evidence',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'contractual',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['person'],
+    eligible_purposes: ['study_startup', 'study_assignment'],
     is_vault_eligible: true,
   },
-  'sop': {
-    document_type: 'Standard Operating Procedure',
-    default_sensitivity: 'confidential',
-    default_intake: 'manual_review_required',
-    default_handling: 'private_restricted',
-    default_retention_basis: 'institutional',
-    requires_review: true,
-    is_prohibited: false, prohibition_reason: null,
+  // ─── Institutional documents ───────────────────────────────────────
+  'clia_certificate': {
+    document_type: 'CLIA Certificate',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'regulatory',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['institution', 'location'],
+    eligible_purposes: ['feasibility', 'site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'cap_accreditation': {
+    document_type: 'CAP Accreditation',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'regulatory',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['institution', 'location'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'institutional_license': {
+    document_type: 'Institutional License',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'regulatory',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['institution'],
-    is_package_eligible: false,
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'pharmacy_license': {
+    document_type: 'Pharmacy License',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'regulatory',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['institution', 'location'],
+    eligible_purposes: ['study_startup', 'study_assignment'],
+    is_vault_eligible: true,
+  },
+  'controlled_substance_registration': {
+    document_type: 'Controlled-Substance Registration',
+    default_sensitivity: 'restricted', default_intake: 'manual_review_required',
+    default_handling: 'private_restricted', default_retention_basis: 'regulatory',
+    requires_review: true, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['institution'],
+    eligible_purposes: ['study_startup', 'study_assignment'],
+    is_vault_eligible: true,
+  },
+  'irb_reliance': {
+    document_type: 'IRB Reliance Information',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['institution'],
+    eligible_purposes: ['study_startup'],
+    is_vault_eligible: true,
+  },
+  'facility_certification': {
+    document_type: 'Facility Certification',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['location'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
     is_vault_eligible: true,
   },
   'insurance_certificate': {
     document_type: 'Insurance Certificate',
-    default_sensitivity: 'confidential',
-    default_intake: 'accepted',
-    default_handling: 'private_restricted',
-    default_retention_basis: 'contractual',
-    requires_review: false,
-    is_prohibited: false, prohibition_reason: null,
+    default_sensitivity: 'confidential', default_intake: 'accepted',
+    default_handling: 'private_restricted', default_retention_basis: 'contractual',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['institution'],
-    is_package_eligible: false,
+    eligible_purposes: ['internal_evidence'],
     is_vault_eligible: true,
   },
-  'fda_audit_report': {
-    document_type: 'FDA Audit Report',
-    default_sensitivity: 'regulated_record',
-    default_intake: 'accepted',
-    default_handling: 'stored_evidence',
-    default_retention_basis: 'regulatory',
-    requires_review: true,
-    is_prohibited: false, prohibition_reason: null,
+  'sop': {
+    document_type: 'Standard Operating Procedure',
+    default_sensitivity: 'confidential', default_intake: 'manual_review_required',
+    default_handling: 'private_restricted', default_retention_basis: 'institutional',
+    requires_review: true, is_prohibited: false, prohibition_reason: null,
     applicable_entity_types: ['institution'],
-    is_package_eligible: true,
+    eligible_purposes: ['study_startup'],
     is_vault_eligible: true,
   },
+  // ─── Equipment documents ───────────────────────────────────────────
+  'equipment_calibration': {
+    document_type: 'Equipment Calibration Record',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['location', 'equipment'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'equipment_maintenance': {
+    document_type: 'Preventive Maintenance Record',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['location', 'equipment'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'equipment_qualification': {
+    document_type: 'Equipment Qualification Record (IQ/OQ/PQ)',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['location', 'equipment'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'temperature_mapping': {
+    document_type: 'Temperature Mapping Report',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['location', 'equipment'],
+    eligible_purposes: ['site_qualification', 'study_startup'],
+    is_vault_eligible: true,
+  },
+  'shipping_validation': {
+    document_type: 'Shipping Equipment Validation',
+    default_sensitivity: 'internal', default_intake: 'accepted',
+    default_handling: 'stored_evidence', default_retention_basis: 'institutional',
+    requires_review: false, is_prohibited: false, prohibition_reason: null,
+    applicable_entity_types: ['location', 'equipment'],
+    eligible_purposes: ['study_startup', 'study_assignment'],
+    is_vault_eligible: true,
+  },
+  // ─── Prohibited ────────────────────────────────────────────────────
   'medical_record': {
     document_type: 'Medical Record',
-    default_sensitivity: 'prohibited',
-    default_intake: 'rejected',
-    default_handling: 'ephemeral_processing',
-    default_retention_basis: 'kadarn_default',
-    requires_review: false,
-    is_prohibited: true,
+    default_sensitivity: 'prohibited', default_intake: 'rejected',
+    default_handling: 'ephemeral_processing', default_retention_basis: 'kadarn_default',
+    requires_review: false, is_prohibited: true,
     prohibition_reason: 'PHI — not minimum necessary (HIPAA). Never ingest.',
     applicable_entity_types: [],
-    is_package_eligible: false,
+    eligible_purposes: [],
     is_vault_eligible: false,
   },
+  // ─── Fallback ──────────────────────────────────────────────────────
   'unclassified': {
     document_type: 'Unclassified Document',
-    default_sensitivity: 'unknown',
-    default_intake: 'quarantined',
-    default_handling: 'ephemeral_processing',
-    default_retention_basis: 'kadarn_default',
-    requires_review: true,
-    is_prohibited: false,
+    default_sensitivity: 'unknown', default_intake: 'quarantined',
+    default_handling: 'ephemeral_processing', default_retention_basis: 'kadarn_default',
+    requires_review: true, is_prohibited: false,
     prohibition_reason: 'Unknown sensitivity — quarantine until classified.',
     applicable_entity_types: [],
-    is_package_eligible: false,
+    eligible_purposes: [],
     is_vault_eligible: false,
   },
 }
@@ -489,6 +749,68 @@ export const DOCUMENT_TAXONOMY: Record<string, DocumentTaxonomyRule> = {
 ---
 
 ## 2. ENTITY RELATIONSHIPS
+
+### 2.1 Single Authority Rule
+
+State that can be determined by query MUST NOT be duplicated as a column.
+
+| State | Canonical Location | Must NOT appear in evidence_sources |
+|---|---|---|
+| Package eligibility | Computed from handling + validity + sensitivity + disclosure | ❌ No `is_package_eligible` column |
+| Transfer authorization | `disclosure_authorizations` table | ❌ No `is_authorized` column |
+| Scheduled destruction | `document_retention_assignments` table | ❌ No `scheduled_destruction_at` column (duplicate) |
+| Legal hold active | `legal_holds` table (query by scope) | ❌ No `is_on_legal_hold` column |
+| Validity status | Computed from `computeValidityStatus()` | 🟡 May cache for performance, but not authoritative |
+| Processing status | `evidence_sources.processing_status` | ✅ This IS the canonical location |
+
+**Rule:** `evidence_sources` holds the document's current state and FK references. Related tables hold history, multiple assignments, authorizations, and events. No column in `evidence_sources` may be derived from a query against related tables.
+
+### 2.2 PII Post-Redaction Transition
+
+When a document with `pii_detected` sensitivity undergoes successful redaction:
+
+```typescript
+interface PIIRedactionTransition {
+  // Pre-redaction state (preserved)
+  original_sensitivity_class: 'pii_detected'
+  original_handling_mode: DocumentHandlingMode
+
+  // Post-redaction state
+  processed_sensitivity_class: DocumentSensitivityClass  // e.g., 'internal'
+  processed_handling_mode: DocumentHandlingMode          // e.g., 'stored_evidence'
+  redaction_status: 'redacted'
+  deidentification_method: DeidentificationMethod        // e.g., 'manual_redaction'
+
+  // Verification
+  verified_by: string
+  verified_at: string
+  verification_method: string
+
+  // Original document disposition
+  original_disposition: 'destroyed' | 'restricted_retained'
+  original_destruction_record_id?: string
+}
+```
+
+**Flow:**
+```
+1. Document ingested with sensitivity_class = 'pii_detected'
+2. Processing blocked — isProcessingBlocked('pii_detected') = true
+3. Redaction performed (manual or automated)
+4. Redaction verified by reviewer
+5. PIIRedactionTransition recorded
+6. Original document:
+   a. If original_disposition = 'destroyed' → destruction record created, original deleted
+   b. If original_disposition = 'restricted_retained' → kept with is_current_version = false
+7. Redacted version:
+   a. New evidence_sources row with sensitivity_class = processed_sensitivity_class
+   b. handling_mode = processed_handling_mode
+   c. replaces_document_id → original document ID
+   d. Now passes isProcessingAllowed() check
+   e. Eligible for vault/package per new classification
+```
+
+### 2.3 Entity Diagram
 
 ```
 evidence_sources (existing, migration 094)
@@ -876,21 +1198,26 @@ VALUES
 
 Before any migration execution or code change:
 
-1. ✅ All type extensions defined in document-handling.ts
-2. ✅ DOCUMENT_TAXONOMY populated with ≥ 13 document types
-3. ✅ Expiration classification type defined with 5 values
-4. ✅ ValidityStatus computed correctly from expiration data
-5. ✅ PackageEligibility computed from handling + validity + disclosure + sensitivity
-6. ✅ Legal hold blocks all 8 destructive operations
-7. ✅ Destruction record captures full pre-destruction snapshot
-8. ✅ Retention policies versioned with superseded_by chain
-9. ✅ Migration design is coherent (2 migrations: ALTER + CREATE)
-10. ✅ Seed data includes taxonomy + retention policies
-11. ✅ Backfill strategy defined for existing evidence_sources rows
-12. ✅ No runtime code changes in this Work Order
+1. ✅ All type extensions defined in document-handling.ts (11 types + 22 taxonomy entries)
+2. ✅ DOCUMENT_TAXONOMY populated with 22 document types (all resolve to canonical rules)
+3. ✅ Expiration classification: 5 values, all handled by computeValidityStatus()
+4. ✅ ValidityStatus computed with full context object (all 5 classifications)
+5. ✅ PackageEligibility: PackagePurpose[] replaces boolean, 5 purposes defined
+6. ✅ TransferEligibility: separates documentEligible, packageEligible, transferAuthorized
+7. ✅ private_restricted explicitly blocked from sponsor packages
+8. ✅ PII post-redaction transition defined (original_sensitivity → processed_sensitivity)
+9. ✅ Legal hold blocks all 8 destructive operations
+10. ✅ Destruction record captures full pre-destruction snapshot
+11. ✅ Retention policies versioned with superseded_by chain
+12. ✅ Single Authority Rule: no redundant state columns in evidence_sources
+13. ✅ Migration design is coherent (2 migrations: ALTER + CREATE)
+14. ✅ Seed data includes taxonomy (22 types) + retention policies (7)
+15. ✅ Backfill strategy defined for existing evidence_sources rows
+16. ✅ No runtime code changes in this Work Order
 
 ---
 
-*WO-KEMS-DOC-002 — Design Phase — 2026-07-30*
+*WO-KEMS-DOC-002 — Design Phase — 2026-07-30 — Revision 1*
 *Baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625)*
+*Corrections applied: C1-C8 (2026-07-30)*
 *Next: Human Gate review → ACCEPTED → migration execution*
