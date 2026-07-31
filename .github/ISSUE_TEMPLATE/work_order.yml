@@ -1,0 +1,138 @@
+name: "Work Order (LOOP)"
+description: "Orden de ejecución estructurada de Work para Hermes/Gentle AI. No usar para bugs sueltos o ideas sin scope definido."
+title: "[LOOP-XX] "
+labels:
+  - "work-order"
+  - "needs-human-approval"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este issue es el `work_order` formal. Debe estar aprobado por el humano (gate 1) antes de que Hermes lo pase a Gentle AI.
+        No completar campos con "ver conversación" o "ver Slack" — todo lo que Gentle AI necesita debe estar acá.
+
+  - type: input
+    id: loop_id
+    attributes:
+      label: LOOP ID
+      description: "Identificador único, ej. LOOP-014"
+      placeholder: "LOOP-XXX"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: "Resultado observable y verificable. No una tarea vaga."
+    validations:
+      required: true
+
+  - type: textarea
+    id: business_reason
+    attributes:
+      label: Business reason
+      description: "Por qué importa esto ahora, para quién."
+    validations:
+      required: true
+
+  - type: input
+    id: canonical_repo
+    attributes:
+      label: Canonical repo
+      value: "viloc2b-a11y/kadarn-io-biobanking-platform-project"
+    validations:
+      required: true
+
+  - type: input
+    id: base_branch
+    attributes:
+      label: Base branch
+      value: "master"
+    validations:
+      required: true
+
+  - type: input
+    id: working_branch
+    attributes:
+      label: Working branch autorizada
+      description: "Rama exacta donde Gentle AI puede trabajar. Ninguna otra."
+    validations:
+      required: true
+
+  - type: input
+    id: expected_head
+    attributes:
+      label: Expected HEAD (commit SHA)
+      description: "Commit conocido desde el cual se parte. Hermes debe verificarlo antes de tocar nada."
+    validations:
+      required: true
+
+  - type: textarea
+    id: allowed_changes
+    attributes:
+      label: Allowed changes (módulos/paths autorizados)
+      description: "Lista de packages/apps/archivos que SÍ se pueden tocar."
+    validations:
+      required: true
+
+  - type: textarea
+    id: forbidden_changes
+    attributes:
+      label: Forbidden changes
+      description: "Lo que NO se puede tocar bajo ningún motivo (ej. contratos públicos, otras entidades canónicas, Project History Registry)."
+    validations:
+      required: true
+
+  - type: textarea
+    id: architectural_constraints
+    attributes:
+      label: Architectural constraints
+      description: "Decisiones canónicas aplicables (ADRs, invariantes de Claim/Evidence/Confidence, etc.)."
+    validations:
+      required: false
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: "Tareas técnicas concretas, en orden."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: "Criterios verificables, uno por línea. Deben poder marcarse como pass/fail sin ambigüedad."
+    validations:
+      required: true
+
+  - type: textarea
+    id: required_validation
+    attributes:
+      label: Required validation
+      description: "Qué debe correr y pasar: typecheck, tests específicos, build, migrations, contract tests, etc."
+      value: |
+        - [ ] npm run typecheck
+        - [ ] npm run test (o subset relevante)
+        - [ ] npm run build
+        - [ ] npm run arch:gate
+    validations:
+      required: true
+
+  - type: textarea
+    id: stop_conditions
+    attributes:
+      label: Stop conditions
+      description: "Cuándo Hermes/Gentle AI deben detenerse y escalar en vez de improvisar (ambigüedad de schema, baseline incorrecto, dependencia no autorizada, etc.)."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: human_gate
+    attributes:
+      label: Human approval gate
+      options:
+        - label: "Confirmo que esta orden fue revisada y aprobada antes de pasarla a Hermes."
+          required: true
