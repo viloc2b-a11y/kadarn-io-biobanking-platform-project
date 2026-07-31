@@ -1,0 +1,50 @@
+# WO-KEMS-001 — State Machine
+# KPO Governance — Phase Transitions
+
+work_order_id: WO-KEMS-001
+current_state: REPORT_READY
+previous_state: IN_PROGRESS
+created: 2026-07-30T18:53:00Z
+updated: 2026-07-30T19:10:00Z
+
+transitions:
+  - from: DRAFT
+    to: IN_PROGRESS
+    at: 2026-07-30T18:53:00Z
+    by: Hermes
+
+  - from: IN_PROGRESS
+    to: REPORT_READY
+    at: 2026-07-30T19:10:00Z
+    by: Hermes
+    evidence: foundation/00_GOVERNANCE/evidence/WO-KEMS-001/EVIDENCE_PACKAGE.md
+
+allowed_next_states:
+  - ACCEPTED (Human Gate: Vilo)
+  - REJECTED (Human Gate: Vilo)
+  - BLOCKED (requires remediation)
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  auto_close: false
+  kpo_mode: required
+
+blockers:
+  - id: B1
+    description: "KEMS-001 only ~40-50% implemented. Missing Confidence Graph, Provenance, Counter Evidence, Immutability"
+    severity: BLOCKING
+    resolution: "Accept as vertical slice, create follow-up WOs for remaining KEMS-001 components"
+
+  - id: B2
+    description: "OpenAI embeddings may expose PII/PHI"
+    severity: BLOCKING
+    resolution: "BAA with OpenAI OR local embedding fallback + redaction pipeline"
+
+  - id: B3
+    description: "No reviewer gate between declared→documented"
+    severity: MEDIUM
+    resolution: "Add review_status column, require reviewer approval"
+
+linked_pr: https://github.com/viloc2b-a11y/kadarn-io-biobanking-platform-project/pull/29
+evidence_package: foundation/00_GOVERNANCE/evidence/WO-KEMS-001/EVIDENCE_PACKAGE.md
