@@ -1,0 +1,86 @@
+# WO-KEMS-PROFILE-001 — State Machine
+# KPO Governance — REVISION_REQUIRED (partial design baseline preserved)
+
+work_order_id: WO-KEMS-PROFILE-001
+title: Site Profile Creation, Self-Claim Governance, Evidence Association and Capability Activation
+current_state: REVISION_REQUIRED
+previous_state: null
+created: "2026-07-30T21:40:00Z"
+updated: "2026-07-30T22:30:00Z"
+design_commit: 70c11881814a1b9abf050a786e970090eff63019
+reviewed_by: Vilo (Human Gate)
+review_findings:
+  - "Self-Claim Governance block: substantially complete (12 documents)"
+  - "Site Profile Creation block: incomplete (16 deliverables missing)"
+  - "Dependency DOC-003 not yet ACCEPTED — PROFILE-001 references provisional taxonomy"
+  - "Internal inconsistencies: 30 vs 31 claims, claim type enums, high-impact claims without human review"
+  - "Generic claims need decomposition (institution-licensed, facility-certified, PI-experience)"
+
+completion_scope:
+  self_claim_governance: "substantially_complete"
+  site_profile_creation: "incomplete"
+  capability_activation: "incomplete"
+  profile_maintenance: "incomplete"
+
+dependency_status:
+  WO-KEMS-DOC-001: "ACCEPTED (76e3625)"
+  WO-KEMS-DOC-002: "ACCEPTED (e9581aa)"
+  WO-KEMS-DOC-003: "REVISION_REQUIRED — NOT YET ACCEPTED"
+
+phase: DOCUMENTATION_ONLY
+runtime_changes: NONE
+database_changes: NONE
+code_changes: NONE
+
+deliverables_produced:
+  - SELF_CLAIM_GOVERNANCE_REFERENCE.md
+  - CLAIM_LIFECYCLE_AND_STATE_MODEL.yml
+  - CLAIM_ADMISSION_AND_BOUNDEDNESS_RULES.md
+  - CLAIM_ASSERTION_AUTHORITY_MATRIX.md
+  - CLAIM_ATTESTATION_POLICY.md
+  - CLAIM_ENTITY_SCOPE_MATRIX.md
+  - CLAIM_DEPENDENCY_MODEL.md
+  - CLAIM_CORRECTION_AND_SUPERSESSION_POLICY.md
+  - CLAIM_VISIBILITY_AND_PUBLICATION_MATRIX.md
+  - CLAIM_REQUIREMENTS_CATALOG.md
+  - NEGATIVE_AND_UNKNOWN_CLAIM_POLICY.md
+  - DOCUMENT_AUTHENTICITY_SIGNAL_MODEL.md
+
+deliverables_missing:
+  - SITE_PROFILE_LIFECYCLE.md
+  - SITE_PROFILE_STATE_MODEL.yml
+  - INSTITUTION_TYPE_PROFILES.md
+  - DYNAMIC_ONBOARDING_RULES.md
+  - ANSWER_TO_CLAIM_TRANSFORMATION_MODEL.md
+  - CAPABILITY_ACTIVATION_MATRIX.md
+  - CLAIM_EVIDENCE_ASSOCIATION_POLICY.md
+  - INTERNAL_CONSISTENCY_AND_CONTRADICTION_POLICY.md
+  - CLAIM_RECONFIRMATION_AND_DECAY_POLICY.md
+  - SITE_PROFILE_COMPLETENESS_MODEL.md
+  - PROFILE_REVIEW_AND_ATTESTATION_POLICY.md
+  - SITE_PROFILE_VISIBILITY_MATRIX.md
+  - SITE_PROFILE_VERSIONING_POLICY.md
+  - PROFILE_EXPIRATION_AND_UPDATE_WORKFLOW.md
+  - SITE_PROFILE_PUBLICATION_MODEL.md
+  - RIGHT_OF_RESPONSE_AND_DISPUTE_POLICY.md
+
+reconciliation_required:
+  - "Resolve 30 vs 31 claim count in catalog"
+  - "Unify claim type enum (SELF_DECLARED vs SELF_DECLARED_CLAIM)"
+  - "Review high-impact claims without human_review_required"
+  - "Decompose generic claims (institution licensed, facility certified, PI experience)"
+  - "Reconcile confidence weights against source authority, recency, specificity, consistency"
+
+allowed_next_states:
+  - REPORT_READY
+  - ACCEPTED
+  - REVISION_REQUIRED
+  - REJECTED
+  - BLOCKED
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  kpo_mode: required
+  next_human_gate: "WO-KEMS-PROFILE-001 ACCEPT/REVISE/REJECT (after DOC-003 accepted + missing deliverables produced)"
+  immediate_action: "Complete WO-KEMS-DOC-003 revision and Human Gate first. Then reconcile PROFILE-001 against accepted DOC-003 taxonomy."
