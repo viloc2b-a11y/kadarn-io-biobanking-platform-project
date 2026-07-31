@@ -1154,12 +1154,9 @@ export class ClaimService {
 
   /**
    * Guard: throws if KEMS extended repositories are not injected.
+   * Returns the service instance cast to the required shape for convenience.
    */
-  private requireExtended(): asserts this is {
-    extendedClaims: NonNullable<typeof this.extendedClaims>
-    evidenceLinks: typeof this.evidenceLinks
-    reconfirmations: typeof this.reconfirmations
-  } {
+  private requireExtended() {
     if (!this.extendedClaims) {
       throw new ClaimServiceError(
         'KEMS_NOT_CONFIGURED',
