@@ -26,6 +26,14 @@ import type {
   CapabilityClaimLink,
   CapabilityClaimRelationship,
   CreateCapabilityClaimLink,
+  // ─── KEMS Extended types ────────────────────────────────────────────────
+  CapabilityState,
+  CapabilityStateType,
+  CapabilityLifecycleState,
+  CapabilityInstance,
+  CapabilityArea,
+  CapabilityActivationEvent,
+  ReadinessContribution,
 } from '@kadarn/types'
 
 // ─── Repository contract (structural — match BaseRepository surface) ─────
@@ -52,6 +60,73 @@ export interface CapabilityRepositoryLike {
 
   // Denormalized count maintenance
   setClaimCount(capabilityId: string, count: number): Promise<RepositoryResult<InstitutionCapability>>
+}
+
+// ─── KEMS Extended Repository contracts ──────────────────────────────────
+
+/** Repository for KEMS capability instance operations. */
+export interface CapabilityInstanceRepositoryLike {
+  findById(id: string): Promise<RepositoryResult<CapabilityInstance>>
+  listByProfile(
+    profileId: string,
+    filters?: { lifecycleState?: CapabilityLifecycleState; area?: CapabilityArea },
+  ): Promise<RepositoryResult<CapabilityInstance[]>>
+  update(
+    id: string,
+    patch: Partial<CapabilityInstance>,
+  ): Promise<RepositoryResult<CapabilityInstance>>
+}
+
+/** Repository for capability state records (temporal tracking). */
+export interface CapabilityStateRepositoryLike {
+  create(input: {
+    capability_id: string
+    organization_id: string
+    state: CapabilityStateType
+    valid_from?: string
+    evidence_summary?: Record<string, unknown>
+    metadata?: Record<string, unknown>
+  }): Promise<RepositoryResult<CapabilityState>>
+  listByCapability(capabilityId: string): Promise<RepositoryResult<CapabilityState[]>>
+  endCurrentState(capabilityId: string, validUntil: string): Promise<RepositoryResult<CapabilityState>>
+}
+
+/** Repository for capability activation events. */
+export interface CapabilityActivationEventRepositoryLike {
+  create(input: {
+    capability_id: string
+    organization_id: string
+    activation_type: string
+    activated_by?: string
+    activation_method?: string
+    previous_state?: CapabilityLifecycleState
+    new_state?: CapabilityLifecycleState
+    evidence_ref?: string
+    activation_summary?: string
+    valid_from: string
+    valid_until?: string
+  }): Promise<RepositoryResult<CapabilityActivationEvent>>
+  listByCapability(capabilityId: string): Promise<RepositoryResult<CapabilityActivationEvent[]>>
+}
+
+/** Repository for readiness contributions. */
+export interface ReadinessContributionRepositoryLike {
+  findByCapability(capabilityId: string): Promise<RepositoryResult<ReadinessContribution>>
+  findByProfile(profileId: string): Promise<RepositoryResult<ReadinessContribution[]>>
+  upsert(
+    capabilityId: string,
+    data: {
+      organization_id: string
+      contribution_value: number
+      confidence: number
+      weight: number
+      contribution_area?: CapabilityArea
+      contribution_type?: string
+      evidence_count?: number
+      evidence_weighted_score?: number
+      rationale?: string
+    },
+  ): Promise<RepositoryResult<ReadinessContribution>>
 }
 
 // ─── Service errors ──────────────────────────────────────────────────────
@@ -81,11 +156,61 @@ export interface CapabilityWithClaims {
   claimLinks: CapabilityClaimLink[]
 }
 
+// ─── KEMS Extended result shapes ─────────────────────────────────────────
+
+/** Evaluation result for a capability's current state. */
+export interface CapabilityEvaluation {
+  capabilityId: string
+  lifecycleState: CapabilityLifecycleState
+  isActive: boolean
+  activationCount: number
+  lastActivatedAt: string | null
+  dependencyStatus: 'satisfied' | 'partial' | 'unsatisfied' | 'not_applicable'
+  evidenceSufficiency: string | null
+  readinessContribution: number | null
+  recommendation: 'maintain' | 'enhance' | 'degrade' | 'suspend' | 'verify'
+  issues: string[]
+}
+
+/** The computed activation state for a capability. */
+export interface ActivationState {
+  capabilityId: string
+  state: CapabilityLifecycleState
+  isOperationallyActive: boolean
+  lastActivation: CapabilityActivationEvent | null
+  activationHistory: CapabilityActivationEvent[]
+  validUntil: string | null
+  requiresRenewal: boolean
+}
+
+/** Capability gaps for a profile. */
+export interface CapabilityGap {
+  capabilityId: string
+  area: string
+  gap: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  recommendation: string
+}
+
+/** Aggregated readiness contribution for a profile. */
+export interface ProfileReadinessContribution {
+  profileId: string
+  overallContribution: number
+  capabilityContributions: ReadinessContribution[]
+  gapCount: number
+  computedAt: string
+}
+
 // ─── Service ─────────────────────────────────────────────────────────────
 
 export class CapabilityService {
   constructor(
     private readonly capabilities: CapabilityRepositoryLike,
+    // ─── KEMS Extended dependencies (optional) ──────────────────────────
+    private readonly capabilityInstances?: CapabilityInstanceRepositoryLike,
+    private readonly capabilityStates?: CapabilityStateRepositoryLike,
+    private readonly activationEvents?: CapabilityActivationEventRepositoryLike,
+    private readonly readinessContributions?: ReadinessContributionRepositoryLike,
   ) {}
 
   // ─── Create ────────────────────────────────────────────────────────────
