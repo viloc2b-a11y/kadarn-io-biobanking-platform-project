@@ -3,10 +3,13 @@
 
 work_order_id: WO-KEMS-DOC-001
 title: Evidence Minimization and Selective Custody Contract
-current_state: DESIGN_PROPOSAL
-previous_state: null
+current_state: ACCEPTED
+previous_state: DESIGN_PROPOSAL
 created: 2026-07-30T19:30:00Z
-updated: 2026-07-30T19:30:00Z
+updated: 2026-07-30T20:00:00Z
+accepted_by: Vilo (Human Gate)
+accepted_at: 2026-07-30T20:00:00Z
+baseline_commit: 76e3625ee8c3ddcc0fe292a598f46568ec11f452
 
 phase: DESIGN_ONLY
 runtime_changes: NONE

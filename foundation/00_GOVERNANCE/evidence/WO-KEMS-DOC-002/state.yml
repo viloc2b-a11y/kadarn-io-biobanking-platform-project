@@ -1,0 +1,68 @@
+# WO-KEMS-DOC-002 — State Machine
+# KPO Governance — Design Phase
+
+work_order_id: WO-KEMS-DOC-002
+title: Type Extension and Migration Design
+current_state: DESIGN_PROPOSAL
+previous_state: null
+created: 2026-07-30T20:10:00Z
+baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625ee8c3ddcc0fe292a598f46568ec11f452)
+
+phase: DESIGN_ONLY
+runtime_changes: NONE
+database_changes: NONE
+code_changes: NONE
+
+deliverables:
+  - foundation/00_GOVERNANCE/evidence/WO-KEMS-DOC-002/TYPE_EXTENSION_AND_MIGRATION_DESIGN.md
+
+scope:
+  - Type extensions: DocumentIntakeDisposition, DocumentSensitivityClass, ExpirationClassification, DeidentificationMethod
+  - Entity types: RetentionPolicy, LegalHold, DestructionRecord, DocumentTaxonomyRule, PackageEligibility, ValidityStatus
+  - DOCUMENT_TAXONOMY lookup table (13 document types)
+  - Validity engine: computeValidityStatus, computeExpirationAlerts, computePackageEligibility
+  - Expiration alert schedule (90/60/30/14/7/0 days)
+  - Migration design: ALTER evidence_sources + 7 new tables
+  - Seed data: taxonomy + 7 retention policies
+  - Backfill strategy for existing rows
+  - Policy versioning rules
+  - 12 acceptance criteria
+
+excluded:
+  - No ALTER TABLE execution
+  - No CREATE TABLE execution
+  - No TypeScript file modifications
+  - No API endpoint implementation
+  - No UI changes
+  - No cron jobs
+  - No runtime enforcement code
+
+allowed_next_states:
+  - ACCEPTED (Human Gate: Vilo)
+  - REJECTED (Human Gate: Vilo)
+  - REVISED (requires design changes)
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  kpo_mode: required
+
+design_decisions:
+  - id: D12
+    decision: "Migration split into 095 (ALTER evidence_sources) + 096 (CREATE 7 new tables)"
+    rationale: "ALTER-only migration is reversible; new tables can be created independently."
+
+  - id: D13
+    decision: "Existing evidence_sources rows default to sensitivity='unknown', expiration='expiration_unknown'"
+    rationale: "Cannot assume safety of pre-existing documents. All require manual review."
+
+  - id: D14
+    decision: "Retention policies are versioned with superseded_by chain; existing assignments are NOT auto-updated"
+    rationale: "Policy changes should not retroactively alter destruction schedules without review."
+
+  - id: D15
+    decision: "DOCUMENT_TAXONOMY is a database table with seed data, not a hardcoded TypeScript constant"
+    rationale: "Taxonomy must be updatable without code deployment. Clients read from DB."
+
+parent_work_order: WO-KEMS-DOC-001
+parent_workstream: Evidence Core / Document Governance
