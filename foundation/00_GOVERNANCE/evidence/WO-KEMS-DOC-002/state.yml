@@ -3,12 +3,15 @@
 
 work_order_id: WO-KEMS-DOC-002
 title: Type Extension and Migration Design
-current_state: DESIGN_PROPOSAL
+current_state: ACCEPTED
 previous_state: REVISED
 created: 2026-07-30T20:10:00Z
-updated: 2026-07-30T20:40:00Z
-revision_count: 1
-baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625ee8c3ddcc0fe292a598f46568ec11f452)
+updated: 2026-07-30T21:00:00Z
+revision_count: 2
+accepted_by: Vilo (Human Gate)
+accepted_at: 2026-07-30T21:00:00Z
+baseline_commit: e9581aa2ebe3d0a9638e1e64b7d80eb1a2b1dce3
+parent_baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625ee8c3ddcc0fe292a598f46568ec11f452)
 
 phase: DESIGN_ONLY
 runtime_changes: NONE
