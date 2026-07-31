@@ -1,0 +1,5 @@
+export { default as CapabilitiesStep } from './CapabilitiesStep'
+export { default as ClaimsStep } from './ClaimsStep'
+export { default as DocumentsEvidenceStep } from './DocumentsEvidenceStep'
+export { default as ReviewGapsStep } from './ReviewGapsStep'
+export { default as PassportStep } from './PassportStep'

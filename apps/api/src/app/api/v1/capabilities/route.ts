@@ -1,37 +1,34 @@
 // ==========================================================================
-// KAD-LOOP-003 — Capabilities API (Phase 9)
+// KEMS — Capabilities API (Profile-scoped, service-backed)
 // ==========================================================================
-// POST /api/v1/capabilities — Create a capability
-// GET  /api/v1/capabilities — List capabilities (filters: orgId, status,
-//                              page, limit)
+// GET  /api/v1/capabilities?profileId=<uuid> — List capabilities for a profile
+// POST /api/v1/capabilities — Evaluate a capability by { capabilityId }
 // ==========================================================================
 
 import { withAuth, handleApiError, createServiceClient, ApiError } from '@/lib/supabase-server';
-import { CreateInstitutionCapabilitySchema } from '@kadarn/types';
+import { CapabilityService } from '@kadarn/platform-services';
 import { z } from 'zod';
-
-// ─── Local enum value array (mirrors InstitutionCapabilityStatus) ──────────
-// Defined locally because @kadarn/types ships Zod v4 schemas while apps/api
-// resolves Zod v3; composing the foreign enum into a local z.object triggers
-// TS2740. Using the raw string values with a local z.enum() avoids the
-// cross-version class mismatch while validating the same value set.
-const CAPABILITY_STATUSES = [
-  'declared', 'evidence_submitted', 'under_review', 'verified', 'published', 'deprecated',
-] as const;
 
 // ─── Query params schema (GET list) ───────────────────────────────────────
 const listQuerySchema = z.object({
-  orgId: z.string().uuid().optional(),
-  status: z.enum(CAPABILITY_STATUSES).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  profileId: z.string().uuid(),
+  lifecycleState: z
+    .enum(['declared', 'evidence_submitted', 'under_review', 'verified', 'published', 'suspended', 'deprecated'])
+    .optional(),
+  area: z.string().optional(),
 });
 
-// ─── POST — create capability ─────────────────────────────────────────────
-export const POST = withAuth(async (request, _user, _params) => {
+// ─── POST body schema (evaluate) ──────────────────────────────────────────
+const evaluateBodySchema = z.object({
+  capabilityId: z.string().uuid(),
+});
+
+// ─── GET — list capabilities for a profile ────────────────────────────────
+export const GET = withAuth(async (request, _user, _params) => {
   try {
-    const body = await request.json() as Record<string, unknown>;
-    const parsed = CreateInstitutionCapabilitySchema.safeParse(body);
+    const url = new URL(request.url);
+    const rawParams = Object.fromEntries(url.searchParams.entries());
+    const parsed = listQuerySchema.safeParse(rawParams);
     if (!parsed.success) {
       return Response.json(
         { data: null, error: 'Validation failed', details: parsed.error.flatten() },
@@ -39,36 +36,37 @@ export const POST = withAuth(async (request, _user, _params) => {
       );
     }
 
+    const { profileId, lifecycleState, area } = parsed.data;
     const supabase = createServiceClient();
 
-    const { data, error } = await supabase
-      .from('capabilities')
-      .insert({
-        ...parsed.data,
-        status: 'declared',
-        review_status: 'pending',
-        claim_count: 0,
-      })
-      .select()
-      .single();
+    let query = supabase
+      .from('kems_capabilities')
+      .select('*')
+      .eq('profile_id', profileId);
+
+    if (lifecycleState) query = query.eq('lifecycle_state', lifecycleState);
+    if (area) query = query.eq('area', area);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
-      if (error.code === '23505') throw new ApiError(409, 'Capability already exists for this organization');
-      throw new ApiError(500, 'Failed to create capability', error.message);
+      throw new ApiError(500, 'Failed to list capabilities', error.message);
     }
 
-    return Response.json({ data, error: null }, { status: 201 });
+    return Response.json({
+      data: data ?? [],
+      error: null,
+    });
   } catch (error) {
     return handleApiError(error);
   }
 });
 
-// ─── GET — list capabilities ──────────────────────────────────────────────
-export const GET = withAuth(async (request, _user, _params) => {
+// ─── POST — evaluate a capability ─────────────────────────────────────────
+export const POST = withAuth(async (request, _user, _params) => {
   try {
-    const url = new URL(request.url);
-    const params = Object.fromEntries(url.searchParams.entries());
-    const parsed = listQuerySchema.safeParse(params);
+    const body = await request.json() as Record<string, unknown>;
+    const parsed = evaluateBodySchema.safeParse(body);
     if (!parsed.success) {
       return Response.json(
         { data: null, error: 'Validation failed', details: parsed.error.flatten() },
@@ -76,40 +74,35 @@ export const GET = withAuth(async (request, _user, _params) => {
       );
     }
 
-    const { orgId, status, page, limit } = parsed.data;
+    const { capabilityId } = parsed.data;
     const supabase = createServiceClient();
 
-    // Tenant safety: orgId is required.
-    if (!orgId) {
-      return Response.json(
-        { data: null, error: 'orgId query parameter is required for tenant safety' },
-        { status: 400 },
-      );
-    }
-
-    let query = supabase
-      .from('capabilities')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', orgId);
-
-    if (status) query = query.eq('status', status);
-
-    const offset = (page - 1) * limit;
-    const { data, error, count } = await query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw new ApiError(500, 'Failed to list capabilities', error.message);
-
-    return Response.json({
-      data: {
-        items: data ?? [],
-        page,
-        limit,
-        total: count ?? 0,
+    // Wire a minimal CapabilityService with only the KEMS repos it needs
+    const service = new CapabilityService(
+      // stub base CRUD repo (not used by evaluate)
+      {} as any,
+      // KEMS capability instance repo
+      {
+        async findById(id: string) {
+          const { data, error } = await supabase.from('kems_capabilities').select('*').eq('id', id).single();
+          if (error) {
+            if (error.code === 'PGRST116') return { data: null, error: null };
+            return { data: null, error: { code: error.code ?? 'DB_ERROR', message: error.message } };
+          }
+          return { data, error: null };
+        },
+        async listByProfile() {
+          return { data: [], error: null };
+        },
+        async update() {
+          return { data: null, error: { code: 'NOT_IMPLEMENTED', message: 'Read-only' } };
+        },
       },
-      error: null,
-    });
+    );
+
+    const evaluation = await service.evaluateCapability(capabilityId);
+
+    return Response.json({ data: evaluation, error: null });
   } catch (error) {
     return handleApiError(error);
   }

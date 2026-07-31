@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@kadarn/instrumentation": "*",
+    "@kadarn/platform-services": "*",
     "@kadarn/domain-events": "*",
     "@kadarn/evidence-core": "*",
     "@kadarn/evidence-discovery": "*",
