@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS public.capability_instances (
 
     -- Audit
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 
     -- Uniqueness enforced via unique index below (expressions not allowed
     -- in table-level UNIQUE constraints in PostgreSQL)
@@ -210,10 +210,7 @@ CREATE TABLE IF NOT EXISTS public.capability_dependency_status (
     status                  dependency_status_type NOT NULL DEFAULT 'PENDING',
 
     -- When this dependency was last evaluated
-    evaluated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-    -- One status row per capability+claim pair
-    CONSTRAINT uq_capability_dependency_status UNIQUE (capability_id, dependency_claim_id)
+    evaluated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ############################################################################
@@ -300,9 +297,7 @@ CREATE TABLE IF NOT EXISTS public.document_taxonomy_rules (
 
     -- Audit
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-    CONSTRAINT uq_document_taxonomy_rule_key UNIQUE (rule_key)
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ############################################################################
@@ -391,6 +386,13 @@ CREATE INDEX IF NOT EXISTS idx_document_taxonomy_rules_destination
 CREATE INDEX IF NOT EXISTS idx_document_taxonomy_rules_active
     ON public.document_taxonomy_rules(is_active)
     WHERE is_active = true;
+
+-- UNIQUE constraints (replaced inline CONSTRAINTs for portability)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_capability_dependency_status
+    ON public.capability_dependency_status(capability_id, dependency_claim_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_document_taxonomy_rule_key
+    ON public.document_taxonomy_rules(rule_key);
 
 -- ############################################################################
 -- PART 8: ROW LEVEL SECURITY
