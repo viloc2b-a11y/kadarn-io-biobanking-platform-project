@@ -7,11 +7,21 @@ current_state: ACCEPTED
 previous_state: REVISED
 created: 2026-07-30T20:10:00Z
 updated: 2026-07-30T21:00:00Z
-revision_count: 2
+revision_count: 3
 accepted_by: Vilo (Human Gate)
 accepted_at: 2026-07-30T21:00:00Z
 baseline_commit: e9581aa2ebe3d0a9638e1e64b7d80eb1a2b1dce3
 parent_baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625ee8c3ddcc0fe292a598f46568ec11f452)
+
+revision_3_changes:
+  - "Taxonomy expanded from 22 → 46 document types"
+  - "New categories: Regulatory (FDA 1572, Financial Disclosure, State License, Delegation Log)"
+  - "New categories: Quality (CAPA Records, Internal Audit Reports)"
+  - "New categories: Emergency & Safety (Emergency Plan, Business Continuity, Hazardous Materials)"
+  - "New categories: Equipment Ops (Backup Power Logs, Alarm Logs, Environmental Logs, Radiation, BSL)"
+  - "New categories: Technology (EMR Validation, Data Security, Part 11 Compliance)"
+  - "New categories: Operational (Recruitment Plan, Diversity Plan, Community Board, Translator, Training Matrix)"
+  - "New categories: Legal (MTA Agreements, Indemnification)"
 
 phase: DESIGN_ONLY
 runtime_changes: NONE
