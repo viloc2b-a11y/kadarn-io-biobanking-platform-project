@@ -1,0 +1,64 @@
+# WO-KEMS-DOC-003 — State Machine
+# KPO Governance — Document Consolidation Phase
+
+work_order_id: WO-KEMS-DOC-003
+title: Site Evidence Requirements Catalog and Taxonomy Classification
+current_state: IN_PROGRESS
+previous_state: null
+created: "2026-07-30T21:30:00Z"
+
+phase: DOCUMENTATION_ONLY
+runtime_changes: NONE
+database_changes: NONE
+code_changes: NONE
+
+dependencies:
+  WO-KEMS-DOC-001: "ACCEPTED (76e3625)"
+  WO-KEMS-DOC-002: "ACCEPTED (design: e9581aa, governance: 2ef87f7)"
+
+deliverables:
+  - KPO_RECONCILIATION_REPORT.md
+  - DOCUMENT_TAXONOMY_CLASSIFICATION_MATRIX.md
+  - SITE_DOCUMENT_REQUEST_PROFILES.md
+  - DOCUMENT_ENTITY_OWNERSHIP_MATRIX.md
+  - DOCUMENT_PACKAGE_BEHAVIOR_MATRIX.md
+  - SITE_EVIDENCE_REQUIREMENTS_CATALOG.md
+  - state.yml
+  - EVIDENCE_INDEX.md
+
+classification_results:
+  primary_classes: 9
+  total_types: 48
+  seed_candidates: 34
+  rejected_seeds: 14
+
+rejected_seed_reasons:
+  - "STUDY_SPECIFIC (5 types): Per-study documents, not reusable taxonomy seeds"
+  - "STRUCTURED_DATA (5 types): Model as data fields, not document types"
+  - "RESTRICTED_EVIDENCE (3 types): Internal only, not eligible for external package"
+  - "PROHIBITED (2 types): Never ingest"
+
+key_rules_preserved:
+  - "D1-D17: All accepted design decisions preserved"
+  - "D17 rule: Eligible ≠ Selected ≠ Authorized"
+  - "system_suggested always → awaiting_review"
+  - "No auto-conversion of gaps to taxonomy seeds"
+  - "No reopening WO-KEMS-DOC-002 design"
+
+excluded:
+  - "No migration execution"
+  - "No code changes"
+  - "No database writes"
+  - "No API changes"
+  - "No UI changes"
+  - "No seed implementation"
+
+allowed_next_states:
+  - REPORT_READY
+  - BLOCKED
+
+governance:
+  human_gate_required: true
+  auto_merge: false
+  kpo_mode: required
+  next_human_gate: "WO-KEMS-DOC-003 ACCEPT/REVISE/REJECT"
