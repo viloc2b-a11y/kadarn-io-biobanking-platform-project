@@ -427,3 +427,228 @@ Before any migration, API, or UI work proceeds, the following must be true:
 
 *WO-KEMS-DOC-001 — Design Phase — 2026-07-30*
 *Next: Human Gate review → ACCEPTED → WO-KEMS-DOC-002 (Type extension + migration design)*
+
+---
+
+# APPENDIX A — Site Feasibility Package Architecture
+
+> **Correction (2026-07-30):** The previous Feasibility Folder concept was incorrectly defined. It prioritized activation letters, closeout letters, and historical sponsor correspondence. These are internal experience evidence — not the core feasibility package. The corrected model follows.
+
+## A.1 Two-Block Structure
+
+### Block 1: KADARN-Generated Documents (from structured profile)
+
+These do NOT require pre-existing PDFs. KADARN generates them from the site's validated structured data:
+
+| Document | Source |
+|---|---|
+| Site Profile | Institution + Locations + People |
+| Site Capabilities Summary | Claims with evidence status |
+| Therapeutic Area Experience | Claims (category: experience) |
+| Study Phase Experience | Claims (answer_type: boolean, phases I-IV) |
+| Recruitment and Patient Access Profile | Claims + operational metrics |
+| Facility and Infrastructure Summary | Locations + Infrastructure entries |
+| Laboratory Capabilities | Claims (category: infrastructure, lab) |
+| Pharmacy Capabilities | Claims (conditional: pharmacy module) |
+| Biospecimen and Cold-Chain Capabilities | Claims (conditional: biospecimen module) |
+| Equipment Inventory | Equipment Assets with calibration status |
+| Proposed Study Staff Roster | People assigned to study roles |
+| Operational Readiness Summary | Readiness Assessment output |
+| Languages, Geographic Reach, Population | Locations + demographic metadata |
+| Technology and Data Systems Summary | Infrastructure + digital ops |
+| Evidence and Confidence Summary | Confidence Graph aggregation |
+| Site-Specific Gaps or Pending Conditions | Gap Intelligence output |
+
+**Auto-update rule:** When the institutional profile changes, these documents regenerate automatically. No manual re-upload required.
+
+### Block 2: Source Documents — Stored and Transferable
+
+These MUST be uploaded, validated, maintained current, and available for authorized transfer.
+
+#### A.2.1 Personnel Documents (per person, per role, per study assignment)
+
+```
+Person
+  → Role (PI, Sub-I, CRC, Lab Director, etc.)
+    → Study Assignment
+      → Credential
+        → Document
+          → Effective Date
+          → Expiration Date
+          → Validity Status
+```
+
+Required credentials per person:
+
+| Credential | When Required |
+|---|---|
+| Curriculum Vitae (current) | Always |
+| GCP Training Certificate | Always |
+| IATA Training Certificate | When handling/shipping samples |
+| Medical License | PI, Sub-I (when applicable) |
+| Board Certification | When applicable |
+| Human Subjects Protection Training | Always |
+| ACLS/BLS | When required by protocol or role |
+| SOCRA/ACRP Certification | Optional — professional |
+| Lab-specific certifications | Lab personnel |
+| Pharmacy-specific certifications | Pharmacy personnel |
+| Study-specific training evidence | Per protocol requirements |
+
+#### A.2.2 Institutional Documents
+
+| Document | Notes |
+|---|---|
+| Applicable SOPs | Selected by protocol relevance, not entire library |
+| Site licenses and permits | All operational locations |
+| Laboratory CLIA Certificate | Per lab location |
+| CAP Accreditation | When applicable |
+| Pharmacy licenses | When applicable |
+| Controlled-substance registrations | When applicable |
+| Insurance certificates | Institution-level |
+| Facility certifications | Per location |
+| IRB reliance information | Institution or central IRB |
+| Quality-management documentation | As required |
+| Privacy, security, data handling policies | As required |
+
+#### A.2.3 Equipment and Infrastructure Documents
+
+```
+Institution
+  → Location
+    → Room/Area
+      → Equipment Asset
+        → Calibration or Certification Record
+```
+
+| Record Type | Examples |
+|---|---|
+| Calibration Records (current) | Centrifuge, pipettes, scales, thermometers |
+| Preventive Maintenance Records | All critical equipment |
+| Equipment Qualification Records | Installation, operational, performance |
+| Temperature Mapping | Freezers, refrigerators, incubators, rooms |
+| Freezer/Refrigerator Certifications | -80°C, -20°C, LN2 |
+| Backup Power Evidence | Generator tests, UPS maintenance |
+| Environmental Monitoring | Temperature, humidity, air pressure logs |
+| Alarm and Excursion-Management | Alarm tests, excursion reports |
+| Shipping-Equipment Validation | Cold-chain shippers, data loggers |
+| Centrifuge Certificates | RPM verification, timer accuracy |
+| ECG, Spirometry Certificates | When applicable |
+| Biosafety Cabinet / Hood Certifications | When applicable |
+
+## A.3 Expiration Classification
+
+Every document stored in KADARN must have one of these expiration classifications:
+
+```
+expires_on_date           → Has a known expiration date
+periodic_review_required   → No fixed expiration; requires periodic review
+valid_until_replaced       → Valid until a newer version supersedes it
+no_expiration              → Truly permanent (rare — e.g., foundational license)
+expiration_unknown         → Cannot be determined; must NOT be treated as current
+```
+
+**Rule:** `expiration_unknown` documents are ineligible for feasibility packages.
+
+## A.4 Expiration Alert Timeline
+
+KADARN generates configurable alerts before document expiration:
+
+| Alert | Trigger |
+|---|---|
+| 90-day warning | 90 days before expiration |
+| 60-day warning | 60 days before expiration |
+| 30-day warning | 30 days before expiration |
+| 14-day warning | 14 days before expiration |
+| 7-day warning | 7 days before expiration |
+| Expiration day | Day of expiration |
+| Post-expiration | Document ineligible, claim affected |
+
+**Post-expiration cascade:**
+1. Document removed from new package eligibility
+2. Related Claim → `expired` or `evidence_stale`
+3. Affected person/equipment/capability receives a gap flag
+4. Replacement requested from site
+5. Expired document retained as history, NOT as current evidence
+
+## A.5 Study-Specific Package Transfer
+
+### A.5.1 The "Automatic" Constraint
+
+> "Automatic" means: KADARN assembles and transfers the package once the site authorizes the recipient, study, and applicable documents.
+
+It does NOT mean: share all documents with any sponsor.
+
+### A.5.2 Transfer Flow
+
+```
+1. Study opportunity received
+2. Protocol requirements identified
+3. Relevant capabilities selected
+4. Proposed study staff selected
+5. Required credentials resolved (per person)
+6. Institutional documents resolved
+7. Equipment records resolved (per asset)
+8. Validity checked (all documents current)
+9. Missing/expired items flagged
+10. Site authorizes package
+11. Package transferred to sponsor/CRO
+12. Disclosure recorded (what, to whom, when, scope)
+```
+
+### A.5.3 Study-Specific Selection Logic
+
+The package is tailored per protocol — not the same folder every time:
+
+| Study Characteristic | Documents Included |
+|---|---|
+| No sample collection | No IATA certs, no lab equipment docs |
+| Local processing required | CLIA, equipment, calibrations, lab personnel |
+| Phase I | ACLS, crash cart, pharmacy, temp monitoring, emergency SOPs |
+| Controlled IP | Pharmacy licenses, controlled-substance registrations |
+| Device study | Device calibrations, equipment-specific training |
+| International shipping | IATA, cold-chain validation, export licenses |
+
+## A.6 Corrected Document Classification
+
+### A.6.1 What was WRONG in the old Feasibility Folder concept
+
+These document types were incorrectly prioritized as default feasibility package items:
+
+| Wrongly Prioritized | Correct Classification |
+|---|---|
+| Activation letters | Internal experience evidence — NOT default package |
+| Closeout letters | Internal experience evidence — NOT default package |
+| Historical protocols | Internal experience evidence — NOT default package |
+| Sponsor correspondence | Internal reference — do NOT share with other sponsors |
+| CRO correspondence | Internal reference — do NOT share |
+| Historical IRB approval letters | Internal experience evidence — NOT default package |
+
+These may support **Claims of experience** but are NOT core feasibility package items.
+
+### A.6.2 Corrected Canonical Classification
+
+| Group | Treatment |
+|---|---|
+| Profile, capabilities, experience | **Generated** from structured data |
+| CV, GCP, IATA, licenses, certifications | **Stored original** — current and valid |
+| SOPs | **Stored**, versioned, selected by protocol relevance |
+| CLIA/CAP and institutional licenses | **Stored original** — current and valid |
+| Calibration and maintenance records | **Stored** per equipment and location |
+| Historical study documents | **Experience evidence only** — not standard package |
+| PHI and patient documents | **Never** in any package |
+| Contracts, budgets, findings | **Never** shared as standard feasibility |
+
+## A.7 Resulting Architecture Decision
+
+The old `Feasibility Folder` entity must be transformed into:
+
+> **Site Qualification Document Vault + Study-Specific Feasibility Package Generator**
+
+- **Vault:** Stores institutional and professional documents, reusable across studies, with validity tracking and expiration alerts.
+- **Generator:** Combines current valid documents with structured profile data to produce a protocol-specific package per opportunity. Does not send the same folder to every sponsor.
+
+**Impact on document-handling.ts:** `feasibility_folder` handling mode remains valid but its semantics change — it now means "stored in the Vault and eligible for study-specific package assembly", not "curated static folder of historical documents."
+
+---
+
+*Appendix A added 2026-07-30 — Corrects Feasibility Folder concept based on Human Gate input.*

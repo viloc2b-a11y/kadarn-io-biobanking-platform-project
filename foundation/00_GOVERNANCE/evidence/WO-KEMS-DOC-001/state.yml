@@ -50,7 +50,7 @@ governance:
 design_decisions:
   - id: D1
     decision: "reject belongs in IntakeDisposition, not DocumentHandlingMode"
-    rationale: "Rejection is an admission decision, not a treatment modality. Mixing dimensions caused the same problem as Claims states."
+    rationale: "Rejection is an admission decision, not a treatment modality."
 
   - id: D2
     decision: "Retention duration resolved via policy lookup, not hardcoded"
@@ -75,6 +75,22 @@ design_decisions:
   - id: D7
     decision: "KADARN must not auto-claim Safe Harbor or Expert Determination compliance"
     rationale: "De-identification requires qualified assessment; pattern detection alone is insufficient."
+
+  - id: D8
+    decision: "Feasibility Folder was incorrectly defined — prioritized historical study docs over current credentials"
+    rationale: "Activation letters, closeout letters, and sponsor correspondence are internal experience evidence, not default package items. The correct model is Site Qualification Document Vault + Study-Specific Package Generator."
+
+  - id: D9
+    decision: "Documents must be associated with entity hierarchy: Person→Role→Credential; Institution→Location→Equipment→Record"
+    rationale: "Association at institution-level only is insufficient for equipment calibrations, personnel credentials, and location-specific certifications."
+
+  - id: D10
+    decision: "Every document must have expiration classification: expires_on_date | periodic_review | valid_until_replaced | no_expiration | expiration_unknown"
+    rationale: "expiration_unknown documents are ineligible for feasibility packages."
+
+  - id: D11
+    decision: "Feasibility packages are study-specific, not one-size-fits-all"
+    rationale: "No sample collection → no IATA. Phase I → ACLS, pharmacy, temp monitoring. Controlled IP → additional licenses."
 
 linked_pr: https://github.com/viloc2b-a11y/kadarn-io-biobanking-platform-project/pull/29
 parent_workstream: Evidence Core / Document Governance
