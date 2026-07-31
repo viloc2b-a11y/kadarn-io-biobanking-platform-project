@@ -327,10 +327,10 @@ export function computeValidityStatus(context: {
 }
 ```
 
-### 1.10 PackageEligibility
+### 1.10 PackageEligibility (corrected — taxonomy recommends, user selects)
 
 ```typescript
-// ─── Package Purpose (replaces boolean is_package_eligible) ─────────────
+// ─── Package Purpose (taxonomy recommendation, not governance) ─────────
 
 export type PackagePurpose =
   | 'feasibility'          // Initial feasibility response
@@ -338,6 +338,38 @@ export type PackagePurpose =
   | 'study_startup'        // Regulatory startup package
   | 'study_assignment'     // Study-specific staff/equipment assignment
   | 'internal_evidence'    // Internal audit, KADARN review only
+
+// ─── Package Selection (human-directed) ─────────────────────────────────
+
+export type PackageSelectionMethod =
+  | 'chat_requested'       // User described need; KADARN identified candidates
+  | 'manual_selected'      // User browsed Vault and selected directly
+  | 'system_suggested'     // KADARN auto-suggested; ALWAYS pending confirmation
+
+export type PackageSelectionStatus =
+  | 'draft'                // Selection started, not complete
+  | 'awaiting_review'      // KADARN suggestions presented; user must confirm
+  | 'confirmed'            // User confirmed selection
+  | 'rejected'             // User rejected (item or entire package)
+
+export interface PackageDocumentSelection {
+  document_id: string
+  selected_by: string
+  selection_method: PackageSelectionMethod
+  selection_reason: string | null     // Why this document was selected
+  selected_at: string
+  confirmed_by: string | null
+  confirmed_at: string | null
+  status: PackageSelectionStatus
+}
+
+// ─── Rule: Eligible ≠ Selected ≠ Authorized ────────────────────────────
+//
+// Eligibility  → Can this document be used? (validity, sensitivity, handling)
+// Selection    → Does the user want it in this package?
+// Authorization → Has the site authorized transfer to this recipient?
+//
+// All three must be true for transfer.
 
 export interface PackageEligibility {
   document_id: string
@@ -1217,7 +1249,8 @@ Before any migration execution or code change:
 
 ---
 
-*WO-KEMS-DOC-002 — Design Phase — 2026-07-30 — Revision 1*
+*WO-KEMS-DOC-002 — Design Phase — 2026-07-30 — Revision 2*
 *Baseline: WO-KEMS-DOC-001 ACCEPTED (76e3625)*
 *Corrections applied: C1-C8 (2026-07-30)*
+*D17 added: Human-directed package composition (2026-07-30)*
 *Next: Human Gate review → ACCEPTED → migration execution*

@@ -82,5 +82,9 @@ design_decisions:
     decision: "Single Authority Rule: no column in evidence_sources may duplicate state derivable from related tables"
     rationale: "Package eligibility, transfer authorization, scheduled destruction, and legal hold status must be queried from canonical tables — not stored redundantly."
 
+  - id: D17
+    decision: "Human-directed package composition — taxonomy recommends, user selects"
+    rationale: "KADARN may recommend documents by protocol stage, but final composition is via chat request or manual selection. System suggestions are always pending confirmation. Eligible ≠ Selected ≠ Authorized."
+
 parent_work_order: WO-KEMS-DOC-001
 parent_workstream: Evidence Core / Document Governance
