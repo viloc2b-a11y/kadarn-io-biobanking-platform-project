@@ -19,15 +19,6 @@ export const GET = withErrorHandling(async (request) => {
       organization_capabilities (
         is_primary,
         organization_capability_types ( key, name, category )
-      ),
-      organization_trust (
-        overall_score,
-        operational_score,
-        regulatory_score,
-        financial_score,
-        technical_score,
-        total_fulfillments,
-        successful_fulfillments
       )
     `, { count: 'exact' })
     .eq('is_active', true)
@@ -58,10 +49,6 @@ export const GET = withErrorHandling(async (request) => {
       }
     }).filter(c => c.key)
 
-    const trust = Array.isArray(org.organization_trust)
-      ? org.organization_trust[0]
-      : org.organization_trust
-
     return {
       id:              org.id,
       name:            org.name,
@@ -71,17 +58,6 @@ export const GET = withErrorHandling(async (request) => {
       website:         org.website,
       certifications:  org.certifications ?? [],
       capabilities:    caps,
-      trust: trust ? {
-        overall:     Number(trust.overall_score),
-        operational: Number(trust.operational_score),
-        regulatory:  Number(trust.regulatory_score),
-        financial:   Number(trust.financial_score),
-        technical:   Number(trust.technical_score),
-        fulfillments: trust.total_fulfillments,
-        success_rate: trust.total_fulfillments > 0
-          ? Math.round((trust.successful_fulfillments / trust.total_fulfillments) * 100)
-          : null,
-      } : null,
     }
   })
 
