@@ -5,6 +5,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Fail loudly, not silently, if a required tool is missing — a guard that
+# silently no-ops when its own grep tool is absent is worse than no guard.
+command -v rg >/dev/null 2>&1 || { echo "FAIL: ripgrep (rg) is required by arch-gate.sh but was not found on PATH"; exit 1; }
+
 echo "== AF-4.0 Architecture Gate =="
 
 # ADR registry must exist
@@ -28,5 +32,53 @@ for route in passport institution/public discovery/dashboard discovery/report; d
     : # individual route check optional
   fi
 done
+
+# ─── dashboard-next-best-action — score-free surfaces guard ─────────────
+# Design ref: decisions-2 (id 983) rule 5 — mandatory, non-repo-wide gate:
+# zero runtime-reachable institution-level score/tier/ranking field on the
+# specific surfaces this change fixed. NOT repo-wide: packages/trust-engine
+# (ADR-010 preserved dormant code), packages/institutional-knowledge (Phase D
+# inventory-only deliverable, not fixed in Slice 1), packages/graph-query
+# (dormant adapter, D6), packages/evidence-discovery (separate unrelated
+# package, out of this change's scope), and database/migrations (frozen
+# schema, no migration issued) are intentionally excluded — reintroducing
+# a guard there would fail on legitimate, already-scoped-out code.
+SCORE_FREE_SURFACES=(
+  "apps/api/src/lib/continuity-claim-service.ts"
+  "apps/api/src/app/api/v1/marketplace/organizations/route.ts"
+  "apps/web/src/lib/passport/passport-assembler.ts"
+  "apps/web/src/lib/onboarding/derived-read-models/passport-read-model.ts"
+  "apps/web/src/lib/onboarding/derived-read-models/readiness-read-model.ts"
+  "apps/web/src/lib/onboarding/derived-read-models/roadmap-read-model.ts"
+  "apps/web/src/lib/onboarding/institution-roadmap.ts"
+  "apps/web/src/app/site-passport"
+  "apps/web/src/app/(onboarding)/onboarding/passport"
+  "apps/web/src/app/(onboarding)/onboarding/readiness"
+  "apps/web/src/app/(onboarding)/onboarding/roadmap"
+  "apps/web/src/app/(marketplace)/marketplace/organizations"
+  "apps/web/src/app/(koc)/koc/kpe"
+  "packages/kpe-generator/src/index.ts"
+)
+FORBIDDEN_SCORE_FIELDS="overallScore|healthScore|coverageScore|readinessScore|avgOrgTrust|completionPercent|currentReadinessLevel|targetReadinessLevel|organization_trust|trustLevel|trustScore"
+SCORE_GATE_FAIL=0
+for SURFACE in "${SCORE_FREE_SURFACES[@]}"; do
+  if [ -e "$SURFACE" ]; then
+    # Match candidate lines, then drop pure comment lines (//, /*, *-continuation)
+    # so deprecation-note prose referencing the removed field BY NAME (e.g.
+    # "no institution-level overallScore field") doesn't self-trip the gate —
+    # only real code usage (property access, object key, assignment) fails it.
+    MATCHES=$(rg -n -H "$FORBIDDEN_SCORE_FIELDS" "$SURFACE" --glob '*.ts' --glob '*.tsx' 2>/dev/null \
+      | grep -vE '^[^:]+:[0-9]+:\s*(//|/\*|\*)' || true)
+    if [ -n "$MATCHES" ]; then
+      echo "FAIL: institution-level score/tier field reintroduced in $SURFACE"
+      echo "$MATCHES"
+      SCORE_GATE_FAIL=1
+    fi
+  fi
+done
+if [ "$SCORE_GATE_FAIL" -eq 1 ]; then
+  echo "FAIL: score-free surfaces guard (dashboard-next-best-action)"
+  exit 1
+fi
 
 echo "PASS: architecture gate"

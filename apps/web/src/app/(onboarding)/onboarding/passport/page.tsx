@@ -149,8 +149,8 @@ export default function PassportPage() {
       <SectionCard number={4} title="How Ready We Are" color="amber">
         <p className="text-sm text-gray-500 mb-5">Current readiness profile, domain readiness, gaps, and programs currently supportable.</p>
         {/* dashboard-next-best-action Phase C (design D1, decisions-2 rule 1)
-            — no institution-level overallScore. A factual Ready-domain
-            count replaces it; never re-add a composite numeric field. */}
+            — no institution-level composite readiness number. A factual
+            Ready-domain count replaces it; never re-add a numeric field. */}
         <div className="text-center mb-6">
           <div className="text-5xl font-bold text-blue-700">
             {readiness.dimensions.filter((dim) => dim.status === 'Ready').length}
