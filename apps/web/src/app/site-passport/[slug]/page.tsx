@@ -207,8 +207,14 @@ export default async function SitePassportPage({ params }: PassportPageProps) {
                 {claim.therapeutic_area && <span>{claim.therapeutic_area}</span>}
                 {claim.study_phase && <span>{claim.study_phase}</span>}
                 {claim.biospecimen_type && <span>{claim.biospecimen_type}</span>}
-                <span>{claim.verification_label}</span>
-                <span>Confidence {claim.confidence_score}/100</span>
+                {/* dashboard-next-best-action CRITICAL #1 fix (verify-report id
+                    1010): never render a bare confidence number. `verification`
+                    and `confidenceLevel`/`confidenceExplanation` are the real
+                    fields legacy-adapter.ts returns (see packages/published-view/
+                    src/legacy-adapter.ts) — the state is always shown together
+                    with its explanation (spec id 980, "Bare label is invalid"). */}
+                <span>{claim.verification}</span>
+                <span>Confidence: {claim.confidenceLevel} — {claim.confidenceExplanation}</span>
                 {claim.sponsor_display && <span>{claim.sponsor_display}</span>}
               </div>
             </article>

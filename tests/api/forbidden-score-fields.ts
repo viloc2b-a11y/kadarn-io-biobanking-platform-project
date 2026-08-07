@@ -14,6 +14,13 @@
 // KPE payload — those still carry the deprecated score fields on purpose
 // (additive-then-remove sequencing; PR-C deletes them, at which point this
 // same guard becomes a full repo-wide gate per decisions-2 rule 5).
+//
+// CRITICAL #1 fix (verify-report id 1010): also now wired against
+// `apps/web/src/app/site-passport/[slug]/page.tsx` and
+// `packages/published-view/src/legacy-adapter.ts` — see
+// tests/api/site-passport-confidence.test.ts. Neither surface was covered
+// by this guard before, which is why a bare `Confidence {n}/100` render
+// shipped undetected through 3 implementation batches.
 
 export const FORBIDDEN_SCORE_FIELD_NAMES = [
   'score',

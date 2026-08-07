@@ -81,4 +81,43 @@ if [ "$SCORE_GATE_FAIL" -eq 1 ]; then
   exit 1
 fi
 
+# ─── dashboard-next-best-action CRITICAL #1 fix — per-claim confidence ────
+# Verify report ref: sdd/dashboard-next-best-action/verify-report (id 1010).
+# `confidence_score` is a legitimate DB column / property name elsewhere in
+# this same change (e.g. apps/api/src/lib/continuity-claim-service.ts still
+# queries `.order('confidence_score', ...)` against
+# continuity_experience_claims — that is correct, in-scope, per-claim usage,
+# NOT the violation). The regression this guard targets is narrower: the
+# Site Passport page rendering a bare per-claim confidence number with no
+# explanation. So this is a separate, targeted pair of checks — not folded
+# into SCORE_FREE_SURFACES/FORBIDDEN_SCORE_FIELDS above, which would
+# false-positive-fail continuity-claim-service.ts.
+SITE_PASSPORT_PAGE="apps/web/src/app/site-passport/[slug]/page.tsx"
+LEGACY_ADAPTER="packages/published-view/src/legacy-adapter.ts"
+
+if [ -f "$SITE_PASSPORT_PAGE" ]; then
+  MATCHES=$(rg -n -H "claim\.confidence_score|claim\.verification_label" "$SITE_PASSPORT_PAGE" 2>/dev/null \
+    | grep -vE '^[^:]+:[0-9]+:\s*(//|/\*|\*)' || true)
+  if [ -n "$MATCHES" ]; then
+    echo "FAIL: bare per-claim confidence_score/verification_label reintroduced in $SITE_PASSPORT_PAGE"
+    echo "$MATCHES"
+    SCORE_GATE_FAIL=1
+  fi
+fi
+
+if [ -f "$LEGACY_ADAPTER" ]; then
+  # Positive check (unlike the negative checks above): confidenceLevel and
+  # confidenceExplanation must stay present so a future edit can't silently
+  # drop the explanation and regress to a bare number.
+  if ! rg -q "confidenceLevel" "$LEGACY_ADAPTER" 2>/dev/null || ! rg -q "confidenceExplanation" "$LEGACY_ADAPTER" 2>/dev/null; then
+    echo "FAIL: $LEGACY_ADAPTER no longer emits confidenceLevel/confidenceExplanation"
+    SCORE_GATE_FAIL=1
+  fi
+fi
+
+if [ "$SCORE_GATE_FAIL" -eq 1 ]; then
+  echo "FAIL: per-claim confidence explanation guard (dashboard-next-best-action CRITICAL #1)"
+  exit 1
+fi
+
 echo "PASS: architecture gate"

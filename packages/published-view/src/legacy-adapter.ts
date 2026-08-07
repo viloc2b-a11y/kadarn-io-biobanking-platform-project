@@ -23,6 +23,14 @@ export interface LegacyContinuityClaim {
   confidence_score: number | null
   sponsor_name_policy?: string | null
   masked_sponsor_label?: string | null
+  /** dashboard-next-best-action CRITICAL #1 fix — freshness signal for confidenceExplanation. */
+  updated_at?: string | null
+  /** Nested join (continuity_evidence_items) — used only to build a factual,
+   * non-evaluative supporting/contradicting evidence count. Never rendered
+   * as a standalone score. */
+  continuity_evidence_items?: Array<{ verification_status?: string | null }>
+  /** Nested join (continuity_references) — same purpose as above. */
+  continuity_references?: Array<{ status?: string | null }>
 }
 
 export interface LegacyContinuityProfile {
@@ -43,6 +51,62 @@ function verificationLabel(status: string): string {
   if (status === 'reference_confirmed') return 'Reference confirmed'
   if (status === 'evidence_submitted') return 'Supported by evidence'
   return 'Self reported'
+}
+
+// ─── dashboard-next-best-action CRITICAL #1 fix ─────────────────────────
+// Site Passport previously rendered a bare `Confidence {n}/100` with no
+// explanation (verify-report id 1010). `confidence_level` (High/Moderate/
+// Low/Insufficient, see engine.ts `confidenceLevelFromScore`) was already
+// computed onto every PublishedView but silently dropped by
+// `toLegacyPassportResponse`. These helpers surface it, always paired with
+// a factual, evidence-grounded explanation — never a bare label or a bare
+// number (spec id 980, "Bare label is invalid").
+//
+// `continuity_experience_claims` has no evidence-relationship typing of its
+// own (unlike evidence-core's `claim_evidence_links` — SUPPORTS/
+// PARTIALLY_SUPPORTS/CONTRADICTS), so this counts real, already-linked
+// `continuity_evidence_items`/`continuity_references` rows by their own
+// review status (migration 043) rather than inventing a relationship type
+// that doesn't exist on this legacy schema.
+
+function capitalizeLevel(level: string): string {
+  return level.length === 0 ? level : level.charAt(0).toUpperCase() + level.slice(1)
+}
+
+interface EvidenceCounts {
+  supportingEvidenceCount: number
+  contradictingEvidenceCount: number
+}
+
+function countEvidence(claim?: LegacyContinuityClaim): EvidenceCounts {
+  const items = claim?.continuity_evidence_items ?? []
+  const refs = claim?.continuity_references ?? []
+  const supportingEvidenceCount =
+    items.filter((item) => item.verification_status !== 'rejected').length +
+    refs.filter((ref) => ref.status === 'confirmed').length
+  const contradictingEvidenceCount =
+    items.filter((item) => item.verification_status === 'rejected').length +
+    refs.filter((ref) => ref.status === 'declined').length
+  return { supportingEvidenceCount, contradictingEvidenceCount }
+}
+
+function buildConfidenceExplanation(claim: LegacyContinuityClaim | undefined, provenance: string): string {
+  const { supportingEvidenceCount, contradictingEvidenceCount } = countEvidence(claim)
+  const parts: string[] = [provenance]
+  parts.push(
+    supportingEvidenceCount > 0
+      ? `${supportingEvidenceCount} supporting evidence item${supportingEvidenceCount === 1 ? '' : 's'} on file`
+      : 'no supporting evidence items on file',
+  )
+  if (contradictingEvidenceCount > 0) {
+    parts.push(
+      `${contradictingEvidenceCount} contradicting item${contradictingEvidenceCount === 1 ? '' : 's'} flagged`,
+    )
+  }
+  if (claim?.updated_at) {
+    parts.push(`last updated ${claim.updated_at}`)
+  }
+  return parts.join('; ')
 }
 
 export class LegacyReadAdapter {
@@ -97,14 +161,16 @@ export class LegacyReadAdapter {
 
   /** Legacy JSON shape for backward-compatible API responses during transition */
   toLegacyPassportResponse(bundle: LegacyPassportBundle, views: PublishedView[]) {
+    const claimsById = new Map(bundle.claims.map((claim) => [claim.id, claim]))
     return {
       profile: {
         headline: bundle.profile.headline,
         summary: bundle.profile.summary,
         slug: bundle.profile.public_slug,
       },
-      claims: views.map((view, i) => {
+      claims: views.map((view) => {
         const attrs = view.projection.attributes
+        const sourceClaim = claimsById.get(view.claim_instance_id)
         return {
           id: view.claim_instance_id,
           type: view.projection.claim_type_id,
@@ -112,7 +178,14 @@ export class LegacyReadAdapter {
           title: view.projection.summary,
           description: attrs.description,
           verification: attrs.verification,
+          // Legacy shape — untouched (tests/phase8/legacy-equivalence/
+          // passport.equivalence.test.ts depends on this exact number).
           confidence: view.confidence_value,
+          // CRITICAL #1 fix (verify-report id 1010) — additive. Consumers
+          // MUST render these two together; never confidence/confidenceLevel
+          // alone as a bare label/number (spec id 980).
+          confidenceLevel: capitalizeLevel(view.confidence_level),
+          confidenceExplanation: buildConfidenceExplanation(sourceClaim, attrs.verification as string),
         }
       }),
     }

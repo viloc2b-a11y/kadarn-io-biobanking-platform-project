@@ -20,9 +20,14 @@ export const GET = rateLimit(PUBLIC_RATE_LIMIT, withAuth(async (request) => {
 
     if (profileError) throw profileError
 
+    // dashboard-next-best-action CRITICAL #1 fix (verify-report id 1010):
+    // `updated_at` (freshness) + the nested evidence/reference joins feed
+    // legacy-adapter.ts's `confidenceExplanation` so the passport page can
+    // render a per-claim confidence state WITH its explanation instead of a
+    // bare `Confidence n/100` number.
     const { data: claims, error: claimsError } = await supabase
       .from('continuity_experience_claims')
-      .select('id, claim_type, category, title, description, therapeutic_area, study_phase, biospecimen_type, quantity, verification_status, confidence_score, sponsor_name_policy, masked_sponsor_label')
+      .select('id, claim_type, category, title, description, therapeutic_area, study_phase, biospecimen_type, quantity, verification_status, confidence_score, sponsor_name_policy, masked_sponsor_label, updated_at, continuity_evidence_items(verification_status), continuity_references(status)')
       .eq('site_continuity_profile_id', profile.id)
       .eq('is_public', true)
       .neq('verification_status', 'rejected')
