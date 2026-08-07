@@ -35,9 +35,27 @@ export interface InstitutionRoadmapAction {
 }
 
 export interface InstitutionRoadmap {
+  /** @deprecated dashboard-next-best-action Phase A (decisions-2 rule 4) — an
+   *  institution-level readiness tier derived from the removed overallScore.
+   *  Removed in PR-C. Use `claimGaps`/`evidenceGaps`/`lastEvidenceUpdate`
+   *  (factual, non-evaluative) instead. */
   currentReadinessLevel: string
+  /** @deprecated dashboard-next-best-action Phase A (decisions-2 rule 4) — see
+   *  `currentReadinessLevel`. Removed in PR-C. */
   targetReadinessLevel: string
   actions: InstitutionRoadmapAction[]
+  /** dashboard-next-best-action Phase A (decisions-2 rule 4) — factual,
+   *  non-scored claim-evidence gap descriptions. Optional so existing
+   *  producers (e.g. `deriveInstitutionRoadmap` legacy path) keep compiling
+   *  without populating it. */
+  claimGaps?: string[]
+  /** dashboard-next-best-action Phase A (decisions-2 rule 4) — factual,
+   *  non-scored evidence freshness gap descriptions. */
+  evidenceGaps?: string[]
+  /** dashboard-next-best-action Phase A (decisions-2 rule 4) — timestamp of
+   *  the last knowledge/evidence refresh, when known. Never an evaluative
+   *  value. */
+  lastEvidenceUpdate?: string
 }
 
 export function deriveInstitutionRoadmap(params: {
