@@ -10,6 +10,8 @@ export * from './membership';
 export * from './capability';
 export * from './confidence'
 export * from './claim'
+export * from './claim-derived-state';
+export * from './claim-confidence';
 export * from './claim-version';
 export * from './review';
 export * from './knowledge';
