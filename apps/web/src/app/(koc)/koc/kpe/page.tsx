@@ -33,11 +33,16 @@ export default function KpePage() {
         <KpiBox label="Shipments" value={report.shipments.total} color="purple" />
         <KpiBox label="Exceptions" value={report.exceptions.total} color={report.exceptions.critical > 0 ? 'red' : 'amber'} />
       </div>
+      {/* dashboard-next-best-action Phase B (task 2.4) — Trust section (org
+          trust rollup average/min/max) removed from render. The
+          `packages/kpe-generator` report payload still emits the trust
+          field on the report object (PR-C deletes it) — this UI simply
+          stops reading it, per the chained-pr skill's "old fields
+          emitted-but-unread" pattern. */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12}}>
         <Section title="Assets Moved">{report.specimens.total} specimens / {report.shipments.total} shipments / {report.transactions.total} transactions</Section>
         <Section title="Evidence">{report.evidence.documents} documents / {report.evidence.qcReports} QC reports / {report.evidence.logs} logs</Section>
         <Section title="Policy">{report.policies.allowed} allowed / {report.policies.denied} denied / {report.policies.conditionals} conditional</Section>
-        <Section title="Trust">Avg {(report.trust.avgOrgTrust*100).toFixed(0)}% / Range {(report.trust.minTrust*100).toFixed(0)}-{(report.trust.maxTrust*100).toFixed(0)}%</Section>
       </div>
       {report.exceptions.items.length > 0 && (
         <div style={{marginTop:16,background:'var(--card)',border:'1px solid rgba(255,77,106,.2)',borderRadius:12,padding:14}}>
