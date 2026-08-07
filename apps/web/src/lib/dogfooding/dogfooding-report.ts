@@ -125,10 +125,10 @@ export function executeDogfooding(): DogfoodingReport {
 
   // FRICTION: Readiness dimensions don't reflect real lab strength
   const labReadiness = passport.readiness.dimensions.find((d) => d.name === 'Laboratory Readiness')
-  if (labReadiness && labReadiness.score < 85) {
+  if (labReadiness && labReadiness.status !== 'Ready') {
     frictions.push({
       id: `FR-${++fid}`, category: 'BusinessRule', severity: 'major', domain: 'readiness',
-      description: `Vilo has 12 processing capabilities, CLIA, BSL-2, 2 labs, full equipment qualification — but Lab Readiness shows ${labReadiness.score}/100. The score doesn't reflect operational depth.`,
+      description: `Vilo has 12 processing capabilities, CLIA, BSL-2, 2 labs, full equipment qualification — but Lab Readiness shows status "${labReadiness.status}". The status doesn't reflect operational depth.`,
       impact: 'Readiness understates capability. Sponsors may filter out an institution that is actually well-qualified.',
       recommendation: 'Weight lab readiness by processing capability count, equipment count, and certification level — not just presence/absence.',
       detectedAt: now,

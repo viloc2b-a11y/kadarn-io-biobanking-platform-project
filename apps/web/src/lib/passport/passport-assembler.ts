@@ -50,12 +50,6 @@ export interface PassportInfraSummary {
 export interface PassportEvidence {
   totalDocuments: number; uploadedDocuments: number; missingCritical: string[]
   documents: PassportDocument[]
-  /** @deprecated dashboard-next-best-action Phase A (design D1) — an evaluative
-   *  institution-level score. Removed in PR-C. Use `evidenceSummary` instead. */
-  coverageScore: number
-  /** @deprecated dashboard-next-best-action Phase A (design D1) — an evaluative
-   *  institution-level score. Removed in PR-C. Use `evidenceSummary` instead. */
-  healthScore: number
   /** dashboard-next-best-action Phase A (design D1) — factual, non-evaluative
    *  document counts. Optional so existing fixtures/tests keep compiling;
    *  populated by every producer of PassportEvidence. */
@@ -99,7 +93,11 @@ export interface PassportCapability {
 }
 
 export interface PassportReadiness {
-  overallScore: number; dimensions: PassportReadinessDimension[]
+  /** dashboard-next-best-action Phase C (design D1) — no institution-level
+   *  overallScore field. `dimensions[].status` + `eligiblePrograms`/
+   *  `partialPrograms` (count-derived) replace it. Never re-add a composite
+   *  numeric field here — that recreates the exact violation this removed. */
+  dimensions: PassportReadinessDimension[]
   eligiblePrograms: string[]; partialPrograms: string[]
   /** KTP-1.3: Per-program-type readiness evaluations (e.g., hybrid trial, biospecimen collection) */
   programTypeReadiness?: ProgramReadiness[]
@@ -131,7 +129,11 @@ export interface ProgramReadiness {
 }
 
 export interface PassportReadinessDimension {
-  name: string; score: number; status: 'Ready' | 'Partial' | 'Needs Attention'; detail: string
+  /** dashboard-next-best-action Phase C (design D1) — no numeric `score`
+   *  field. A 6-number vector trivially re-aggregates into the removed
+   *  institution overallScore, which is exactly the violation this fixes.
+   *  `status` is derived directly from explicit boolean/count rules. */
+  name: string; status: 'Ready' | 'Partial' | 'Needs Attention'; detail: string
   /** CR-0 FIX: Verifiable contributing factors */
   contributions: ContributionItem[]
 }
@@ -355,8 +357,6 @@ function assembleEvidence(uploadedDocs: UploadedDoc[]): PassportEvidence {
     uploadedDocuments: uploaded,
     missingCritical,
     documents,
-    coverageScore: Math.round((uploaded / documents.length) * 100),
-    healthScore: uploaded >= 7 ? 85 : uploaded >= 5 ? 65 : uploaded >= 3 ? 45 : 20,
   }
 }
 
@@ -523,10 +523,22 @@ function deriveReadiness(
     : 0
   const labStatus = labScore >= 80 ? 'Ready' as const : labScore >= 50 ? 'Partial' as const : 'Needs Attention' as const
 
+  // dashboard-next-best-action Phase C (design D1) — Documentation Readiness
+  // status derived directly from document status counts, never from the
+  // removed `evidence.healthScore` field.
+  const activeDocCount = evidence.documents.filter(function(d) { return d.status === 'active' }).length
+  const missingDocCount = evidence.documents.filter(function(d) { return d.status === 'missing' }).length
+  const expiredDocCount = evidence.documents.filter(function(d) { return d.status === 'expired' }).length
+  const docStatus: 'Ready' | 'Partial' | 'Needs Attention' =
+    missingDocCount === 0 && expiredDocCount === 0 && activeDocCount > 0
+      ? 'Ready'
+      : activeDocCount > 0
+        ? 'Partial'
+        : 'Needs Attention'
+
   const dimensions: PassportReadinessDimension[] = [
     {
       name: 'Regulatory Readiness',
-      score: docUploaded >= 3 ? 80 : 40,
       status: docUploaded >= 3 ? 'Ready' : 'Needs Attention',
       detail: docUploaded >= 3 ? 'Key certifications and licenses present.' : 'Upload critical documents.',
       contributions: [
@@ -538,7 +550,6 @@ function deriveReadiness(
     },
     {
       name: 'Operational Readiness',
-      score: hasBackup ? 80 : 50,
       status: hasBackup ? 'Ready' : 'Partial',
       detail: hasBackup ? 'Backup power + dedicated research space.' : 'Add backup power.',
       contributions: [
@@ -551,7 +562,6 @@ function deriveReadiness(
     },
     {
       name: 'Laboratory Readiness',
-      score: labScore,
       status: labStatus,
       detail: a['infra_has_lab'] === 'yes' ? 'Lab with ' + processingCount + ' processing capabilities.' : 'No laboratory documented.',
       contributions: [
@@ -572,7 +582,6 @@ function deriveReadiness(
     },
     {
       name: 'Biospecimen Readiness',
-      score: a['infra_has_biospecimen'] === 'yes' ? (hasCustody ? 80 : 55) : 0,
       status: a['infra_has_biospecimen'] === 'yes' ? (hasCustody ? 'Ready' : 'Partial') : 'Needs Attention',
       detail: a['infra_has_biospecimen'] === 'yes' ? 'Chain of custody: ' + (hasCustody ? 'Digital' : 'Manual') + '.' : 'No biospecimen operations.',
       contributions: [
@@ -595,7 +604,6 @@ function deriveReadiness(
     },
     {
       name: 'Research Readiness',
-      score: capScore,
       status: capScore >= 70 ? 'Ready' : 'Partial',
       detail: strongCaps + ' strong capabilities out of ' + totalCaps + ' total.',
       contributions: [
@@ -610,8 +618,7 @@ function deriveReadiness(
     },
     {
       name: 'Documentation Readiness',
-      score: evidence.healthScore,
-      status: evidence.healthScore >= 70 ? 'Ready' : evidence.healthScore >= 40 ? 'Partial' : 'Needs Attention',
+      status: docStatus,
       detail: docUploaded + ' of ' + evidence.totalDocuments + ' critical documents present.',
       contributions: [
         ...evidence.documents.filter(function(d) { return d.status === 'active' }).map(function(d) { return { label: 'OK ' + d.label, impact: 'positive' as const, points: 12, description: 'Class ' + d.evidenceClass + ' evidence', evidenceClass: d.evidenceClass } }),
@@ -622,14 +629,16 @@ function deriveReadiness(
     },
   ]
 
-  const scores = dimensions.map(function(d) { return d.score })
-  const overall = Math.round(scores.reduce(function(s, v) { return s + v }, 0) / scores.length)
+  // dashboard-next-best-action Phase C (design D1, decisions-2 rule 1) — no
+  // institution-level composite. `eligiblePrograms`/`partialPrograms` are
+  // gated on a factual count of dimension statuses, never a numeric score.
+  const readyCount = dimensions.filter(function(d) { return d.status === 'Ready' }).length
+  const notAttentionCount = dimensions.filter(function(d) { return d.status !== 'Needs Attention' }).length
 
   return {
-    overallScore: overall,
     dimensions,
-    eligiblePrograms: overall >= 70 ? ['Observational Studies', 'Phase III-IV Trials', 'Biospecimen Collection Programs'] : [],
-    partialPrograms: overall >= 40 ? ['Phase II Trials', 'Central Lab Services'] : [],
+    eligiblePrograms: readyCount >= 4 ? ['Observational Studies', 'Phase III-IV Trials', 'Biospecimen Collection Programs'] : [],
+    partialPrograms: notAttentionCount >= 3 ? ['Phase II Trials', 'Central Lab Services'] : [],
   }
 }
 

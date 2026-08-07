@@ -79,14 +79,10 @@ export function deriveRoadmapReadModel(input: RoadmapReadModelInput): Institutio
   ]
 
   return {
-    // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 4) —
-    // kept for now (PR-A is additive-only); removed in PR-C.
-    currentReadinessLevel: getReadinessLevel(passport.readiness.overallScore),
-    targetReadinessLevel: getTargetReadinessLevel(passport.readiness.overallScore),
+    // dashboard-next-best-action Phase C (decisions-2 rule 4) — no
+    // institution-level readiness tier. `claimGaps`/`evidenceGaps`/
+    // `lastEvidenceUpdate` are the factual, non-evaluative replacement.
     actions: dedupeActions(actions).sort(sortActions),
-    // dashboard-next-best-action Phase A (decisions-2 rule 4) — factual,
-    // non-scored fields alongside the deprecated tier above. `claimGaps`/
-    // `evidenceGaps` were already computed above but never returned.
     claimGaps,
     evidenceGaps,
     lastEvidenceUpdate: input.knowledge?.refreshedAt,
@@ -490,12 +486,19 @@ function deriveStrategicGrowth(
     )
   }
 
+  // dashboard-next-best-action Phase C (decisions-2 rule 1) — priority is
+  // gated on a factual count of Ready dimensions, never an institution
+  // composite score.
+  const readyDimensionCount = passport.readiness.dimensions.filter(
+    (dimension) => dimension.status === 'Ready',
+  ).length
+
   actions.push(
     createAction({
       id: 'prepare-sponsor-qualification',
       section: ROADMAP_SECTION.STRATEGIC_GROWTH,
       priority:
-        passport.readiness.overallScore >= 70
+        readyDimensionCount >= 4
           ? ROADMAP_PRIORITY.MEDIUM
           : ROADMAP_PRIORITY.HIGH,
       title: 'Prepare for sponsor qualification readiness',
@@ -545,20 +548,6 @@ function sortActions(
 ): number {
   const priority: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
   return priority[a.priority] - priority[b.priority]
-}
-
-function getReadinessLevel(score: number): string {
-  if (score >= 85) return 'Comprehensive'
-  if (score >= 70) return 'Advanced'
-  if (score >= 45) return 'Emerging'
-  return 'Foundational'
-}
-
-function getTargetReadinessLevel(score: number): string {
-  if (score >= 85) return 'Sustain Comprehensive'
-  if (score >= 70) return 'Comprehensive'
-  if (score >= 45) return 'Advanced'
-  return 'Emerging'
 }
 
 function getCapabilityHref(capability: PassportCapability): string {

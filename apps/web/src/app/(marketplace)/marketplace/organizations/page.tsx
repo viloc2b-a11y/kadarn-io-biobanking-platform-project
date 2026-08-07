@@ -13,15 +13,6 @@ interface Org {
   region: string | null
   certifications: string[]
   capabilities: { key: string; name: string; category: string; primary: boolean }[]
-  trust: {
-    overall: number
-    operational: number
-    regulatory: number
-    financial: number
-    technical: number
-    fulfillments: number
-    success_rate: number | null
-  } | null
 }
 
 export default function OrganizationsPage() {

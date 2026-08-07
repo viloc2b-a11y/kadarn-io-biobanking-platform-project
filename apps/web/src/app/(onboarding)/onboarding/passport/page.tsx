@@ -82,15 +82,17 @@ export default function PassportPage() {
       {/* Section 2: What We Can Prove */}
       <SectionCard number={2} title="What We Can Prove" color="green">
         <p className="text-sm text-gray-500 mb-5">Current active evidence, critical documents, valid certifications, active licenses, and supporting proof.</p>
-        <div className="flex items-center gap-4 mb-4">
+        {/* dashboard-next-best-action Phase C (decisions-2 rule 1) — no
+            institution-level coverage score/percentage. Factual counts only. */}
+        <div className="flex items-center gap-6 mb-4">
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">{activeEvidence.length}</div>
             <div className="text-xs text-gray-500">current evidence item(s)</div>
           </div>
-          <div className="flex-1 h-2 bg-gray-100 rounded-full">
-            <div className="h-full bg-green-500 rounded-full" style={{ width: `${evidence.coverageScore}%` }} />
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{evidence.documents.length}</div>
+            <div className="text-xs text-gray-500">total document(s) tracked</div>
           </div>
-          <span className="text-sm font-medium text-gray-700">{evidence.coverageScore}%</span>
         </div>
 
         <SnapshotGrid>
@@ -146,19 +148,26 @@ export default function PassportPage() {
       {/* Section 4: How Ready We Are */}
       <SectionCard number={4} title="How Ready We Are" color="amber">
         <p className="text-sm text-gray-500 mb-5">Current readiness profile, domain readiness, gaps, and programs currently supportable.</p>
+        {/* dashboard-next-best-action Phase C (design D1, decisions-2 rule 1)
+            — no institution-level overallScore. A factual Ready-domain
+            count replaces it; never re-add a composite numeric field. */}
         <div className="text-center mb-6">
-          <div className="text-5xl font-bold text-blue-700">{readiness.overallScore}<span className="text-xl text-blue-400">/100</span></div>
-          <div className="text-sm text-gray-500 mt-1">Current Program Readiness</div>
+          <div className="text-5xl font-bold text-blue-700">
+            {readiness.dimensions.filter((dim) => dim.status === 'Ready').length}
+            <span className="text-xl text-blue-400"> of {readiness.dimensions.length}</span>
+          </div>
+          <div className="text-sm text-gray-500 mt-1">Readiness Domains Marked Ready</div>
         </div>
 
         <div className="space-y-3 mb-6">
           {readiness.dimensions.map((dim) => (
-            <div key={dim.name} className="flex items-center gap-3">
-              <span className="w-32 text-sm text-gray-600 flex-shrink-0">{dim.name}</span>
-              <div className="flex-1 h-2 bg-gray-100 rounded-full">
-                <div className={`h-full rounded-full ${dim.score >= 70 ? 'bg-green-500' : dim.score >= 40 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${dim.score}%` }} />
-              </div>
-              <span className="text-sm font-medium text-gray-700 w-10 text-right">{dim.score}</span>
+            <div key={dim.name} className="flex items-center justify-between gap-3">
+              <span className="w-40 text-sm text-gray-600 flex-shrink-0">{dim.name}</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                dim.status === 'Ready' ? 'bg-green-100 text-green-700' :
+                dim.status === 'Partial' ? 'bg-amber-100 text-amber-700' :
+                'bg-red-100 text-red-700'
+              }`}>{dim.status}</span>
             </div>
           ))}
         </div>

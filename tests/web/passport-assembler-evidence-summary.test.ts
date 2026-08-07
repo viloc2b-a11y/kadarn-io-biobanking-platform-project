@@ -1,11 +1,12 @@
 // ==========================================================================
-// dashboard-next-best-action Phase A — Passport factual evidence summary
+// dashboard-next-best-action Phase A/C — Passport factual evidence summary
 // ==========================================================================
 // Design ref: D1 (replace scores with factual counts, in the existing type
-// source). PR-A is additive-only: the deprecated coverageScore/healthScore
-// fields on PassportEvidence stay for now (PR-C deletes them); this test
-// asserts the NEW factual `evidenceSummary` + `coverageByDomain` fields are
-// populated alongside them, and are non-evaluative (counts/dates only).
+// source). The deprecated coverageScore/healthScore fields on
+// PassportEvidence were additive in PR-A and are removed entirely in PR-C;
+// this test asserts the factual `evidenceSummary` + `coverageByDomain`
+// fields are populated and non-evaluative (counts/dates only), and that the
+// deprecated fields no longer exist.
 // Spec ref: "Permitted Passport Summary Fields" (spec id 980).
 
 import { describe, expect, it } from 'vitest'
@@ -29,9 +30,9 @@ describe('Passport evidence summary — factual, non-evaluative, additive (assem
     expect(typeof summary.documentsExpiringSoon).toBe('number')
     expect(typeof summary.documentsExpired).toBe('number')
 
-    // Old, deprecated evaluative fields are still present — additive, not a breaking change.
-    expect(typeof passport.evidence.coverageScore).toBe('number')
-    expect(typeof passport.evidence.healthScore).toBe('number')
+    // Old, deprecated evaluative fields are gone (Phase C removal).
+    expect(passport.evidence).not.toHaveProperty('coverageScore')
+    expect(passport.evidence).not.toHaveProperty('healthScore')
   })
 
   it('counts documentsExpired and documentsExpiringSoon independently, never merged into a score', () => {
