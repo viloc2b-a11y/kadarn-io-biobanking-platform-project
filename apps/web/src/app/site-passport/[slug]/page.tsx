@@ -14,28 +14,57 @@ async function fetchJson(url: string) {
   }
 }
 
-function ScoreCard({ score }: { score: any }) {
+// dashboard-next-best-action Phase B — replaces the deleted institutional
+// composite score card (formerly /100) with factual, non-evaluative counts
+// sourced from computeSiteScore()'s additive fields (claimEvidenceLevels,
+// claimsWithEvidence, claimsAwaitingEvidence — see apply-progress id 1007).
+// `evidenceCoverage`/`referenceCoverage` are intentionally NOT rendered here:
+// computeSiteScore() still returns them as percentages (not yet converted to
+// counts per design D1's stated end-state), and this summary region must
+// contain zero %/100 glyphs (design Testing Strategy). Re-surfacing them as
+// count-based metrics is a backend change out of PR-B's UI-only scope —
+// flagged for a follow-up decision.
+function EvidenceSummary({ score }: { score: any }) {
   if (!score) return null
-  const color = score.overallScore >= 80 ? '#10b981' : score.overallScore >= 50 ? '#f59e0b' : '#6b7280'
+  const claimsWithEvidence: number = score.claimsWithEvidence ?? 0
+  const claimsAwaitingEvidence: number = score.claimsAwaitingEvidence ?? 0
+  const totalClaims = claimsWithEvidence + claimsAwaitingEvidence
+  const claimEvidenceLevels: Array<{ claimId: string; evidenceLevel: string }> = score.claimEvidenceLevels ?? []
+  const levelCounts = claimEvidenceLevels.reduce<Record<string, number>>((acc, entry) => {
+    acc[entry.evidenceLevel] = (acc[entry.evidenceLevel] ?? 0) + 1
+    return acc
+  }, {})
+
   return (
-    <section style={{ border: '1px solid #d1d5db', borderRadius: 16, padding: 24, background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}>
+    <section data-testid="evidence-summary" style={{ border: '1px solid #d1d5db', borderRadius: 16, padding: 24, background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}>
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, color: '#94a3b8', marginBottom: 4 }}>KADARN SITE PASSPORT</div>
-        <div style={{ fontSize: 14, color: '#64748b' }}>Overall Continuity Score</div>
-        <div style={{ fontSize: 56, fontWeight: 800, color, marginTop: 4 }}>{score.overallScore}<span style={{ fontSize: 24, color: '#64748b' }}>/100</span></div>
+        <div style={{ fontSize: 14, color: '#64748b' }}>Evidence Summary</div>
+        <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Factual counts — not an institutional rating</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <Metric label="Total Claims" value={String(totalClaims)} />
+        <Metric label="Claims With Evidence" value={String(claimsWithEvidence)} color="#10b981" />
+        <Metric label="Claims Awaiting Evidence" value={String(claimsAwaitingEvidence)} />
         <Metric label="Legacy Experience" value={`${score.legacyYears} years`} />
         <Metric label="Clinical Studies" value={String(score.clinicalStudies)} />
         <Metric label="Therapeutic Areas" value={String(score.therapeuticAreas)} />
         <Metric label="Biospecimens" value={formatNum(score.biospecimens)} />
-        <Metric label="Evidence Level" value={score.evidenceLevel} color="#10b981" />
-        <Metric label="Continuity Level" value={score.continuityLevel} />
-        <Metric label="Evidence Coverage" value={`${score.evidenceCoverage}%`} />
-        <Metric label="Reference Coverage" value={`${score.referenceCoverage}%`} />
         <Metric label="Infrastructure" value={score.infrastructure} />
         <Metric label="Regulatory Readiness" value={score.regulatoryReadiness} />
       </div>
+      {Object.keys(levelCounts).length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, color: '#94a3b8', marginBottom: 8 }}>Claims by evidence level</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {Object.entries(levelCounts).map(([level, count]) => (
+              <span key={level} style={{ background: 'rgba(148,163,184,.12)', color: '#e2e8f0', padding: '4px 12px', borderRadius: 20, fontSize: 13 }}>
+                {level}: {count}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   )
 }
@@ -60,14 +89,8 @@ function Recommendations({ data }: { data: any }) {
   return (
     <section style={{ border: '1px solid #d1d5db', borderRadius: 16, padding: 20 }}>
       <h2 style={{ fontSize: 18, marginTop: 0 }}>Profile Completion</h2>
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, height: 8, background: '#334155', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{ width: `${data.completionPercent}%`, height: '100%', background: '#3b82f6', borderRadius: 4 }} />
-        </div>
-        <span style={{ fontSize: 20, fontWeight: 700, color: '#60a5fa' }}>{data.completionPercent}%</span>
-      </div>
       <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: 12 }}>
-        Your Continuity Profile is {data.completionPercent}% complete. Estimated Evidence Level Increase: <strong style={{ color: '#10b981' }}>+{data.recommendations.reduce((s: number, r: any) => s + r.estimatedEvidenceLevelIncrease, 0)} points</strong>
+        {data.recommendations.length} recommended action{data.recommendations.length !== 1 ? 's' : ''} to strengthen your Continuity Profile. Estimated Evidence Level Increase: <strong style={{ color: '#10b981' }}>+{data.recommendations.reduce((s: number, r: any) => s + r.estimatedEvidenceLevelIncrease, 0)} points</strong>
       </p>
       <div style={{ display: 'grid', gap: 8 }}>
         {data.recommendations.map((rec: any, i: number) => (
@@ -133,12 +156,6 @@ function Opportunities({ data }: { data: any }) {
           </div>
         </>
       )}
-      <div style={{ marginTop: 16, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, color: '#64748b' }}>Opportunity Readiness</div>
-        <div style={{ fontSize: 36, fontWeight: 800, color: data.readinessScore >= 70 ? '#10b981' : data.readinessScore >= 40 ? '#f59e0b' : '#ef4444' }}>
-          {data.readinessScore}%
-        </div>
-      </div>
     </section>
   )
 }
@@ -169,7 +186,7 @@ export default async function SitePassportPage({ params }: PassportPageProps) {
         <p style={{ maxWidth: 760 }}>{data.profile?.summary ?? 'Evidence-backed site continuity profile.'}</p>
       </section>
 
-      <ScoreCard score={scorecardData} />
+      <EvidenceSummary score={scorecardData} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <Recommendations data={recommendations} />
