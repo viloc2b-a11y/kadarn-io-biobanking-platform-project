@@ -49,7 +49,37 @@ export interface PassportInfraSummary {
 
 export interface PassportEvidence {
   totalDocuments: number; uploadedDocuments: number; missingCritical: string[]
-  documents: PassportDocument[]; coverageScore: number; healthScore: number
+  documents: PassportDocument[]
+  /** @deprecated dashboard-next-best-action Phase A (design D1) — an evaluative
+   *  institution-level score. Removed in PR-C. Use `evidenceSummary` instead. */
+  coverageScore: number
+  /** @deprecated dashboard-next-best-action Phase A (design D1) — an evaluative
+   *  institution-level score. Removed in PR-C. Use `evidenceSummary` instead. */
+  healthScore: number
+  /** dashboard-next-best-action Phase A (design D1) — factual, non-evaluative
+   *  document counts. Optional so existing fixtures/tests keep compiling;
+   *  populated by every producer of PassportEvidence. */
+  evidenceSummary?: PassportEvidenceSummary
+  /** dashboard-next-best-action Phase A (design D1) — per-capability-domain
+   *  coverage rows. Never an institution-wide rollup: each row is scoped to
+   *  one domain, with counts only (no score field). */
+  coverageByDomain?: PassportCoverageByDomain[]
+}
+
+/** Permitted factual/non-evaluative Passport summary fields (spec id 980). */
+export interface PassportEvidenceSummary {
+  totalDocuments: number
+  documentsPresent: number
+  documentsMissing: number
+  documentsExpiringSoon: number
+  documentsExpired: number
+}
+
+export interface PassportCoverageByDomain {
+  domain: string
+  capabilityCount: number
+  supportedCount: number
+  needsEvidenceCount: number
 }
 
 export interface PassportDocument {
@@ -161,6 +191,8 @@ export function assemblePassport(params: {
 
   const evidence = assembleEvidence(docs)
   const capabilities = deriveCapabilities(a)
+  evidence.evidenceSummary = buildEvidenceSummary(evidence)
+  evidence.coverageByDomain = buildCoverageByDomain(capabilities)
   const readiness = deriveReadiness(a, capabilities, evidence)
   const nextSteps = deriveNextSteps(a, evidence, readiness, docs)
 
@@ -642,6 +674,40 @@ function deriveNextSteps(
   }
 
   return steps.slice(0, 5)
+}
+
+// ==========================================================================
+// dashboard-next-best-action Phase A — factual evidence summary (design D1)
+// ==========================================================================
+// Non-evaluative counts derived from the same `documents`/`capabilities`
+// already assembled above. Never combined into a single score.
+
+function buildEvidenceSummary(evidence: PassportEvidence): PassportEvidenceSummary {
+  return {
+    totalDocuments: evidence.totalDocuments,
+    documentsPresent: evidence.uploadedDocuments,
+    documentsMissing: evidence.documents.filter((d) => d.status === 'missing').length,
+    documentsExpiringSoon: evidence.documents.filter((d) => d.status === 'expiring_soon').length,
+    documentsExpired: evidence.documents.filter((d) => d.status === 'expired').length,
+  }
+}
+
+function buildCoverageByDomain(capabilities: PassportCapability[]): PassportCoverageByDomain[] {
+  const byDomain = new Map<string, PassportCapability[]>()
+  for (const capability of capabilities) {
+    for (const domain of capability.domains) {
+      const bucket = byDomain.get(domain) ?? []
+      bucket.push(capability)
+      byDomain.set(domain, bucket)
+    }
+  }
+
+  return Array.from(byDomain.entries()).map(([domain, caps]) => ({
+    domain,
+    capabilityCount: caps.length,
+    supportedCount: caps.filter((c) => c.level !== 'Not available').length,
+    needsEvidenceCount: caps.filter((c) => c.level === 'Not available').length,
+  }))
 }
 
 // ==========================================================================

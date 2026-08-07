@@ -19,6 +19,8 @@ import type {
   PassportTeam,
   PassportInfraSummary,
   PassportEvidence,
+  PassportEvidenceSummary,
+  PassportCoverageByDomain,
   PassportDocument,
   PassportCapability,
   PassportReadiness,
@@ -119,6 +121,11 @@ export function derivePassportReadModel(input: PassportReadModelInput): Passport
       : null,
         uploadedDocLabels: docs.map(function(d) { return d.label }),
   })
+
+  // dashboard-next-best-action Phase A (design D1) — factual, non-evaluative
+  // summary alongside the deprecated coverageScore/healthScore fields above.
+  evidence.evidenceSummary = buildEvidenceSummary(evidence)
+  evidence.coverageByDomain = buildCoverageByDomain(capabilities)
 
   // Derive readiness from canonical objects + capabilities + evidence
   const readiness = deriveReadinessReadModel({
@@ -590,6 +597,41 @@ function deriveNextSteps(
   }
 
   return steps.slice(0, 5)
+}
+
+// ==========================================================================
+// dashboard-next-best-action Phase A — factual evidence summary (design D1)
+// ==========================================================================
+// Mirrors the equivalent helpers in passport-assembler.ts. Kept local
+// (not imported) because this read-model module intentionally reads only
+// canonical objects and its own evidence/capabilities inputs.
+
+function buildEvidenceSummary(evidence: PassportEvidence): PassportEvidenceSummary {
+  return {
+    totalDocuments: evidence.totalDocuments,
+    documentsPresent: evidence.uploadedDocuments,
+    documentsMissing: evidence.documents.filter((d) => d.status === 'missing').length,
+    documentsExpiringSoon: evidence.documents.filter((d) => d.status === 'expiring_soon').length,
+    documentsExpired: evidence.documents.filter((d) => d.status === 'expired').length,
+  }
+}
+
+function buildCoverageByDomain(capabilities: PassportCapability[]): PassportCoverageByDomain[] {
+  const byDomain = new Map<string, PassportCapability[]>()
+  for (const capability of capabilities) {
+    for (const domain of capability.domains) {
+      const bucket = byDomain.get(domain) ?? []
+      bucket.push(capability)
+      byDomain.set(domain, bucket)
+    }
+  }
+
+  return Array.from(byDomain.entries()).map(([domain, caps]) => ({
+    domain,
+    capabilityCount: caps.length,
+    supportedCount: caps.filter((c) => c.level !== 'Not available').length,
+    needsEvidenceCount: caps.filter((c) => c.level === 'Not available').length,
+  }))
 }
 
 // ==========================================================================
