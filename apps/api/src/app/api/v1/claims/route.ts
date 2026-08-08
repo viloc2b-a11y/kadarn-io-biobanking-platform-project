@@ -12,6 +12,7 @@
 
 import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server'
 import { requireValidatedActiveOrg } from '@/lib/workspace'
+import crypto from 'crypto'
 
 // ─── Derived state from live schema fields ─────────────────────────────────
 // Maps workflow_state + evidence links to a simplified derivedState
@@ -120,7 +121,7 @@ export const GET = withAuth(async (request, user) => {
           id: c.id,
           statement,
           workflowState: c.workflow_state ?? null,
-          derivedState: deriveStateFromWorkflow(c.workflow_state, [], false),
+          derivedState: 'unavailable', // evidence load failed — do NOT infer state
           evidenceCount: null,
           hasExpiredEvidence: null,
           hasDispute: null,
@@ -165,7 +166,7 @@ export const GET = withAuth(async (request, user) => {
   } catch (error) { return handleApiError(error) }
 })
 
-// POST — simplified for pilot (no hash dedup needed for smoke testing)
+// POST — canonical: hash-based dedup, same semantics as original
 export const POST = withAuth(async (request, user) => {
   try {
     const supabase = await createRouteClient()
@@ -175,6 +176,18 @@ export const POST = withAuth(async (request, user) => {
     const description = (body.answer_value || body.description || '') as string
     const domain = (body.category || body.domain || 'other') as string
 
+    // Hash-based dedup — same claim (name + org) should not duplicate
+    const claimHash = crypto.createHash('sha256')
+      .update(`${institutionId}::${name}`).digest('hex')
+
+    const { data: existing } = await supabase.from('claims')
+      .select('id').eq('organization_id', institutionId)
+      .eq('name', name).limit(1)
+
+    if (existing && existing.length > 0) {
+      return Response.json({ data: existing[0], created: false, error: null })
+    }
+
     const { data: claim, error } = await supabase.from('claims').insert({
       organization_id: institutionId,
       name,
@@ -183,10 +196,13 @@ export const POST = withAuth(async (request, user) => {
       claim_type_id: body.claim_type_id || 'custom',
       status: 'active',
       workflow_state: 'draft',
+      decays: false,
       evidence_count: 0,
       created_by_org_id: institutionId,
       owning_org_id: institutionId,
       visibility_scope: 'site',
+      required_evidence_classes: body.required_evidence_classes || '{}',
+      valid_evidence_classes: body.valid_evidence_classes || '{}',
     }).select().single()
 
     if (error) throw new ApiError(500, 'Failed to create claim: ' + error.message)
