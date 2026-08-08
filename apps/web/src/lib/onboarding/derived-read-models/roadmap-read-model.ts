@@ -79,9 +79,17 @@ export function deriveRoadmapReadModel(input: RoadmapReadModelInput): Institutio
   ]
 
   return {
+    // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 4) —
+    // kept for now (PR-A is additive-only); removed in PR-C.
     currentReadinessLevel: getReadinessLevel(passport.readiness.overallScore),
     targetReadinessLevel: getTargetReadinessLevel(passport.readiness.overallScore),
     actions: dedupeActions(actions).sort(sortActions),
+    // dashboard-next-best-action Phase A (decisions-2 rule 4) — factual,
+    // non-scored fields alongside the deprecated tier above. `claimGaps`/
+    // `evidenceGaps` were already computed above but never returned.
+    claimGaps,
+    evidenceGaps,
+    lastEvidenceUpdate: input.knowledge?.refreshedAt,
   }
 }
 

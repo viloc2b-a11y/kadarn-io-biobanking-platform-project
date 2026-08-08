@@ -704,11 +704,19 @@ export async function computeSiteScore(
     coverageScore: Math.min(100, (total / Math.max(1, total + 3)) * 100) * 0.15,
     tenureScore: Math.min(100, legacyYears * 5) * 0.15,
   }
+  // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 1) — an
+  // institution-level composite score. Kept for now (PR-A is additive-only);
+  // removed in PR-C. Use `claimEvidenceLevels` (per-claim, never aggregated)
+  // and the factual counts below instead.
   const overallScore = Math.round(
     components.evidenceScore + components.referenceScore + components.verificationScore +
     components.coverageScore + components.tenureScore,
   )
 
+  // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 1) — an
+  // institution-level aggregate of the four evidence-level labels. Removed
+  // in PR-C. The same labels are now available per-claim via
+  // `claimEvidenceLevels`, each tied to its own `claimId`.
   const evidenceLevel = verifiedCount > 0
     ? 'Externally Confirmed'
     : hasConfirmedRef > 0
@@ -717,6 +725,9 @@ export async function computeSiteScore(
         ? 'Supported by Evidence'
         : 'Self Reported'
 
+  // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 1) — an
+  // institution-level tier derived from the deprecated overallScore. Removed
+  // in PR-C.
   const continuityLevel = overallScore >= 80
     ? 'Advanced'
     : overallScore >= 50
@@ -724,6 +735,29 @@ export async function computeSiteScore(
       : overallScore >= 20
         ? 'Developing'
         : 'Initial'
+
+  // dashboard-next-best-action Phase A (decisions-2 rule 1) — the same four
+  // evidence-level labels, computed per claim and tied to that claim's own
+  // `claimId`. Never aggregated into a single institution-level value.
+  const claimEvidenceLevels: Array<{ claimId: string; evidenceLevel: string }> = list.map((c: any) => {
+    const claimEvCount = (c.continuity_evidence_items ?? []).length
+    const claimRefs = (c.continuity_references ?? []) as Array<{ status: string }>
+    const claimConfirmedRefs = claimRefs.filter((r) => r.status === 'confirmed').length
+    const claimVerified =
+      c.verification_status === 'kadarn_verified' ||
+      c.status === 'verified' ||
+      c.badge_level === 'kadarn_verified'
+
+    const level = claimVerified
+      ? 'Externally Confirmed'
+      : claimConfirmedRefs > 0
+        ? 'Reference Confirmed'
+        : claimEvCount > 0
+          ? 'Supported by Evidence'
+          : 'Self Reported'
+
+    return { claimId: c.id, evidenceLevel: level }
+  })
 
   return {
     overallScore,
@@ -737,6 +771,11 @@ export async function computeSiteScore(
     referenceCoverage,
     infrastructure: infraOk ? 'Supported by Evidence' : 'Not Yet Supported',
     regulatoryReadiness: regulatoryOk ? 'Supported by Evidence' : 'Not Yet Supported',
+    // dashboard-next-best-action Phase A (decisions-2 rule 1) — factual,
+    // non-evaluative additions alongside the deprecated fields above.
+    claimEvidenceLevels,
+    claimsWithEvidence: hasEvidence,
+    claimsAwaitingEvidence: total - hasEvidence,
   }
 }
 

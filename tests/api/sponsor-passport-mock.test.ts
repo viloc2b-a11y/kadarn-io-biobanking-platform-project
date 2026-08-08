@@ -4,36 +4,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { MockPassportStore, listInstitutionIds } from '../../apps/api/src/lib/sponsor-passport/mock-passport-store'
-
-const FORBIDDEN_FIELD_NAMES = [
-  'score',
-  'overallScore',
-  'confidence_score',
-  'verification_status',
-  'verified',
-  'certified',
-  'rank',
-  'ranking',
-  'completeness',
-  'public_slug',
-  'trustLevel',
-  'trustScore',
-]
-
-function collectFieldNames(value: unknown, names: Set<string> = new Set(), depth = 0): Set<string> {
-  if (depth > 12 || value === null || value === undefined) return names
-  if (Array.isArray(value)) {
-    for (const item of value) collectFieldNames(item, names, depth + 1)
-    return names
-  }
-  if (typeof value === 'object') {
-    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      names.add(key)
-      collectFieldNames(nested, names, depth + 1)
-    }
-  }
-  return names
-}
+import { FORBIDDEN_SCORE_FIELD_NAMES as FORBIDDEN_FIELD_NAMES, collectFieldNames } from './forbidden-score-fields'
 
 describe('Sponsor passport mock store (RC-10.3 / RC-11.1)', () => {
   const store = new MockPassportStore()

@@ -90,6 +90,14 @@ export type ClaimWorkflowState = z.infer<typeof ClaimWorkflowState>
  *   only to avoid a breaking rename across services; do not introduce
  *   new usages.
  *
+ * dashboard-next-best-action Phase A (design D2): this enum is demoted to
+ * an INPUT SIGNAL only — a provenance entry such as "externally confirmed
+ * by <reference>" (see {@link ProvenanceEntry} in claim-confidence.ts).
+ * It MUST NOT be rendered as a Claim state or Confidence State on its own;
+ * the canonical claim-level state is {@link DerivedClaimState}
+ * (claim-derived-state.ts), derived from `workflow_state` + evidence, not
+ * from this legacy pipeline.
+ *
  * States:
  *   - self_reported       — asserted by the institution, no evidence
  *   - evidence_submitted  — at least one evidence item linked
