@@ -74,6 +74,7 @@ Level 5 — Execution
 | `KADARN_IMPLEMENTATION_MASTER_PLAN_v1.0.md` | KIMP — Programs and delivery waves |
 | `KADARN_IMPLEMENTATION_CONTROL_OFFICE_CHARTER_v1.0.md` | ICO Charter — Controls and gates |
 | `CANONICAL_REPOSITORY.md` | Repository declaration (pre-existing) |
+| `DOCUMENTARY_DRIFT_REGISTER.md` | Canonical conformance drift tracking — discrepancies found and resolved |
 
 ---
 
@@ -91,4 +92,4 @@ Level 5 — Execution
 
 ---
 
-*This index is the entry point for all KADARN governance documentation. Last updated: 2026-07-27.*
+*This index is the entry point for all KADARN governance documentation. Last updated: 2026-08-08.*
