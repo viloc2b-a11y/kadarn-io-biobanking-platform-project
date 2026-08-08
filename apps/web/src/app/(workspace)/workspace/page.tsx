@@ -459,7 +459,8 @@ function ReviewRow({ item, isLast }: { item: ReviewQueueItem; isLast: boolean })
           {item.title}
         </div>
         <div style={{ fontSize: 10, color: C.txdd }}>
-          {item.entityType} · {formatRelativeTime(item.createdAt)}
+          {item.entityType}
+          {item.createdAt ? ` · ${formatRelativeTime(item.createdAt)}` : ' · Fecha no disponible'}
         </div>
       </div>
       <span style={{
@@ -493,12 +494,6 @@ function PassportCard({ passport, orgId, claims }: {
     passport.identityStatus === 'available' ? C.green :
     passport.identityStatus === 'partial' ? C.amber :
     C.red
-
-  // Wire confidence explanation for the first claim with evidence
-  const claimForConfidence = claims.find(c => c.evidenceCount && c.evidenceCount > 0)
-  const confidenceExplanation = claimForConfidence
-    ? buildConfidenceExplanation(claimForConfidence)
-    : null
 
   return (
     <Card>
@@ -546,30 +541,6 @@ function PassportCard({ passport, orgId, claims }: {
             </div>
           )}
         </div>
-
-        {/* Confidence explanation — wired to runtime */}
-        {confidenceExplanation && (
-          <div style={{
-            marginBottom: 12,
-            padding: '8px 12px',
-            borderRadius: 6,
-            background: `${C.ice}80`,
-            border: `1px solid ${C.border}`,
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: C.txdd, marginBottom: 4 }}>
-              Confianza de claim representativo
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, marginBottom: 2 }}>
-              {confidenceExplanation.level} ({confidenceExplanation.evidenceCount} evidencia)
-            </div>
-            <div style={{ fontSize: 10, color: C.txd, lineHeight: 1.4 }}>
-              {confidenceExplanation.explanation}
-            </div>
-            <div style={{ fontSize: 9, color: C.txdd, marginTop: 2 }}>
-              {confidenceExplanation.freshness}
-            </div>
-          </div>
-        )}
 
         {/* Pending before share */}
         {passport.pendingBeforeShare.length > 0 && (

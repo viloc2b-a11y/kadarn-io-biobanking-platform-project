@@ -525,35 +525,99 @@ describe('buildConfidenceExplanation', () => {
     const result = buildConfidenceExplanation(claim({ evidenceCount: 0 }))
     expect(result.level).toBe('Sin evidencia')
     expect(result.explanation).toBeTruthy()
+    expect(result.freshness).toBe('Sin evidencia')
   })
 
-  it('returns "Reducida" for expired evidence', () => {
+  it('returns "Evidencia expirada" for expired evidence', () => {
     const result = buildConfidenceExplanation(claim({ evidenceCount: 2, hasExpiredEvidence: true }))
-    expect(result.level).toBe('Reducida')
+    expect(result.level).toBe('Evidencia expirada')
+    expect(result.freshness).toBe('Documento expirado detectado')
   })
 
   it('returns "En disputa" for disputed claims', () => {
     const result = buildConfidenceExplanation(claim({ evidenceCount: 2, hasDispute: true }))
     expect(result.level).toBe('En disputa')
+    expect(result.explanation).toContain('disputa')
   })
 
-  it('returns "Sustentada" for substantiated with 3+ evidence', () => {
+  it('returns "Sustentada" for substantiated claims', () => {
     const result = buildConfidenceExplanation(claim({
       evidenceCount: 4,
       derivedState: 'substantiated',
     }))
     expect(result.level).toBe('Sustentada')
+    // NEVER claims "listo para publicación" — that requires a factual contract
+    expect(result.explanation).not.toContain('listo para publicaci')
+    expect(result.explanation).not.toContain('publicaci')
   })
 
-  it('returns "Parcial" for claims with 1-2 evidence pieces', () => {
+  it('returns "Evidencia adjunta" for claims with evidence but not substantiated', () => {
     const result = buildConfidenceExplanation(claim({ evidenceCount: 1 }))
-    expect(result.level).toBe('Parcial')
+    expect(result.level).toBe('Evidencia adjunta')
+  })
+
+  it('never infers "Evidencia vigente" from absence of hasExpiredEvidence', () => {
+    // hasExpiredEvidence is undefined/false — this does NOT mean evidence is "fresh"
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 3, derivedState: 'substantiated' }))
+    expect(result.freshness).not.toBe('Evidencia vigente')
+    expect(result.freshness).not.toBe('Evidencia parcial')
+    // Freshness is "No disponible" because the API doesn't expose it yet
+    expect(result.freshness).toBe('No disponible')
+  })
+
+  it('never infers "listo para publicación" from evidence count', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 10, derivedState: 'substantiated' }))
+    expect(result.explanation).not.toContain('listo para publicaci')
   })
 
   it('never displays bare number without explanation', () => {
     const result = buildConfidenceExplanation(claim({ evidenceCount: 5 }))
     expect(result.explanation).toBeTruthy()
     expect(result.explanation.length).toBeGreaterThan(10)
+  })
+
+  it('confidence explanation is purely factual, never over-asserts', () => {
+    // Test all paths don't infer freshness from absence of expired
+    const paths = [
+      claim({ evidenceCount: 1, derivedState: 'unsubstantiated' }),
+      claim({ evidenceCount: 5, derivedState: 'substantiated' }),
+      claim({ evidenceCount: 0 }),
+    ]
+    for (const c of paths) {
+      const result = buildConfidenceExplanation(c)
+      // No path should claim "vigente" without a real API contract
+      if (!c.hasExpiredEvidence && c.evidenceCount > 0) {
+        // When not expired and has evidence, freshness should still be "No disponible"
+        // because we can't prove freshness from absence alone
+      }
+    }
+  })
+})
+
+// ─── Correction: Review Queue date handling ────────────────────────────────
+
+describe('correction: no invalid dates', () => {
+  it('dispute with empty createdAt does not produce Invalid Date', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [],
+      claims: [claim({ id: 'c1', hasDispute: true, statement: 'Test' })],
+    })
+    const dispute = result.find(r => r.kind === 'dispute')
+    expect(dispute).toBeDefined()
+    expect(dispute!.createdAt).toBe('')
+    // formatRelativeTime('') should not be called — the UI handles empty string
+  })
+
+  it('review tasks with real createdAt keep their timestamp', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [
+        { id: 'r1', title: 'Task', status: 'pending', resourceType: 'evidence',
+          resourceId: 'e1', createdAt: '2026-01-15T10:00:00Z' },
+      ],
+      claims: [],
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].createdAt).toBe('2026-01-15T10:00:00Z')
   })
 })
 
@@ -734,9 +798,9 @@ describe('correction: confidence explanation is wired', () => {
 
   it('buildConfidenceExplanation for expired evidence explains degradation', () => {
     const result = buildConfidenceExplanation(claim({ evidenceCount: 5, hasExpiredEvidence: true }))
-    expect(result.level).toBe('Reducida')
-    expect(result.freshness).toBe('Evidencia expirada')
-    expect(result.explanation).toContain('expirados')
+    expect(result.level).toBe('Evidencia expirada')
+    expect(result.freshness).toBe('Documento expirado detectado')
+    expect(result.explanation).toContain('expirado')
   })
 
   it('buildConfidenceExplanation for disputed claims explains suspension', () => {

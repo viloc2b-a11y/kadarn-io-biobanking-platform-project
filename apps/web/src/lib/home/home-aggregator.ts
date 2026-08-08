@@ -580,29 +580,29 @@ export function buildConfidenceExplanation(
   let freshness: string
 
   if (claim.hasExpiredEvidence) {
-    level = 'Reducida'
-    explanation = 'La evidencia de soporte contiene documentos expirados. La confianza se mantiene pero está degradada hasta que se renueve la evidencia.'
-    freshness = 'Evidencia expirada'
+    level = 'Evidencia expirada'
+    explanation = `El claim tiene ${evidenceCount} pieza(s) de evidencia, pero al menos un documento está expirado.`
+    freshness = 'Documento expirado detectado'
   } else if (claim.hasDispute) {
     level = 'En disputa'
-    explanation = 'Este claim tiene una disputa activa. La confianza está suspendida hasta que se resuelva la contradicción.'
+    explanation = 'Este claim tiene una disputa activa. La confianza está suspendida hasta que se resuelva.'
     freshness = 'Disputa activa'
   } else if (evidenceCount === 0) {
     level = 'Sin evidencia'
-    explanation = 'Este claim no tiene evidencia de soporte. No se puede evaluar la confianza sin evidencia verificable.'
+    explanation = 'No hay evidencia adjunta a este claim.'
     freshness = 'Sin evidencia'
-  } else if (evidenceCount >= 3 && claim.derivedState === 'substantiated') {
+  } else if (claim.derivedState === 'substantiated') {
     level = 'Sustentada'
-    explanation = `Sustentada por ${evidenceCount} piezas de evidencia verificable. El claim está respaldado y listo para publicación.`
-    freshness = 'Evidencia vigente'
+    explanation = `${evidenceCount} pieza(s) de evidencia adjunta(s). El claim está marcado como sustentado.`
+    freshness = 'No disponible' // factual: API no expone freshness aún
   } else if (evidenceCount >= 1) {
-    level = 'Parcial'
-    explanation = `Sustentada por ${evidenceCount} pieza(s) de evidencia. Puede requerir evidencia adicional para verificación completa.`
-    freshness = 'Evidencia parcial'
+    level = 'Evidencia adjunta'
+    explanation = `${evidenceCount} pieza(s) de evidencia adjunta(s). El estado derivado es "${claim.derivedState || 'desconocido'}".`
+    freshness = 'No disponible'
   } else {
     level = 'No evaluada'
     explanation = 'No se ha realizado una evaluación de confianza para este claim.'
-    freshness = 'No evaluada'
+    freshness = 'No disponible'
   }
 
   return { level, explanation, evidenceCount, freshness }
