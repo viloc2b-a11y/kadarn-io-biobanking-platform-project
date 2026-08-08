@@ -253,9 +253,11 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             {displayNavSections.flatMap(s => s.items).find(i => i.href === pathname)?.label ?? 'Workspace'}
           </span>
           <div style={{ flex: 1 }} />
+          {process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true' && (
           <Link href="/marketplace" style={{ fontSize: 12, color: 'var(--txdd)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>
             Marketplace
           </Link>
+          )}
         </div>
   )
 

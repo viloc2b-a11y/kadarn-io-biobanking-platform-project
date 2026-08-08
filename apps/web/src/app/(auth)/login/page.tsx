@@ -157,9 +157,11 @@ function LoginForm() {
           <Link href="/join" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 800 }}>
             Register your organization
           </Link>
+          {process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true' && (
           <a href="/marketplace" style={{ fontSize: 12, color: 'var(--txdd)' }}>
             Browse marketplace without signing in →
           </a>
+          )}
         </div>
       </div>
     </div>
