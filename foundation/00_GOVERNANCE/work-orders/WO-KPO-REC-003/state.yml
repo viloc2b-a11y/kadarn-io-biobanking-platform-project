@@ -1,0 +1,43 @@
+schema_version: "1.0"
+work_order_id: WO-KPO-REC-003
+current_state: proposed
+previous_state: null
+admissible_transitions:
+  - admitted
+  - rejected
+dependencies:
+  required:
+    - WO-KPO-QA-002 (superseded, HG-20260808-KPO-SUPERSEDE-QA-002)
+  downstream: [WO-KPO-REC-004]
+human_gate:
+  required: true
+  decision: pending
+  decision_reference: null
+  approved_at: null
+repository_state:
+  source_commit: "8d7dfa57"
+  source_commit_description: "Revert Marketplace Isolation — UI restored"
+  canonical_base_branch: "master"
+  proposed_working_branch: "recovery/wo-kpo-rec-003-kems"
+  product_repo_head: "8d7dfa57"
+execution_phases:
+  - phase: INVENTORY
+    status: pending
+    human_gate_required: false
+  - phase: CORRECTION
+    status: pending
+    human_gate_required: false
+  - phase: RATIFICATION
+    status: pending
+    human_gate_required: false
+  - phase: VERIFICATION
+    status: pending
+    human_gate_required: true
+blockers: []
+admission_prepared_by: "Hermes (HV Cross-Project OS)"
+admission_prepared_at: "2026-08-08T21:00:00-05:00"
+notes: >-
+  Recovery 3 of the KADARN Recovery Plan.
+  Documentation-only reconciliation. No functional code changes.
+  Supersedes WO-KPO-QA-002. Baseline: master @ 8d7dfa57.
+  Full KADARN value chain protected — no 'MVP-limited' reductions.

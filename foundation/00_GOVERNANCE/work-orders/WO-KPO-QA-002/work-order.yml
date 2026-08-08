@@ -1,0 +1,220 @@
+schema_version: "1.0"
+work_order_id: WO-KPO-QA-002
+version: "1.0"
+title: Full Codebase Audit
+program: KADARN
+workstream: Platform Stabilization
+priority: critical
+risk_class: standard
+objective: >-
+  Audit the current KADARN implementation comprehensively, identify reproducible
+  defects, correct them in bounded RED→GREEN batches, and produce evidence for
+  every correction without reopening canonical product or architectural decisions.
+scope:
+  include:
+    - "Systematic read-only audit across all 21 areas of the KADARN codebase"
+    - "Reproducible defect identification with root-cause analysis"
+    - "Bounded corrections in RED→GREEN batches, one area at a time"
+    - "Evidence production for every correction"
+    - "Build verification after each correction batch"
+    - "TypeScript typecheck maintained at 0 errors throughout"
+  exclude:
+    - "New product features or API endpoints"
+    - "Database schema changes beyond fixes"
+    - "Cloud deployment"
+    - "Production configuration"
+    - "Reopening canonical product or architectural decisions"
+    - "Merging to master without separate Human Gate"
+    - "Modifying frozen migrations 001-061"
+    - "Staging deployment validation (may be authorized separately)"
+repository:
+  remote: "https://github.com/viloc2b-a11y/kadarn-io-biobanking-platform-project.git"
+  canonical_base_branch: "master"
+  authorized_working_branch: "audit/wo-kpo-qa-002-full-codebase"
+  source_commit: "2292f3b8c1b4a26a1e679f43e0e45f9ef0d9dcea"
+  source_commit_description: "feat(api): add institution creation endpoint (last product-code commit on feat/qa-staging-readiness before governance reconciliation)"
+  worktree_isolation: "clean git worktree created from source_commit"
+authorized_paths:
+  - foundation/00_GOVERNANCE/work-orders/WO-KPO-QA-002/*
+  - tests/**/*
+  - apps/web/src/**/*
+  - apps/api/src/**/*
+  - packages/types/src/**/*
+  - packages/*/src/**/*
+  - supabase/migrations/* (fix-only, no new migrations)
+  - database/migrations/* (fix-only)
+  - scripts/**/*
+  - instrumentation/**/*
+  - .github/workflows/**/*
+prohibited_actions:
+  - "Add new database migrations beyond fixes"
+  - "Modify frozen migrations 001-061"
+  - "Add new API endpoints"
+  - "Add new UI features"
+  - "Deploy to staging or production without separate Human Gate"
+  - "Merge to master without separate Human Gate"
+  - "Alter production configuration"
+  - "Reopen QA-001, CVG-001, or IAM-001"
+  - "Modify canonical governance documents"
+  - "Push without explicit authorization"
+dependencies:
+  required:
+    - WO-KPO-QA-001 (closed, HG-20260805-QA-ACCEPT)
+    - WO-KPO-CVG-001 (closed, HG-20260805-CVG-ACCEPT)
+    - WO-KPO-IAM-001 (closed, HG-20260802-IAM-ADMIT)
+  downstream: []
+execution_phases:
+  - phase: READ_ONLY_AUDIT
+    description: "Systematic read-only inspection of all 21 areas. No code modifications."
+    human_gate_required: true
+    gate_description: "Admission — authorize audit to begin"
+  - phase: CORRECTION_BATCHES
+    description: "Bounded RED→GREEN corrections in sequence, one area at a time."
+    human_gate_required: false
+    note: "Each correction batch produces evidence. Corrections are bounded: fix-specific, not scope-expanding."
+  - phase: FINAL_VERIFICATION
+    description: "Full build, typecheck, and test suite verification after all corrections."
+    human_gate_required: true
+    gate_description: "Acceptance — review all corrections and evidence before closure"
+
+# 21-Area Audit Sequence
+# Preserved from WO-KPO-QA-001 successor recommendation.
+# Executed sequentially; each area completes before the next begins.
+audit_sequence:
+  - area: 1
+    name: "Build, Configuration, and Dependencies"
+    scope: "package.json, tsconfig.json, Dockerfile, docker-compose, Turbopack config, pnpm, env"
+    deliverables: "Build verification, dependency audit, config sanity"
+
+  - area: 2
+    name: "TypeScript Types — Schema Parity"
+    scope: "packages/types/src/ — verify TypeScript types mirror DB schema exactly"
+    deliverables: "Type/schema parity report, mismatch inventory"
+
+  - area: 3
+    name: "RLS Correctness — Tenant Isolation"
+    scope: "supabase/migrations/ RLS policies, lib/db/tenant.ts, withTenant, SECURITY DEFINER functions"
+    deliverables: "RLS policy audit, cross-tenant isolation verification"
+
+  - area: 4
+    name: "Migration Integrity"
+    scope: "supabase/migrations/ vs database/migrations/ parity, idempotency, migration order"
+    deliverables: "Migration parity diff, idempotency re-run evidence"
+
+  - area: 5
+    name: "API Endpoints — Auth, Validation, Error Handling"
+    scope: "apps/api/src/ — all route handlers, middleware, Zod validation, error boundaries"
+    deliverables: "Endpoint inventory, auth check per endpoint, error classification"
+
+  - area: 6
+    name: "UI Components — Accessibility, State, Rendering"
+    scope: "apps/web/src/ — all pages, components, server actions"
+    deliverables: "Component inventory, server/client boundary audit"
+
+  - area: 7
+    name: "Security — Secrets, Injection, CORS, CSP"
+    scope: "env validation, middleware, headers, API surface, safeErrorLabel usage"
+    deliverables: "Security posture report, secret scan, injection vectors"
+
+  - area: 8
+    name: "Frozen Scope Compliance"
+    scope: "CANONICAL_MVP_SCOPE.md §A.3 — verify no modifications to frozen tables/packages/migrations"
+    deliverables: "Frozen scope diff against baseline, violation inventory"
+
+  - area: 9
+    name: "Evidence Core (ECF)"
+    scope: "Evidence assets, provenance, hash chain, immutability"
+    deliverables: "ECF integrity verification"
+
+  - area: 10
+    name: "Confidence Engine (CNF)"
+    scope: "Confidence scoring, multidimensional model, semantic guarantees"
+    deliverables: "CNF semantic verification (unknown≠no, contradiction≠false, etc.)"
+
+  - area: 11
+    name: "Integrity Services (INT)"
+    scope: "Hash verification, cross-referencing, tampering detection"
+    deliverables: "INT service verification"
+
+  - area: 12
+    name: "Cross-Organization Isolation (XO)"
+    scope: "Cross-tenant data leakage, RLS enforcement at runtime"
+    deliverables: "XO isolation test results"
+
+  - area: 13
+    name: "Publication & Delivery (PDL)"
+    scope: "Publication packages, access tokens, revocations, snapshots"
+    deliverables: "PDL lifecycle verification"
+
+  - area: 14
+    name: "Readiness Assessment (RDN)"
+    scope: "Contextual readiness, requirement→claim→evidence traceability"
+    deliverables: "RDN assessment integrity"
+
+  - area: 15
+    name: "Claim Validation Gateway (CVG)"
+    scope: "Claim validation rules, gateway enforcement"
+    deliverables: "CVG rule verification"
+
+  - area: 16
+    name: "Identity & Access (IAM)"
+    scope: "Supabase Auth integration, RLS role hierarchy, withAuth patterns"
+    deliverables: "IAM auth flow verification"
+
+  - area: 17
+    name: "People Roster (PRF)"
+    scope: "Person profiles, credentials, training, roles"
+    deliverables: "PRF data integrity checks"
+
+  - area: 18
+    name: "Equipment & Infrastructure (IAF)"
+    scope: "Equipment assets, categories, location binding"
+    deliverables: "IAF data integrity checks"
+
+  - area: 19
+    name: "Onboarding (ONB)"
+    scope: "Progressive interview, knowledge_state, conditional modules"
+    deliverables: "ONB flow verification"
+
+  - area: 20
+    name: "Discovery (DSC)"
+    scope: "Controlled discovery, visibility-first, PostgreSQL-only search"
+    deliverables: "DSC visibility verification"
+
+  - area: 21
+    name: "Ingestion Pipeline (ING)"
+    scope: "SHA-256 dedup, extraction, classification, human review gate"
+    deliverables: "ING pipeline verification"
+
+deliverables:
+  - "Area-by-area audit reports with defect inventory"
+  - "RED→GREEN correction batches with before/after evidence"
+  - "Build passing after each correction batch"
+  - "Typecheck: 0 errors throughout"
+  - "Final consolidated audit report"
+acceptance_criteria:
+  - "All 21 areas audited with documented findings"
+  - "All reproducible defects corrected or explicitly deferred with documented reason"
+  - "Build passes (web + API)"
+  - "TypeScript typecheck: 0 errors"
+  - "No regressions introduced in any correction batch"
+  - "Evidence produced for every correction"
+  - "No canonical product or architectural decisions modified"
+  - "Working tree: governance-only changes on audit branch"
+evidence_requirements:
+  - "Area audit reports (read-only phase)"
+  - "Defect inventory with reproduction steps"
+  - "Correction batch evidence (before/after)"
+  - "Build verification after each batch"
+  - "Typecheck output (0 errors)"
+  - "Final consolidated audit report"
+rollback:
+  strategy: "All work on isolated worktree from source_commit. Discard worktree to restore baseline."
+adr_required: false
+human_gate:
+  required: true
+  admission_gate: "HG-PENDING-QA-002-ADMIT"
+  acceptance_gate: "HG-PENDING-QA-002-ACCEPT"
+next_admissible_states:
+  - admitted
+  - rejected

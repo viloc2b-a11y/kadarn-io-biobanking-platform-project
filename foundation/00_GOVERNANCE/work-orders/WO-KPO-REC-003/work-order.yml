@@ -1,0 +1,102 @@
+schema_version: "1.0"
+work_order_id: WO-KPO-REC-003
+version: "1.0"
+title: Canonical & KEMS Reconciliation
+program: KADARN
+workstream: Platform Recovery
+priority: critical
+risk_class: standard
+objective: >-
+  Reconcile canonical documentation with the complete KADARN product vision,
+  correcting KEMS mapping errors, naming conflicts, and artificial scope reductions
+  inherited from the deprecated "MVP-limited" framing.
+scope:
+  include:
+    - "Correct KEMS-005/006 mappings in CANONICAL_MVP_SCOPE.md"
+    - "Correct KEMS-001 references in code packages (evidence-core claims KEMS-001 but actual KEMS-001 is Confidence Graph Model)"
+    - "Determine and register authority status of KEMS-001 (currently 'Reconstructed Canonical Draft pending ratification')"
+    - "Reconcile any document that classifies as post-MVP capabilities now recognized as CORE KADARN"
+    - "Update Documentary Drift Register with resolved items"
+    - "Preserve and protect the full KADARN value chain:"
+    - "  Institutional Identity → Claims → Evidence → Demonstrated Capabilities"
+    - "  → Provenance → Evidence Continuity → Freshness/Confidence → Study Context"
+    - "  → Readiness → Opportunity Fit → Passport → Reusable Outputs"
+  exclude:
+    - "Functional code changes beyond trivial documentation references in comments"
+    - "Database schema changes or migrations"
+    - "CVG/IAM (remains frozen, separate decision)"
+    - "New architecture or product features"
+    - "UI removal or hiding of built surfaces"
+    - "Scope reductions using 'MVP-limited' criteria"
+    - "Deletion of canonical documents (mark historical/superseded, never delete)"
+repository:
+  remote: "https://github.com/viloc2b-a11y/kadarn-io-biobanking-platform-project.git"
+  canonical_base_branch: "master"
+  expected_HEAD: "8d7dfa57"
+  authorized_working_branch: "recovery/wo-kpo-rec-003-kems"
+  worktree_isolation: "optional — documentation-only changes on master"
+authorized_paths:
+  - foundation/00_GOVERNANCE/work-orders/WO-KPO-REC-003/*
+  - foundation/00_GOVERNANCE/CANONICAL_MVP_SCOPE.md
+  - foundation/00_GOVERNANCE/DOCUMENT_PRECEDENCE.md
+  - docs/kems/*
+  - docs/adr/*
+  - packages/evidence-core/src/* (comment corrections only)
+  - packages/evidence-discovery/src/* (comment corrections only)
+  - packages/evidence-lineage/src/* (comment corrections only)
+prohibited_actions:
+  - "Add or remove functional code"
+  - "Modify database schema or migrations"
+  - "Add new API endpoints or UI features"
+  - "Delete canonical documents"
+  - "Reclassify any built surface as 'out of scope' using 'MVP-limited' criteria"
+  - "Touch CVG/IAM packages or migrations"
+  - "Deploy to staging or production"
+  - "Merge to master without separate Human Gate"
+dependencies:
+  required:
+    - WO-KPO-QA-002 (superseded, HG-20260808-KPO-SUPERSEDE-QA-002)
+  downstream: [WO-KPO-REC-004 (Source-of-Truth Consolidation)]
+execution_phases:
+  - phase: INVENTORY
+    description: "Read-only inventory of all canonical documents, their actual status, and all drift items."
+    human_gate_required: false
+  - phase: CORRECTION
+    description: "Apply corrections to documents and comment references. No functional code changes."
+    human_gate_required: false
+  - phase: RATIFICATION
+    description: "Register KEMS-001 authority decision. Mark documents CURRENT/HISTORICAL/SUPERSEDED."
+    human_gate_required: false
+  - phase: VERIFICATION
+    description: "Verify all corrections are consistent. No contradictions remain in canonical chain."
+    human_gate_required: true
+    gate_description: "Acceptance — review all canonical changes before closure"
+deliverables:
+  - "Updated CANONICAL_MVP_SCOPE.md with corrected KEMS mappings"
+  - "Corrected KEMS-001 references in code package comments"
+  - "KEMS-001 authority decision (ratified, replaced, or explicitly deferred)"
+  - "Updated Documentary Drift Register (items resolved)"
+  - "Canonical chain verification: no document contradicts the full KADARN value chain"
+acceptance_criteria:
+  - "KEMS-005 correctly mapped to Schema Evolution Standard"
+  - "KEMS-006 correctly mapped to Systems Integration Standard"
+  - "No code package references KEMS-001 as 'Evidence Core'"
+  - "KEMS-001 authority status is explicitly registered"
+  - "No document classifies CORE KADARN capabilities as post-MVP using deprecated criteria"
+  - "Full value chain preserved and documented across all canonicals"
+  - "No functional code changes introduced"
+evidence_requirements:
+  - "Before/after diff for each corrected document"
+  - "KEMS mapping verification (all 7 KEMS matched correctly)"
+  - "Grep evidence: zero incorrect KEMS-001 references in code"
+  - "Canonical chain walkthrough: every link documented"
+rollback:
+  strategy: "All changes are documentation-only on a dedicated branch. Revert branch to restore baseline."
+adr_required: false
+human_gate:
+  required: true
+  admission_gate: "HG-PENDING-REC-003-ADMIT"
+  acceptance_gate: "HG-PENDING-REC-003-ACCEPT"
+next_admissible_states:
+  - admitted
+  - rejected

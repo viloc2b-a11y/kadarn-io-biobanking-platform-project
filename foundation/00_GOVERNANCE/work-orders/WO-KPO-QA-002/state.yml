@@ -1,0 +1,42 @@
+schema_version: "1.0"
+work_order_id: WO-KPO-QA-002
+current_state: superseded
+previous_state: proposed
+admissible_transitions: []
+superseded_by: WO-KPO-REC-003
+superseded_at: "2026-08-08T21:00:00-05:00"
+superseded_reason: >-
+  Never admitted. Baseline (feat/qa-staging-readiness @ 2292f3b8) rendered obsolete
+  by audit + recovery work completed directly on master (8d7dfa57). Scope did not
+  authorize canonical document modifications required by Recovery 3. 21 audit areas
+  not executed — superseded before admission.
+dependencies:
+  required:
+    - WO-KPO-QA-001 (closed, HG-20260805-QA-ACCEPT)
+    - WO-KPO-CVG-001 (closed, HG-20260805-CVG-ACCEPT)
+    - WO-KPO-IAM-001 (closed, HG-20260802-IAM-ADMIT)
+  downstream: [WO-KPO-REC-003]
+human_gate:
+  required: true
+  decision: superseded
+  decision_reference: "HG-20260808-KPO-SUPERSEDE-QA-002"
+  approved_at: "2026-08-08T21:00:00-05:00"
+repository_state:
+  source_commit: "2292f3b8c1b4a26a1e679f43e0e45f9ef0d9dcea"
+  canonical_base_branch: "master"
+  product_repo_head_at_supersession: "8d7dfa57"
+execution_phases:
+  - phase: READ_ONLY_AUDIT
+    status: not_executed
+  - phase: CORRECTION_BATCHES
+    status: not_executed
+  - phase: FINAL_VERIFICATION
+    status: not_executed
+audit_sequence:
+  total_areas: 21
+  current_area: 0
+  completed_areas: []
+  disposition: "All 21 areas superseded without execution."
+notes: >-
+  Preserved as historical evidence. ID not reused.
+  Superseded by WO-KPO-REC-003 (Canonical & KEMS Reconciliation).
