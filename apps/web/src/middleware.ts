@@ -68,12 +68,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
     if (!hasMembership) {
-      // Marketplace is BUILT_BUT_DEFERRED (MVP §A.2 #1).
-      // When disabled, redirect to workspace instead of marketplace.
-      const fallback = process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true'
-        ? '/marketplace'
-        : '/workspace'
-      return NextResponse.redirect(new URL(fallback, request.url))
+      return NextResponse.redirect(new URL('/marketplace', request.url))
     }
   }
 

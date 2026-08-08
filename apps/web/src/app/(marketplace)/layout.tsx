@@ -6,29 +6,6 @@ export const metadata: Metadata = {
 }
 
 export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
-  // Marketplace is BUILT_BUT_DEFERRED per MVP scope §A.2 #1
-  if (process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE !== 'true') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy)' }}>
-        <div style={{ textAlign: 'center', maxWidth: 420, padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3, fontWeight: 300 }}>MP</div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--txd)' }}>Marketplace — Coming Post-MVP</h2>
-          <p style={{ fontSize: 14, color: 'var(--txdd)', lineHeight: 1.6, marginBottom: 24 }}>
-            Marketplace is built but deferred until after the institution-first pilot.
-            Organizations must first establish verified profiles, claims, and evidence before
-            a network marketplace can function.
-          </p>
-          <Link href="/workspace" style={{
-            fontSize: 14, padding: '10px 24px', borderRadius: 8,
-            background: 'var(--teal)', color: '#fff', fontWeight: 700,
-            textDecoration: 'none', display: 'inline-block'
-          }}>
-            Go to Workspace
-          </Link>
-        </div>
-      </div>
-    )
-  }
   return (
     <div style={{ minHeight: '100vh' }}>
       <header style={{

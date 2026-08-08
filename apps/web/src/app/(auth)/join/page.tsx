@@ -40,9 +40,7 @@ export default function JoinPage() {
 
         <div style={actionsStyle}>
           <Link href="/login" style={primaryLinkStyle}>Back to sign in</Link>
-          {process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true' && (
           <Link href="/marketplace" style={secondaryLinkStyle}>Browse marketplace</Link>
-          )}
         </div>
       </section>
     </main>
