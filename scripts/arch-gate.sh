@@ -55,6 +55,9 @@ SCORE_FREE_SURFACES=(
   # Slice 2 — Next Best Action Center (score-free surfaces)
   "apps/web/src/lib/home/home-aggregator.ts"
   "apps/web/src/app/(workspace)/workspace/page.tsx"
+  # Slice 3 — Evidence Core hardening (API surfaces)
+  "apps/api/src/app/api/v1/claims/route.ts"
+  "apps/api/src/app/api/v1/workspace/activity/route.ts"
   "apps/web/src/app/(onboarding)/onboarding/passport"
   "apps/web/src/app/(onboarding)/onboarding/readiness"
   "apps/web/src/app/(onboarding)/onboarding/roadmap"

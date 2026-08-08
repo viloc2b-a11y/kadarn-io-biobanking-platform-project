@@ -690,12 +690,14 @@ async function fetchHomeData(headers: Record<string, string>): Promise<HomeData>
   const [profile, claimsRes, reviewRes, gapsRes, staleRes, passportRes, eventsRes] =
     await Promise.all([
       fetchJSON('profile', '/api/v1/workspace/profile'),
+      // Slice 3: claims auto-resolves institution_id from session
       fetchJSON('claims', '/api/v1/claims?limit=50'),
       fetchJSON('review', '/api/v1/review/tasks'),
       fetchJSON('gaps', '/api/v1/institutions/self/gaps'),
       fetchJSON('stale', '/api/v1/institutions/self/confidence/stale'),
       fetchJSON('passport', '/api/v1/continuity/passport/default'),
-      fetchJSON('events', '/api/v1/events?limit=10'),
+      // Slice 3: institution-scoped activity (replaces kadarn_internal-only /api/v1/events)
+      fetchJSON('activity', '/api/v1/workspace/activity?limit=10'),
     ])
 
   const orgName = profile?.active_org?.org_name ?? profile?.active_org?.name ?? 'KADARN'
