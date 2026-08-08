@@ -187,12 +187,9 @@ export default function PassportStep() {
             <span className="text-xs font-mono text-purple-300 bg-purple-800/50 px-2 py-0.5 rounded-full">
               INSTITUTION PASSPORT
             </span>
-            {readiness && (
-              <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-                readiness.overall_score >= 0.7 ? 'bg-emerald-900/50 text-emerald-300' :
-                readiness.overall_score >= 0.4 ? 'bg-amber-900/50 text-amber-300' : 'bg-red-900/50 text-red-300'
-              }`}>
-                Readiness: {Math.round(readiness.overall_score * 100)}%
+            {readiness?.dimensions && (
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800/50 text-slate-300">
+                {readiness.dimensions.length} dimensions assessed
               </span>
             )}
           </div>
@@ -295,16 +292,13 @@ export default function PassportStep() {
             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
               <div className="flex items-end justify-between mb-6">
                 <div>
-                  <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Overall Score</div>
-                  <div className="text-5xl font-bold text-white">
-                    {Math.round(readiness.overall_score * 100)}
-                    <span className="text-xl text-gray-500">/100</span>
+                  <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Dimensions Assessed</div>
+                  <div className="text-3xl font-bold text-white">
+                    {readiness.dimensions?.length ?? 0}
+                    <span className="text-xl text-gray-500"> dimensions</span>
                   </div>
-                  <div className={`text-sm mt-1 capitalize font-medium ${
-                    readiness.overall_score >= 0.7 ? 'text-emerald-400' :
-                    readiness.overall_score >= 0.4 ? 'text-amber-400' : 'text-red-400'
-                  }`}>
-                    {LEVEL_LABELS[readiness.level] ?? readiness.level}
+                  <div className="text-sm mt-1 text-gray-400">
+                    Factual readiness assessment
                   </div>
                 </div>
                 <div className="text-xs text-gray-500">

@@ -218,9 +218,9 @@ export default function PassportPage() {
           <span className="px-3 py-1 bg-indigo-600 rounded-full text-sm">
             {capabilities.length} capabilities
           </span>
-          {readiness && (
+          {readiness?.dimensions && (
             <span className="px-3 py-1 bg-indigo-600 rounded-full text-sm">
-              Readiness: {Math.round(readiness.overall_score * 100)}%
+              {readiness.dimensions.length} dimensions
             </span>
           )}
         </div>
@@ -358,9 +358,9 @@ export default function PassportPage() {
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
               <div className="flex items-end justify-between mb-4">
                 <div>
-                  <div className="text-sm text-amber-700 uppercase tracking-wide mb-1">Overall Readiness Score</div>
-                  <div className="text-5xl font-bold text-gray-900">{Math.round(readiness.overall_score * 100)}<span className="text-xl text-gray-400">/100</span></div>
-                  <div className="text-sm text-amber-600 mt-1 capitalize">{readiness.level.replace(/_/g, ' ')}</div>
+                  <div className="text-sm text-amber-700 uppercase tracking-wide mb-1">Readiness Dimensions</div>
+                  <div className="text-5xl font-bold text-gray-900">{readiness.dimensions?.length ?? 0}<span className="text-xl text-gray-400"> dimensions</span></div>
+                  <div className="text-sm text-amber-600 mt-1">Factual assessment</div>
                 </div>
                 {readiness.computed_at && (
                   <div className="text-xs text-gray-400">

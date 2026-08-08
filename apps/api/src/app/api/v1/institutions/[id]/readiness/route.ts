@@ -1,13 +1,19 @@
 // ==========================================================================
-// KAD-011 — Readiness API
+// KAD-011 — Readiness API (Score-Free)
 // ==========================================================================
-// GET  /api/v1/institutions/[id]/readiness — Get/Compute readiness score
+// GET /api/v1/institutions/[id]/readiness — Factual readiness dimensions only.
+// No institutional aggregate score. No readiness "level" label.
 // ==========================================================================
 
-import { withAuth, handleApiError, createRouteClient, ApiError } from '@/lib/supabase-server';
-import type { ReadinessDimension } from '@kadarn/types';
-import { computeReadinessLevel } from '@kadarn/types';
+import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server';
 import { z } from 'zod';
+
+interface ReadinessDimension {
+  name: string;
+  score: number;
+  weight: number;
+  reason: string;
+}
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -16,22 +22,7 @@ export const GET = withAuth(async (_request, _user, params) => {
     const { id } = paramsSchema.parse(params);
     const supabase = await createRouteClient();
 
-    // 1. Try cache
-    const { data: cached } = await supabase
-      .from('readiness_scores')
-      .select('*')
-      .eq('organization_id', id)
-      .single();
-
-    // If cached less than 1 hour old, return it
-    if (cached) {
-      const age = Date.now() - new Date(cached.computed_at).getTime();
-      if (age < 3_600_000) {
-        return Response.json({ data: cached, cached: true, error: null });
-      }
-    }
-
-    // 2. Compute dimensions
+    // Count factual dimensions
     const [peopleCount, locationCount, capabilityCount, passportCount, evidenceCount] =
       await Promise.all([
         supabase.from('organization_memberships').select('id', { count: 'exact', head: true }).eq('organization_id', id),
@@ -47,40 +38,21 @@ export const GET = withAuth(async (_request, _user, params) => {
     const passport = passportCount.count ?? 0;
     const evidence = evidenceCount.count ?? 0;
 
+    // Factual dimensions — no aggregate, no overall score, no level label
     const dimensions: ReadinessDimension[] = [
-      { name: 'profile_completeness', score: Math.min((people * 0.1 + locations * 0.15) / 1, 1), weight: 0.20, reason: `${people} members, ${locations} locations` },
-      { name: 'evidence_coverage', score: Math.min(evidence / 10, 1), weight: 0.20, reason: `${evidence} evidence nodes` },
-      { name: 'credential_validity', score: 0.5, weight: 0.15, reason: 'Credential registry pending' },
-      { name: 'recruitment_capability', score: Math.min(people * 0.1, 1), weight: 0.15, reason: `${people} members` },
-      { name: 'passport_completeness', score: Math.min(passport / 5, 1), weight: 0.15, reason: `${passport} published entries` },
-      { name: 'capability_coverage', score: Math.min(capabilities / 3, 1), weight: 0.15, reason: `${capabilities} capabilities declared` },
+      { name: 'profile_completeness', score: Math.min((people * 0.1 + locations * 0.15), 1), weight: 0, reason: `${people} members, ${locations} locations` },
+      { name: 'evidence_coverage', score: Math.min(evidence / 10, 1), weight: 0, reason: `${evidence} evidence nodes` },
+      { name: 'credential_validity', score: 0, weight: 0, reason: 'Credential registry pending' },
+      { name: 'recruitment_capability', score: Math.min(people * 0.1, 1), weight: 0, reason: `${people} members` },
+      { name: 'passport_completeness', score: Math.min(passport / 5, 1), weight: 0, reason: `${passport} published entries` },
+      { name: 'capability_coverage', score: Math.min(capabilities / 3, 1), weight: 0, reason: `${capabilities} capabilities declared` },
     ];
-
-    const overall = dimensions.reduce((s, d) => s + d.score * d.weight, 0);
-
-    // 3. Store
-    const { data: saved } = await supabase
-      .from('readiness_scores')
-      .upsert({
-        organization_id: id,
-        overall_score: Math.round(overall * 100) / 100,
-        profile_completeness: dimensions[0].score,
-        evidence_coverage: dimensions[1].score,
-        credential_validity: dimensions[2].score,
-        recruitment_capability: dimensions[3].score,
-        passport_completeness: dimensions[4].score,
-        operational_metrics: dimensions[5].score,
-        breakdown: { dimensions },
-        computed_at: new Date().toISOString(),
-      }, { onConflict: 'organization_id' })
-      .select()
-      .single();
 
     return Response.json({
       data: {
-        ...saved,
-        level: computeReadinessLevel(overall),
+        organization_id: id,
         dimensions,
+        computed_at: new Date().toISOString(),
       },
       cached: false,
       error: null,

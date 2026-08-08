@@ -1646,11 +1646,9 @@ function ResultsStep({
           </h3>
           <div className="flex items-center gap-3 mt-4 mb-4">
             <div className="text-4xl font-bold text-blue-700">
-              {typeof readiness.data.overall_score === 'number'
-                ? Math.round(readiness.data.overall_score)
-                : readiness.data.overall_score}
+              {readiness.data.dimensions?.length ?? 0}
             </div>
-            <div className="text-sm text-gray-500">Overall Score</div>
+            <div className="text-sm text-gray-500">Dimensions Assessed</div>
           </div>
           <div className="space-y-2">
             {readiness.data.dimensions?.map((dim) => (

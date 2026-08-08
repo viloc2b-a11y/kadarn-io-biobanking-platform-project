@@ -213,12 +213,8 @@ export default function PortfolioPage() {
             <div>
               <div className="text-sm text-blue-200 uppercase tracking-wide mb-1">Institution Readiness</div>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold">{Math.round(readiness.overall_score * 100)}%</span>
-                <span className="text-blue-200">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${readinessLevelColors[readiness.level] ?? 'bg-blue-100 text-blue-700'}`}>
-                    {readinessLevelLabels[readiness.level] ?? readiness.level}
-                  </span>
-                </span>
+                <span className="text-4xl font-bold">{readiness.dimensions?.length ?? 0}</span>
+                <span className="text-blue-200">dimensions assessed</span>
               </div>
             </div>
             <div className="flex gap-4 text-sm">
