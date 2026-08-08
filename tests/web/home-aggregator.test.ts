@@ -28,9 +28,10 @@ function claim(overrides: Record<string, unknown> = {}) {
     status: overrides.status as string ?? 'active',
     derivedState: overrides.derivedState as string | undefined,
     confidence: overrides.confidence as string | undefined,
-    evidenceCount: overrides.evidenceCount as number | undefined,
-    hasExpiredEvidence: (overrides.hasExpiredEvidence as boolean) ?? false,
-    hasDispute: (overrides.hasDispute as boolean) ?? false,
+    // Only default to 0 when NOT explicitly passed as null
+    evidenceCount: ('evidenceCount' in overrides) ? (overrides.evidenceCount as number | null) : 0,
+    hasExpiredEvidence: ('hasExpiredEvidence' in overrides) ? (overrides.hasExpiredEvidence as boolean | null) : false,
+    hasDispute: ('hasDispute' in overrides) ? (overrides.hasDispute as boolean | null) : false,
     institutionId: overrides.institutionId as string | undefined,
     capabilityId: overrides.capabilityId as string | undefined,
   }

@@ -4,7 +4,10 @@
 // ==========================================================================
 // Scoped to the user's organization. No kadarn_internal role required.
 // Returns audit events relevant to the institution — evidence uploads,
-// claim changes, reviews, disputes.
+// claim changes, reviews.
+//
+// Slice 3 correction: DB errors are returned explicitly, never swallowed as
+// "zero events". Failure to query ≠ absence of activity.
 // ==========================================================================
 
 import { withAuth, handleApiError, createRouteClient } from '@/lib/supabase-server'
@@ -24,10 +27,16 @@ export const GET = withAuth(async (request, _user) => {
       .order('created_at', { ascending: false })
       .limit(limit)
 
+    // Failure to query ≠ absence of activity
     if (error) {
-      return Response.json({ data: [], error: null }) // graceful — empty, not error
+      return Response.json({
+        data: [],
+        count: 0,
+        error: { code: 'ACTIVITY_FETCH_FAILED', message: 'Failed to load activity' },
+      }, { status: 500 })
     }
 
+    // Success with genuinely zero events
     const events = (data ?? []).map(e => ({
       id: e.id,
       action: e.action,
@@ -40,7 +49,11 @@ export const GET = withAuth(async (request, _user) => {
 
     return Response.json({ data: events, count: events.length, error: null })
   } catch (error) {
-    // Graceful degradation — Home handles empty events
-    return Response.json({ data: [], count: 0, error: null })
+    // Only catch unexpected exceptions (network, auth, etc.)
+    return Response.json({
+      data: [],
+      count: 0,
+      error: { code: 'ACTIVITY_UNEXPECTED', message: 'Unexpected error loading activity' },
+    }, { status: 500 })
   }
 })
