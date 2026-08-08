@@ -434,9 +434,13 @@ describe('MVP onboarding validation flow', () => {
   it('presents readiness as an institutional maturity profile', () => {
     const readinessPage = read(join(WEB_APP, '(onboarding)', 'onboarding', 'readiness', 'page.tsx'))
 
+    // dashboard-next-best-action Phase C (decisions-2 rule 1) — no
+    // institution-level maturity tier ("Current Maturity"/"Foundational").
+    // "Readiness Domains Status" is the factual Ready-count replacement.
     expect(readinessPage).toContain('Institution Readiness Profile')
-    expect(readinessPage).toContain('Current Maturity')
-    expect(readinessPage).toContain('Foundational')
+    expect(readinessPage).toContain('Readiness Domains Status')
+    expect(readinessPage).not.toContain('Current Maturity')
+    expect(readinessPage).not.toContain('Foundational')
     expect(readinessPage).toContain('Programs You Are Currently Ready To Support')
     expect(readinessPage).toContain('Quick Wins')
     expect(readinessPage).toContain('Readiness Domains')
@@ -593,8 +597,10 @@ describe('MVP onboarding validation flow', () => {
     })
     const roadmap = deriveInstitutionRoadmap({ passport, answers })
 
-    expect(roadmap.currentReadinessLevel).toBeTruthy()
-    expect(roadmap.targetReadinessLevel).toBeTruthy()
+    // dashboard-next-best-action Phase C — no institution-level readiness
+    // tier (decisions-2 rule 4).
+    expect(roadmap).not.toHaveProperty('currentReadinessLevel')
+    expect(roadmap).not.toHaveProperty('targetReadinessLevel')
     expect(roadmap.actions.map((action) => action.section)).toContain('Immediate Actions')
     expect(roadmap.actions.map((action) => action.section)).toContain('Readiness Improvement')
     expect(roadmap.actions.map((action) => action.section)).toContain('Strategic Growth')

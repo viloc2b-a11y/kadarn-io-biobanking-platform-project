@@ -139,7 +139,9 @@ describe('derivePassportReadModel', () => {
     // generatedAt will differ, but all other fields must match
     expect(result1.institution.name).toBe(result2.institution.name)
     expect(result1.capabilities.length).toBe(result2.capabilities.length)
-    expect(result1.readiness.overallScore).toBe(result2.readiness.overallScore)
+    expect(result1.readiness.dimensions.map((d) => d.status)).toEqual(
+      result2.readiness.dimensions.map((d) => d.status),
+    )
     expect(result1.evidence.totalDocuments).toBe(result2.evidence.totalDocuments)
     expect(result1.nextSteps.length).toBe(result2.nextSteps.length)
   })
@@ -210,8 +212,10 @@ describe('derivePassportReadModel', () => {
     expect(result.institution.name).toBe('Your Institution')
     expect(result.institution.type).toBe('Not specified')
     expect(result.capabilities).toEqual([])
-    expect(result.readiness.overallScore).toBeGreaterThanOrEqual(0)
     expect(result.readiness.dimensions.length).toBe(6)
+    for (const dim of result.readiness.dimensions) {
+      expect(['Ready', 'Partial', 'Needs Attention']).toContain(dim.status)
+    }
   })
 
   it('output shape matches PassportData interface — all required fields present', () => {
@@ -239,20 +243,21 @@ describe('derivePassportReadModel', () => {
     expect(result.institution.team).toHaveProperty('piName')
     expect(result.institution.infrastructure).toHaveProperty('locations')
 
-    // Evidence fields
+    // Evidence fields — non-evaluative, factual only (dashboard-next-best-action Phase C)
     expect(result.evidence).toHaveProperty('documents')
-    expect(result.evidence).toHaveProperty('coverageScore')
+    expect(result.evidence).not.toHaveProperty('coverageScore')
+    expect(result.evidence).not.toHaveProperty('healthScore')
 
-    // Readiness fields
-    expect(result.readiness).toHaveProperty('overallScore')
+    // Readiness fields — no institution-level composite (Phase C)
+    expect(result.readiness).not.toHaveProperty('overallScore')
     expect(result.readiness).toHaveProperty('dimensions')
     expect(result.readiness).toHaveProperty('eligiblePrograms')
     expect(result.readiness).toHaveProperty('partialPrograms')
 
-    // Each dimension has required fields
+    // Each dimension has required fields, no numeric score field
     for (const dim of result.readiness.dimensions) {
       expect(dim).toHaveProperty('name')
-      expect(dim).toHaveProperty('score')
+      expect(dim).not.toHaveProperty('score')
       expect(dim).toHaveProperty('status')
       expect(dim).toHaveProperty('detail')
       expect(dim).toHaveProperty('contributions')
@@ -383,8 +388,6 @@ describe('deriveReadinessReadModel', () => {
       { label: 'Quality Manual', type: 'quality', status: 'missing' as const, expiresAt: null, evidenceClass: 'A' as const, proves: ['Quality'], actionNeeded: true },
       { label: 'Equipment Records', type: 'equipment', status: 'missing' as const, expiresAt: null, evidenceClass: 'B' as const, proves: ['Equipment'], actionNeeded: true },
     ],
-    coverageScore: 0,
-    healthScore: 20,
   }
 
   const basicCapability = {
@@ -409,10 +412,12 @@ describe('deriveReadinessReadModel', () => {
       hasPriorStudies: false,
     })
 
-    expect(result.overallScore).toBeLessThan(40)
+    expect(result).not.toHaveProperty('overallScore')
+    const ready = result.dimensions.filter((d) => d.status === 'Ready')
     const needsAttention = result.dimensions.filter(
       (d) => d.status === 'Needs Attention',
     )
+    expect(ready.length).toBe(0)
     expect(needsAttention.length).toBeGreaterThan(0)
   })
 
@@ -430,8 +435,11 @@ describe('deriveReadinessReadModel', () => {
       hasPriorStudies: true,
     })
 
-    // With complete canonical objects, score should be reasonable
-    expect(result.overallScore).toBeGreaterThan(40)
+    // With complete canonical objects, most dimensions should be Ready
+    // (non-evaluative — a count, never an aggregated institution score).
+    expect(result).not.toHaveProperty('overallScore')
+    const readyCount = result.dimensions.filter((d) => d.status === 'Ready').length
+    expect(readyCount).toBeGreaterThanOrEqual(3)
     expect(result.dimensions.length).toBe(6)
   })
 
@@ -532,8 +540,12 @@ describe('deriveRoadmapReadModel', () => {
       strategicGoals: ['IVD readiness'],
     })
 
-    expect(result).toHaveProperty('currentReadinessLevel')
-    expect(result).toHaveProperty('targetReadinessLevel')
+    // dashboard-next-best-action Phase C — no institution-level readiness
+    // tier. Factual gap/freshness fields replace it (decisions-2 rule 4).
+    expect(result).not.toHaveProperty('currentReadinessLevel')
+    expect(result).not.toHaveProperty('targetReadinessLevel')
+    expect(result).toHaveProperty('claimGaps')
+    expect(result).toHaveProperty('evidenceGaps')
     expect(result).toHaveProperty('actions')
     expect(Array.isArray(result.actions)).toBe(true)
   })
@@ -607,10 +619,11 @@ describe('deriveRoadmapReadModel', () => {
     const r2 = deriveRoadmapReadModel(input)
 
     expect(r1.actions.length).toBe(r2.actions.length)
-    expect(r1.currentReadinessLevel).toBe(r2.currentReadinessLevel)
+    expect(r1.claimGaps).toEqual(r2.claimGaps)
+    expect(r1.evidenceGaps).toEqual(r2.evidenceGaps)
   })
 
-  it('readiness level maps score to labels', () => {
+  it('sponsor-qualification action priority is derived from Ready-dimension count, not a score', () => {
     const passport = derivePassportReadModel({
       institutionId: 'test-1',
       institutionName: 'Test Institution',
@@ -626,8 +639,9 @@ describe('deriveRoadmapReadModel', () => {
       strategicGoals: ['IVD readiness'],
     })
 
-    const validLevels = ['Foundational', 'Emerging', 'Advanced', 'Comprehensive']
-    expect(validLevels).toContain(result.currentReadinessLevel)
+    const sponsorAction = result.actions.find((a) => a.id === 'prepare-sponsor-qualification')
+    expect(sponsorAction).toBeDefined()
+    expect(['High', 'Medium']).toContain(sponsorAction!.priority)
   })
 })
 
@@ -783,7 +797,7 @@ describe('ORP-1.3 invariants', () => {
           capabilities: [],
           evidence: {
             totalDocuments: 0, uploadedDocuments: 0, missingCritical: [],
-            documents: [], coverageScore: 0, healthScore: 0,
+            documents: [],
           },
           locations: [],
           teamMembers: [],
@@ -798,7 +812,7 @@ describe('ORP-1.3 invariants', () => {
           capabilities: [],
           evidence: {
             totalDocuments: 0, uploadedDocuments: 0, missingCritical: [],
-            documents: [], coverageScore: 0, healthScore: 0,
+            documents: [],
           },
           locations: [],
           teamMembers: [],

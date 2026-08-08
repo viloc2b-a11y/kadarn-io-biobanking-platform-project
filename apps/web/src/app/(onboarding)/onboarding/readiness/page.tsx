@@ -8,8 +8,11 @@ export default function ReadinessPage() {
   const passport = useDerivedReadModel()
 
   const { readiness, capabilities, evidence, nextSteps, institution } = passport
-  const maturity = getMaturity(readiness.overallScore)
-  const targetMaturity = getTargetMaturity(readiness.overallScore)
+  // dashboard-next-best-action Phase C (decisions-2 rule 1) — no
+  // institution-level maturity tier. The former tier label is replaced by a
+  // factual count of Ready readiness domains, never a composite score/label.
+  const readyCount = readiness.dimensions.filter((dim) => dim.status === 'Ready').length
+  const totalDimensions = readiness.dimensions.length
   const programReadiness = getProgramReadiness(readiness.eligiblePrograms, readiness.partialPrograms, capabilities)
   const quickWins = getQuickWins(readiness.dimensions, nextSteps)
 
@@ -25,19 +28,19 @@ export default function ReadinessPage() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
-        <div className="text-sm text-gray-500 uppercase tracking-wide mb-2">Current Maturity</div>
-        <div className="text-5xl font-bold text-blue-700 mb-2">{maturity}</div>
+        <div className="text-sm text-gray-500 uppercase tracking-wide mb-2">Readiness Domains Status</div>
+        <div className="text-5xl font-bold text-blue-700 mb-2">{readyCount} of {totalDimensions}</div>
         <p className="text-gray-600">
-          {getMaturityDescription(maturity)} This is a profile of your institution today, not a report card.
+          Readiness domains currently marked Ready. This is a profile of your institution today, not a report card.
         </p>
         <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl bg-gray-50 p-3">
-            <div className="text-gray-400 text-xs uppercase">Current</div>
-            <div className="font-semibold text-gray-900">{maturity}</div>
+            <div className="text-gray-400 text-xs uppercase">Ready</div>
+            <div className="font-semibold text-gray-900">{readyCount}</div>
           </div>
           <div className="rounded-xl bg-blue-50 p-3">
-            <div className="text-blue-500 text-xs uppercase">Target</div>
-            <div className="font-semibold text-blue-900">{targetMaturity}</div>
+            <div className="text-blue-500 text-xs uppercase">Total Domains</div>
+            <div className="font-semibold text-blue-900">{totalDimensions}</div>
           </div>
           <div className="rounded-xl bg-green-50 p-3">
             <div className="text-green-600 text-xs uppercase">Trend</div>
@@ -94,7 +97,7 @@ export default function ReadinessPage() {
                   dim.status === 'Ready' ? 'bg-green-100 text-green-700' :
                   dim.status === 'Partial' ? 'bg-amber-100 text-amber-700' :
                   'bg-red-100 text-red-700'
-                }`}>{dim.status} &middot; {dim.score}/100</span>
+                }`}>{dim.status}</span>
               </div>
               <p className="text-sm text-gray-500 mb-4"><strong>Current status:</strong> {dim.detail}</p>
 
@@ -196,27 +199,6 @@ function LinkedList({ title, values, fallback }: { title: string; values: string
       <div>{values.length > 0 ? values.join(', ') : fallback}</div>
     </div>
   )
-}
-
-function getMaturity(score: number): 'Foundational' | 'Emerging' | 'Advanced' | 'Comprehensive' {
-  if (score >= 85) return 'Comprehensive'
-  if (score >= 70) return 'Advanced'
-  if (score >= 45) return 'Emerging'
-  return 'Foundational'
-}
-
-function getTargetMaturity(score: number): string {
-  if (score >= 85) return 'Sustain Comprehensive'
-  if (score >= 70) return 'Comprehensive'
-  if (score >= 45) return 'Advanced'
-  return 'Emerging'
-}
-
-function getMaturityDescription(maturity: string): string {
-  if (maturity === 'Comprehensive') return 'Your institution has broad evidence-backed readiness across domains.'
-  if (maturity === 'Advanced') return 'Your institution can support multiple research programs with several evidence-backed capabilities.'
-  if (maturity === 'Emerging') return 'Your institution has meaningful readiness signals, with some gaps still limiting program breadth.'
-  return 'Your institution has the foundation for a Passport, but key evidence and infrastructure gaps remain.'
 }
 
 function getProgramReadiness(eligiblePrograms: string[], partialPrograms: string[], capabilities: PassportCapability[]) {

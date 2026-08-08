@@ -503,9 +503,6 @@ function assembleEvidence(uploadedDocs: UploadedDoc[]): PassportEvidence {
     uploadedDocuments: uploaded,
     missingCritical,
     documents,
-    coverageScore: Math.round((uploaded / documents.length) * 100),
-    healthScore:
-      uploaded >= 7 ? 85 : uploaded >= 5 ? 65 : uploaded >= 3 ? 45 : 20,
   }
 }
 

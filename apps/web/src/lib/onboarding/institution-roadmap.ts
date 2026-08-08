@@ -35,14 +35,6 @@ export interface InstitutionRoadmapAction {
 }
 
 export interface InstitutionRoadmap {
-  /** @deprecated dashboard-next-best-action Phase A (decisions-2 rule 4) — an
-   *  institution-level readiness tier derived from the removed overallScore.
-   *  Removed in PR-C. Use `claimGaps`/`evidenceGaps`/`lastEvidenceUpdate`
-   *  (factual, non-evaluative) instead. */
-  currentReadinessLevel: string
-  /** @deprecated dashboard-next-best-action Phase A (decisions-2 rule 4) — see
-   *  `currentReadinessLevel`. Removed in PR-C. */
-  targetReadinessLevel: string
   actions: InstitutionRoadmapAction[]
   /** dashboard-next-best-action Phase A (decisions-2 rule 4) — factual,
    *  non-scored claim-evidence gap descriptions. Optional so existing
@@ -78,8 +70,6 @@ export function deriveInstitutionRoadmap(params: {
   ]
 
   return {
-    currentReadinessLevel: getReadinessLevel(passport.readiness.overallScore),
-    targetReadinessLevel: getTargetReadinessLevel(passport.readiness.overallScore),
     actions: dedupeActions(actions).sort(sortActions),
   }
 }
@@ -335,10 +325,17 @@ function deriveStrategicGrowth(
     }))
   }
 
+  // dashboard-next-best-action Phase C (decisions-2 rule 1) — priority is
+  // gated on a factual count of Ready dimensions, never an institution
+  // composite score.
+  const readyDimensionCount = passport.readiness.dimensions.filter(
+    (dimension) => dimension.status === 'Ready',
+  ).length
+
   actions.push(createAction({
     id: 'prepare-sponsor-qualification',
     section: ROADMAP_SECTION.STRATEGIC_GROWTH,
-    priority: passport.readiness.overallScore >= 70 ? ROADMAP_PRIORITY.MEDIUM : ROADMAP_PRIORITY.HIGH,
+    priority: readyDimensionCount >= 4 ? ROADMAP_PRIORITY.MEDIUM : ROADMAP_PRIORITY.HIGH,
     title: 'Prepare for sponsor qualification readiness',
     whyItMatters: 'Sponsors need a complete current Passport, evidence, readiness profile, and action plan.',
     improves: 'Sponsor review confidence and marketplace qualification.',
@@ -367,20 +364,6 @@ function dedupeActions(actions: InstitutionRoadmapAction[]): InstitutionRoadmapA
 function sortActions(a: InstitutionRoadmapAction, b: InstitutionRoadmapAction): number {
   const priority = { High: 0, Medium: 1, Low: 2 }
   return priority[a.priority] - priority[b.priority]
-}
-
-function getReadinessLevel(score: number): string {
-  if (score >= 85) return 'Comprehensive'
-  if (score >= 70) return 'Advanced'
-  if (score >= 45) return 'Emerging'
-  return 'Foundational'
-}
-
-function getTargetReadinessLevel(score: number): string {
-  if (score >= 85) return 'Sustain Comprehensive'
-  if (score >= 70) return 'Comprehensive'
-  if (score >= 45) return 'Advanced'
-  return 'Emerging'
 }
 
 function getCapabilityHref(capability: PassportCapability): string {

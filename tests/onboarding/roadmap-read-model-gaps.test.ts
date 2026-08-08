@@ -1,10 +1,9 @@
 // ==========================================================================
-// dashboard-next-best-action Phase A — Roadmap factual gaps + last-updated
+// dashboard-next-best-action Phase A/C — Roadmap factual gaps + last-updated
 // ==========================================================================
 // Design ref: decisions-2 rule 4 — roadmap-read-model.ts must add factual
-// counts/freshness/gaps info alongside the deprecated currentReadinessLevel/
-// targetReadinessLevel tier (PR-A is additive-only; the tier fields are
-// removed later, in PR-C).
+// counts/freshness/gaps info; the deprecated currentReadinessLevel/
+// targetReadinessLevel tier (additive in PR-A) is removed entirely in PR-C.
 // Spec ref: "Permitted Passport Summary Fields" (same non-evaluative
 // principle applied to the roadmap surface — spec id 980).
 //
@@ -160,7 +159,7 @@ describe('deriveRoadmapReadModel — factual gaps, additive alongside deprecated
     expect(result.lastEvidenceUpdate).toBeUndefined()
   })
 
-  it('still returns the deprecated currentReadinessLevel/targetReadinessLevel — additive, not a breaking change', () => {
+  it('never returns the institution-level currentReadinessLevel/targetReadinessLevel tier (Phase C removal)', () => {
     const passport = derivePassportReadModel({
       institutionId: 'test-1',
       institutionName: 'Test Institution',
@@ -176,7 +175,7 @@ describe('deriveRoadmapReadModel — factual gaps, additive alongside deprecated
       strategicGoals: ['IVD readiness'],
     })
 
-    expect(typeof result.currentReadinessLevel).toBe('string')
-    expect(typeof result.targetReadinessLevel).toBe('string')
+    expect(result).not.toHaveProperty('currentReadinessLevel')
+    expect(result).not.toHaveProperty('targetReadinessLevel')
   })
 })

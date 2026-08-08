@@ -11,7 +11,6 @@ export interface KpeRequest {
   exceptions: { total: number; critical: number; warnings: number; items: string[] };
   policies: { applied: number; allowed: number; denied: number; conditionals: number };
   evidence: { documents: number; qcReports: number; logs: number; agreements: number };
-  trust: { avgOrgTrust: number; minTrust: number; maxTrust: number };
   timeline: { start: string; end: string; duration: string };
   compliance: { status: string; gaps: string[]; readyForAudit: boolean };
 }
@@ -50,10 +49,6 @@ export function generateKpe(data: KpeRequest): string {
     `POLICY EVALUATIONS`,
     `  Policies applied: ${d.policies.applied}`,
     `  Allowed: ${d.policies.allowed} | Denied: ${d.policies.denied} | Conditional: ${d.policies.conditionals}`,
-    ``,
-    `TRUST INDEX`,
-    `  Network average: ${(d.trust.avgOrgTrust * 100).toFixed(0)}%`,
-    `  Range: ${(d.trust.minTrust * 100).toFixed(0)}% – ${(d.trust.maxTrust * 100).toFixed(0)}%`,
     ``,
     `COMPLIANCE SUMMARY`,
     `  Status: ${d.compliance.status}`,

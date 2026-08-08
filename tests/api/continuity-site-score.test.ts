@@ -1,21 +1,20 @@
 // ==========================================================================
-// dashboard-next-best-action Phase A — computeSiteScore: per-claim evidence
-// level + factual counts, additive alongside deprecated institution score
+// dashboard-next-best-action Phase A/C — computeSiteScore: per-claim
+// evidence level + factual counts; institution-level score fields removed
 // ==========================================================================
 // Design ref: decisions-2 rule 1 — the institution-level `evidenceLevel`
 // ("Externally Confirmed" / "Reference Confirmed" / "Supported by Evidence" /
 // "Self Reported") aggregated across all of a site's claims is an
 // institution-level tier and must be removed from institution-level read
-// models. PR-A is additive-only: `overallScore`/`continuityLevel`/
-// `evidenceLevel` (institution-scoped) stay for now (removed in PR-C,
-// compiler-enforced), but the same four labels become available per-claim
-// via `claimEvidenceLevels`, tied to each claim's own `claimId` — never
-// aggregated. Also adds factual, non-evaluative counts:
-// `claimsWithEvidence` / `claimsAwaitingEvidence`.
+// models. Phase C removes `overallScore`/`continuityLevel`/`evidenceLevel`
+// (institution-scoped) entirely — compiler-enforced, zero readers. The same
+// four labels remain available per-claim via `claimEvidenceLevels`, tied to
+// each claim's own `claimId` — never aggregated. Also keeps factual,
+// non-evaluative counts: `claimsWithEvidence` / `claimsAwaitingEvidence`.
 // Consumption chain: site-passport/[slug]/page.tsx → GET
 // /api/v1/continuity/passport/[slug]/score → computeSiteScore().
 //
-// Refs: sdd/dashboard-next-best-action tasks 1.8-1.9
+// Refs: sdd/dashboard-next-best-action tasks 1.8-1.9, 3.1
 
 import { describe, expect, it } from 'vitest'
 import { computeSiteScore, type ContinuityDbClient } from '../../apps/api/src/lib/continuity-claim-service'
@@ -88,16 +87,17 @@ describe('computeSiteScore — per-claim evidenceLevel, additive (Phase A)', () 
     expect(score.claimsAwaitingEvidence).toBe(2)
   })
 
-  it('still returns the deprecated institution-level overallScore/evidenceLevel/continuityLevel — additive, not a breaking change', async () => {
+  it('never returns the institution-level overallScore/evidenceLevel/continuityLevel/components (Phase C removal)', async () => {
     const db = makeMockDb([
       { id: 'claim-1', continuity_evidence_items: [{ id: 'ev-1' }], continuity_references: [] },
     ])
 
     const score = await computeSiteScore(db, 'profile-1')
 
-    expect(typeof score.overallScore).toBe('number')
-    expect(typeof score.evidenceLevel).toBe('string')
-    expect(typeof score.continuityLevel).toBe('string')
+    expect(score).not.toHaveProperty('overallScore')
+    expect(score).not.toHaveProperty('evidenceLevel')
+    expect(score).not.toHaveProperty('continuityLevel')
+    expect(score).not.toHaveProperty('components')
   })
 
   it('handles zero claims without throwing and returns empty per-claim arrays', async () => {

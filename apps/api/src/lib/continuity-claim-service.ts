@@ -697,46 +697,7 @@ export async function computeSiteScore(
   const evidenceCoverage = total > 0 ? Math.round((hasEvidence / total) * 100) : 0
   const referenceCoverage = total > 0 ? Math.round((hasConfirmedRef / total) * 100) : 0
 
-  const components = {
-    evidenceScore: evidenceCoverage * 0.25,
-    referenceScore: referenceCoverage * 0.20,
-    verificationScore: total > 0 ? (verifiedCount / total) * 100 * 0.25 : 0,
-    coverageScore: Math.min(100, (total / Math.max(1, total + 3)) * 100) * 0.15,
-    tenureScore: Math.min(100, legacyYears * 5) * 0.15,
-  }
-  // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 1) — an
-  // institution-level composite score. Kept for now (PR-A is additive-only);
-  // removed in PR-C. Use `claimEvidenceLevels` (per-claim, never aggregated)
-  // and the factual counts below instead.
-  const overallScore = Math.round(
-    components.evidenceScore + components.referenceScore + components.verificationScore +
-    components.coverageScore + components.tenureScore,
-  )
-
-  // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 1) — an
-  // institution-level aggregate of the four evidence-level labels. Removed
-  // in PR-C. The same labels are now available per-claim via
-  // `claimEvidenceLevels`, each tied to its own `claimId`.
-  const evidenceLevel = verifiedCount > 0
-    ? 'Externally Confirmed'
-    : hasConfirmedRef > 0
-      ? 'Reference Confirmed'
-      : hasEvidence > 0
-        ? 'Supported by Evidence'
-        : 'Self Reported'
-
-  // @deprecated dashboard-next-best-action Phase A (decisions-2 rule 1) — an
-  // institution-level tier derived from the deprecated overallScore. Removed
-  // in PR-C.
-  const continuityLevel = overallScore >= 80
-    ? 'Advanced'
-    : overallScore >= 50
-      ? 'Established'
-      : overallScore >= 20
-        ? 'Developing'
-        : 'Initial'
-
-  // dashboard-next-best-action Phase A (decisions-2 rule 1) — the same four
+  // dashboard-next-best-action Phase C (decisions-2 rule 1) — the same four
   // evidence-level labels, computed per claim and tied to that claim's own
   // `claimId`. Never aggregated into a single institution-level value.
   const claimEvidenceLevels: Array<{ claimId: string; evidenceLevel: string }> = list.map((c: any) => {
@@ -760,19 +721,17 @@ export async function computeSiteScore(
   })
 
   return {
-    overallScore,
     legacyYears,
     clinicalStudies: totalStudies || total,
     therapeuticAreas: therapeuticAreasSet.size || Math.min(total, 5),
     biospecimens: totalBiospecimens,
-    evidenceLevel,
-    continuityLevel,
     evidenceCoverage,
     referenceCoverage,
     infrastructure: infraOk ? 'Supported by Evidence' : 'Not Yet Supported',
     regulatoryReadiness: regulatoryOk ? 'Supported by Evidence' : 'Not Yet Supported',
-    // dashboard-next-best-action Phase A (decisions-2 rule 1) — factual,
-    // non-evaluative additions alongside the deprecated fields above.
+    // dashboard-next-best-action Phase A/C (decisions-2 rule 1) — factual,
+    // non-evaluative, per-claim fields. Never aggregated into an
+    // institution-level score, tier, or ranking.
     claimEvidenceLevels,
     claimsWithEvidence: hasEvidence,
     claimsAwaitingEvidence: total - hasEvidence,
@@ -798,15 +757,8 @@ export async function generateRecommendations(
   const therapeuticAreas = new Set<string>()
   let hasGcpEvidence = false
   let hasLabCapability = false
-  let totalEvidence = 0
-  let totalConfirmedRefs = 0
-
   for (const c of list) {
     if (c.therapeutic_area) therapeuticAreas.add(c.therapeutic_area)
-    const evCount = (c.continuity_evidence_items ?? []).length
-    totalEvidence += evCount
-    const refs = (c.continuity_references ?? []) as Array<{ status: string }>
-    totalConfirmedRefs += refs.filter(r => r.status === 'confirmed').length
 
     for (const ev of (c.continuity_evidence_items ?? []) as Array<{ evidence_type?: string }>) {
       if (ev.evidence_type?.toLowerCase().includes('gcp')) hasGcpEvidence = true
@@ -846,12 +798,11 @@ export async function generateRecommendations(
     recommendations.push({ category: 'References', action: 'Confirm pending references to boost credibility', priority: 'medium', estimatedEvidenceLevelIncrease: 6 })
   }
 
-  const evidenceScore = Math.min(40, (totalEvidence / Math.max(1, list.length * 2)) * 40)
-  const refScore = Math.min(30, (totalConfirmedRefs / Math.max(1, list.length)) * 30)
-  const coverageScore = Math.min(30, (list.length / 10) * 30)
-  const completionPercent = Math.round(Math.min(100, evidenceScore + refScore + coverageScore))
-
-  return { completionPercent, recommendations: recommendations.slice(0, 8) }
+  // dashboard-next-best-action Phase C (decisions-2 rule 1) — the
+  // institution-level `completionPercent` composite is removed. The
+  // recommendation count itself is the factual, non-evaluative signal
+  // (rendered as "N recommended actions" on site-passport).
+  return { recommendations: recommendations.slice(0, 8) }
 }
 
 // --------------------------------------------------------------------------
@@ -899,11 +850,10 @@ export async function computeOpportunityReadiness(
   if (totalConfirmedRefs < 2) needs.push('Two verified references')
   if (!hasVerified) needs.push('Kadarn verification')
 
-  const readyCount = readyFor.filter(r => r.status === 'ready').length
-  const totalOpps = Math.max(1, readyCount + needs.length)
-  const readinessScore = Math.round((readyCount / totalOpps) * 100)
-
-  return { readyFor, needs, readinessScore }
+  // dashboard-next-best-action Phase C (decisions-2 rule 1) — the
+  // institution-level `readinessScore` composite percentage is removed.
+  // `readyFor`/`needs` are already the factual, non-evaluative signal.
+  return { readyFor, needs }
 }
 
 // --------------------------------------------------------------------------

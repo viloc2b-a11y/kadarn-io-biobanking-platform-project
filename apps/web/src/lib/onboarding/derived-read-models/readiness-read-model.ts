@@ -77,12 +77,10 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
   const docUploaded = evidence.uploadedDocuments
 
   // Regulatory Readiness — based on document coverage
-  const regScore = docUploaded >= 3 ? 80 : docUploaded >= 1 ? 50 : 30
   const regStatus =
     docUploaded >= 3 ? 'Ready' : docUploaded >= 1 ? 'Partial' : ('Needs Attention' as const)
 
   // Operational Readiness — based on backup power + dedicated space
-  const opScore = input.hasBackupPower ? (input.hasDedicatedSpace ? 85 : 65) : 40
   const opStatus = input.hasBackupPower ? 'Ready' : ('Partial' as const)
 
   // Laboratory Readiness — based on infrastructure completeness
@@ -108,26 +106,28 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
   const hasInternationalShipping = infrastructure.some(
     (item) => item.shippingCapability === 'Domestic and international',
   )
-  const bioScore = hasBiospecimen
-    ? input.hasDigitalCustody
-      ? 85
-      : 55
-    : 10
   const bioStatus: PassportReadinessDimension['status'] = hasBiospecimen
     ? input.hasDigitalCustody
       ? 'Ready'
       : 'Partial'
     : 'Needs Attention'
 
-  // Documentation Readiness — based on evidence health
-  const docScore = evidence.healthScore
+  // Documentation Readiness — dashboard-next-best-action Phase C (design
+  // D1): derived directly from document status counts, never from the
+  // removed `evidence.healthScore` field.
+  const activeDocCount = evidence.documents.filter((d) => d.status === 'active').length
+  const missingDocCount = evidence.documents.filter((d) => d.status === 'missing').length
+  const expiredDocCount = evidence.documents.filter((d) => d.status === 'expired').length
   const docStatus: PassportReadinessDimension['status'] =
-    docScore >= 70 ? 'Ready' : docScore >= 40 ? 'Partial' : 'Needs Attention'
+    missingDocCount === 0 && expiredDocCount === 0 && activeDocCount > 0
+      ? 'Ready'
+      : activeDocCount > 0
+        ? 'Partial'
+        : 'Needs Attention'
 
   const dimensions: PassportReadinessDimension[] = [
     {
       name: 'Regulatory Readiness',
-      score: regScore,
       status: regStatus,
       detail:
         regStatus === 'Ready'
@@ -167,7 +167,6 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
     },
     {
       name: 'Operational Readiness',
-      score: opScore,
       status: opStatus,
       detail: input.hasBackupPower
         ? 'Backup power + ' +
@@ -206,7 +205,6 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
     },
     {
       name: 'Laboratory Readiness',
-      score: labScore,
       status: labStatus,
       detail: hasLab
         ? 'Lab with ' +
@@ -258,7 +256,6 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
     },
     {
       name: 'Biospecimen Readiness',
-      score: bioScore,
       status: bioStatus,
       detail: hasBiospecimen
         ? 'Biospecimen operations active. ' +
@@ -334,7 +331,6 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
     },
     {
       name: 'Research Readiness',
-      score: capScore,
       status: capScore >= 70 ? 'Ready' : 'Partial',
       detail:
         strongCaps + ' strong capabilities out of ' + totalCaps + ' total.',
@@ -400,7 +396,6 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
     },
     {
       name: 'Documentation Readiness',
-      score: docScore,
       status: docStatus,
       detail:
         docUploaded +
@@ -445,17 +440,19 @@ export function deriveReadinessReadModel(input: ReadinessReadModelInput): Passpo
     },
   ]
 
-  const scores = dimensions.map((d) => d.score)
-  const overall = Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
+  // dashboard-next-best-action Phase C (design D1, decisions-2 rule 1) — no
+  // institution-level composite. `eligiblePrograms`/`partialPrograms` are
+  // gated on a factual count of dimension statuses, never a numeric score.
+  const readyCount = dimensions.filter((d) => d.status === 'Ready').length
+  const notAttentionCount = dimensions.filter((d) => d.status !== 'Needs Attention').length
 
   return {
-    overallScore: overall,
     dimensions,
     ...(claimContributions.length > 0 ? { claimContributions } : {}),
     eligiblePrograms:
-      overall >= 70
+      readyCount >= 4
         ? ['Observational Studies', 'Phase III-IV Trials', 'Biospecimen Collection Programs']
         : [],
-    partialPrograms: overall >= 40 ? ['Phase II Trials', 'Central Lab Services'] : [],
+    partialPrograms: notAttentionCount >= 3 ? ['Phase II Trials', 'Central Lab Services'] : [],
   }
 }

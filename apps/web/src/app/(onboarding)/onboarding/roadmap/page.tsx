@@ -45,6 +45,10 @@ export default function InstitutionRoadmapPage() {
     strategicGoals,
   })
   const highPriorityCount = roadmap.actions.filter((action) => action.priority === 'High').length
+  // dashboard-next-best-action Phase C (decisions-2 rule 4) — no
+  // institution-level readiness tier. Factual open-gap counts replace it.
+  const claimGapCount = roadmap.claimGaps?.length ?? 0
+  const evidenceGapCount = roadmap.evidenceGaps?.length ?? 0
 
   return (
     <div className="max-w-4xl mx-auto py-8">
@@ -58,8 +62,8 @@ export default function InstitutionRoadmapPage() {
           weak capabilities, incomplete locations, staff certification gaps, infrastructure gaps, and growth goals.
         </p>
         <div className="grid grid-cols-3 gap-3 mt-6 text-sm">
-          <RoadmapMetric label="Current readiness" value={roadmap.currentReadinessLevel} />
-          <RoadmapMetric label="Target readiness" value={roadmap.targetReadinessLevel} />
+          <RoadmapMetric label="Open claim gaps" value={String(claimGapCount)} />
+          <RoadmapMetric label="Open evidence gaps" value={String(evidenceGapCount)} />
           <RoadmapMetric label="High priority actions" value={String(highPriorityCount)} />
         </div>
       </div>

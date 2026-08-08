@@ -1,8 +1,8 @@
 // ==========================================================================
-// dashboard-next-best-action Phase B (PR-B) — Marketplace organizations page
+// dashboard-next-best-action Phase B/C — Marketplace organizations page
 // ==========================================================================
-// Tasks ref: 2.3 — stop reading `trust` (the `Org.trust` interface field
-// stays on the type until PR-C deletes it; per design D5, `OrgCard` never
+// Tasks ref: 2.3 (PR-B) — stop reading `trust`; 3.1 (PR-C) — delete the dead
+// `Org.trust` interface field entirely (per design D5, `OrgCard` never
 // rendered `trust` in the first place — this test verifies that fact rather
 // than assuming it, per decisions-3 (id 1006) guardrail).
 // Spec ref: "trust Object in Marketplace Organizations Response" — REMOVED
@@ -37,8 +37,8 @@ describe('Marketplace organizations page — trust field unread (dashboard-next-
     expect(source).not.toMatch(/org\.trust/)
   })
 
-  it('keeps the trust field declared on the Org interface for now (PR-C deletes it)', () => {
+  it('no longer declares the trust field on the Org interface (Phase C removal)', () => {
     const source = readPage()
-    expect(source).toMatch(/trust:\s*\{/)
+    expect(source).not.toMatch(/trust:\s*\{/)
   })
 })
