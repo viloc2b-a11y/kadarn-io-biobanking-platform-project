@@ -53,8 +53,11 @@ interface HomeData {
   staleConfidence: StaleConfidenceItem[]
   passportGeneratedAt: string | null
   events: RecentEvent[]
-  completeness: { overall: number; missingSections: string[] } | null
   capabilities: { id: string; name: string }[]
+  /** Identity fields from profile — never a percentage threshold. */
+  identityFields: { name: boolean; type: boolean; location: boolean }
+  /** APIs that failed — empty means all succeeded. */
+  apiErrors: string[]
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -107,7 +110,7 @@ export default function WorkspacePage() {
   const passport = derivePassportBlock({
     institutionName: data.orgName,
     institutionId: data.orgId,
-    completeness: data.completeness,
+    identityFields: data.identityFields,
     claims: data.claims,
     evidenceSummary: data.evidenceSummary,
     passportGeneratedAt: data.passportGeneratedAt,
@@ -136,6 +139,23 @@ export default function WorkspacePage() {
         </p>
       </header>
 
+      {/* ─── API Error Banner ────────────────────────────────────────── */}
+      {data.apiErrors.length > 0 && (
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: 8,
+          background: `${C.amber}12`,
+          border: `1px solid ${C.amber}30`,
+          marginBottom: 20,
+          fontSize: 12,
+          color: C.amber,
+          fontWeight: 500,
+        }}>
+          Algunos datos no pudieron cargarse: {data.apiErrors.join(', ')}.
+          La informaci&oacute;n mostrada puede estar incompleta.
+        </div>
+      )}
+
       {/* ─── Block 1: PRIORITY TODAY ────────────────────────────────── */}
       <section style={{ marginBottom: 28 }}>
         <BlockHeader
@@ -149,7 +169,11 @@ export default function WorkspacePage() {
             ))}
           </div>
         ) : (
-          <EmptyBlock message="No hay acciones prioritarias detectadas. El perfil institucional está al día." />
+          <EmptyBlock message={
+            data.apiErrors.length > 0
+              ? 'No se pudo verificar el estado del perfil. Revisar conexión con las APIs.'
+              : 'No hay acciones prioritarias detectadas. El perfil institucional está al día.'
+          } />
         )}
       </section>
 
@@ -460,6 +484,22 @@ function PassportCard({ passport, orgId, claims }: {
   orgId: string
   claims: ClaimSummary[]
 }) {
+  const identityLabel =
+    passport.identityStatus === 'available' ? 'Identidad institucional disponible' :
+    passport.identityStatus === 'partial' ? 'Identidad institucional parcial' :
+    'Datos de identidad pendientes'
+
+  const identityColor =
+    passport.identityStatus === 'available' ? C.green :
+    passport.identityStatus === 'partial' ? C.amber :
+    C.red
+
+  // Wire confidence explanation for the first claim with evidence
+  const claimForConfidence = claims.find(c => c.evidenceCount && c.evidenceCount > 0)
+  const confidenceExplanation = claimForConfidence
+    ? buildConfidenceExplanation(claimForConfidence)
+    : null
+
   return (
     <Card>
       <div style={{ marginBottom: 16 }}>
@@ -477,25 +517,59 @@ function PassportCard({ passport, orgId, claims }: {
           </div>
         </div>
 
-        {/* Identity status */}
+        {/* Identity status — factual fields, never percentage threshold */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          flexDirection: 'column',
+          gap: 6,
           marginBottom: 16,
-          padding: '8px 12px',
+          padding: '10px 12px',
           borderRadius: 6,
-          background: passport.identityComplete ? `${C.green}10` : `${C.amber}10`,
-          fontSize: 12,
-          color: passport.identityComplete ? C.green : C.amber,
+          background: `${identityColor}10`,
+          border: `1px solid ${identityColor}20`,
         }}>
-          <span style={{ fontWeight: 700 }}>
-            {passport.identityComplete ? '✓' : '!'}
-          </span>
-          {passport.identityComplete
-            ? 'Identidad institucional completa'
-            : 'Identidad institucional incompleta'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 700, fontSize: 12, color: identityColor }}>
+              {passport.identityStatus === 'available' ? '✓' :
+               passport.identityStatus === 'partial' ? '◐' : '○'}
+            </span>
+            <span style={{ fontSize: 12, color: identityColor, fontWeight: 500 }}>
+              {identityLabel}
+            </span>
+          </div>
+          {passport.identityStatus !== 'available' && (
+            <div style={{ fontSize: 10, color: C.txdd, paddingLeft: 22 }}>
+              {!passport.identityFields.name && 'Nombre · '}
+              {!passport.identityFields.type && 'Tipo · '}
+              {!passport.identityFields.location && 'Ubicación · '}
+              pendiente
+            </div>
+          )}
         </div>
+
+        {/* Confidence explanation — wired to runtime */}
+        {confidenceExplanation && (
+          <div style={{
+            marginBottom: 12,
+            padding: '8px 12px',
+            borderRadius: 6,
+            background: `${C.ice}80`,
+            border: `1px solid ${C.border}`,
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: C.txdd, marginBottom: 4 }}>
+              Confianza de claim representativo
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, marginBottom: 2 }}>
+              {confidenceExplanation.level} ({confidenceExplanation.evidenceCount} evidencia)
+            </div>
+            <div style={{ fontSize: 10, color: C.txd, lineHeight: 1.4 }}>
+              {confidenceExplanation.explanation}
+            </div>
+            <div style={{ fontSize: 9, color: C.txdd, marginTop: 2 }}>
+              {confidenceExplanation.freshness}
+            </div>
+          </div>
+        )}
 
         {/* Pending before share */}
         {passport.pendingBeforeShare.length > 0 && (
@@ -631,30 +705,42 @@ function HomeEmpty() {
 // ─── Data Fetching ─────────────────────────────────────────────────────────
 
 async function fetchHomeData(headers: Record<string, string>): Promise<HomeData> {
-  const fetchJSON = (url: string) =>
-    fetch(`${API}${url}`, { headers })
-      .then(r => r.json())
-      .then(j => j.data ?? j)
-      .catch(() => null)
+  const apiErrors: string[] = []
 
-  const [profile, claimsRes, reviewRes, gapsRes, staleRes, passportRes, eventsRes, completenessRes] =
+  const fetchJSON = (label: string, url: string) =>
+    fetch(`${API}${url}`, { headers })
+      .then(r => {
+        if (!r.ok) { apiErrors.push(label); return null }
+        return r.json()
+      })
+      .then(j => j?.data ?? j)
+      .catch(() => { apiErrors.push(label); return null })
+
+  const [profile, claimsRes, reviewRes, gapsRes, staleRes, passportRes, eventsRes] =
     await Promise.all([
-      fetchJSON('/api/v1/workspace/profile'),
-      fetchJSON('/api/v1/claims?limit=50'),
-      fetchJSON('/api/v1/review/tasks'),
-      fetchJSON('/api/v1/institutions/self/gaps'),
-      fetchJSON('/api/v1/institutions/self/confidence/stale'),
-      fetchJSON('/api/v1/continuity/passport/default'),
-      fetchJSON('/api/v1/events?limit=10'),
-      fetchJSON('/api/v1/site-profiles/self/completeness'),
+      fetchJSON('profile', '/api/v1/workspace/profile'),
+      fetchJSON('claims', '/api/v1/claims?limit=50'),
+      fetchJSON('review', '/api/v1/review/tasks'),
+      fetchJSON('gaps', '/api/v1/institutions/self/gaps'),
+      fetchJSON('stale', '/api/v1/institutions/self/confidence/stale'),
+      fetchJSON('passport', '/api/v1/continuity/passport/default'),
+      fetchJSON('events', '/api/v1/events?limit=10'),
     ])
 
   const orgName = profile?.active_org?.org_name ?? profile?.active_org?.name ?? 'KADARN'
   const orgId = profile?.active_org?.org_id ?? profile?.active_org?.id ?? ''
 
+  // Identity fields derived from actual profile data, never from a percentage
+  const identityFields = {
+    name: !!(orgName && orgName !== 'KADARN'),
+    type: !!(profile?.active_org?.type || profile?.active_org?.org_type),
+    location: !!(profile?.active_org?.primary_location || profile?.active_org?.location),
+  }
+
   return {
     orgName,
     orgId,
+    apiErrors,
     claims: Array.isArray(claimsRes) ? claimsRes : Array.isArray(claimsRes?.claims) ? claimsRes.claims : [],
     evidenceSummary: passportRes?.evidence?.evidenceSummary ?? null,
     reviewTasks: Array.isArray(reviewRes) ? reviewRes : Array.isArray(reviewRes?.tasks) ? reviewRes.tasks : [],
@@ -662,7 +748,7 @@ async function fetchHomeData(headers: Record<string, string>): Promise<HomeData>
     staleConfidence: Array.isArray(staleRes) ? staleRes : Array.isArray(staleRes?.items) ? staleRes.items : [],
     passportGeneratedAt: passportRes?.generatedAt ?? null,
     events: Array.isArray(eventsRes) ? eventsRes : Array.isArray(eventsRes?.events) ? eventsRes.events : [],
-    completeness: completenessRes?.completeness ?? completenessRes ?? null,
+    identityFields,
     capabilities: Array.isArray(profile?.active_org?.capabilities)
       ? profile.active_org.capabilities.map((c: string) => ({ id: c, name: c }))
       : [],

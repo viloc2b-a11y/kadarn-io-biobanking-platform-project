@@ -328,17 +328,20 @@ describe('deriveRecentChanges', () => {
     expect(result[0].kind).toBe('new_evidence')
   })
 
-  it('supplements from claims state', () => {
+  it('supplements from claims state — removed: no timestamps → no supplement', () => {
+    // Claims without real timestamps are NEVER presented as recent changes
     const result = deriveRecentChanges({
       claims: [
         claim({ id: 'c1', statement: 'Modified claim', status: 'submitted' }),
       ],
       events: [],
     })
-    expect(result.length).toBeGreaterThanOrEqual(1)
+    // Zero: claims alone don't create "recent changes" — only real events do
+    expect(result).toHaveLength(0)
   })
 
-  it('deduplicates claims that are also in events', () => {
+  it('deduplicates claims that are also in events — removed: no claim supplement', () => {
+    // Since claims are no longer supplemented, dedup is not needed
     const result = deriveRecentChanges({
       claims: [
         claim({ id: 'c1', statement: 'Same claim', status: 'modified' }),
@@ -352,7 +355,8 @@ describe('deriveRecentChanges', () => {
         createdAt: '2026-08-01T00:00:00Z',
       }],
     })
-    // c1 should appear once, not twice
+    // Only the event appears — claim supplement was removed (Fix #1: no invented timestamps)
+    expect(result.length).toBeGreaterThanOrEqual(1)
     const c1Entries = result.filter(r => r.entityId === 'c1')
     expect(c1Entries.length).toBe(1)
   })
@@ -416,37 +420,69 @@ describe('deriveReviewQueue', () => {
 // ─── Block 5: PASSPORT ─────────────────────────────────────────────────────
 
 describe('derivePassportBlock', () => {
-  it('reports identity incomplete when no completeness data', () => {
+  const fullIdentity = { name: true, type: true, location: true }
+  const emptyIdentity = { name: false, type: false, location: false }
+  const partialIdentity = { name: true, type: false, location: true }
+
+  it('reports identity pending when all identity fields are false', () => {
     const result = derivePassportBlock({
       institutionName: 'Test',
       institutionId: 'org-1',
-      completeness: null,
+      identityFields: emptyIdentity,
       claims: [],
       evidenceSummary: null,
       passportGeneratedAt: null,
       gaps: [],
     })
-    expect(result.identityComplete).toBe(false)
+    expect(result.identityStatus).toBe('pending')
   })
 
-  it('reports identity complete when completeness >= 70%', () => {
+  it('reports identity partial when some identity fields are present', () => {
     const result = derivePassportBlock({
       institutionName: 'Test',
       institutionId: 'org-1',
-      completeness: { overall: 0.85, missingSections: [] },
+      identityFields: partialIdentity,
       claims: [],
       evidenceSummary: null,
       passportGeneratedAt: null,
       gaps: [],
     })
-    expect(result.identityComplete).toBe(true)
+    expect(result.identityStatus).toBe('partial')
+  })
+
+  it('reports identity available when all 3 identity fields present', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: fullIdentity,
+      claims: [],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    expect(result.identityStatus).toBe('available')
+  })
+
+  it('identity status is NEVER derived from a percentage threshold', () => {
+    // No 'overall' or 'completeness' field exists in the input any more
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: { name: true, type: true, location: false },
+      claims: [claim({ evidenceCount: 10 })],
+      evidenceSummary: { totalDocuments: 100, documentsPresent: 99, documentsMissing: 0, documentsExpiringSoon: 0, documentsExpired: 1 },
+      passportGeneratedAt: '2026-01-01',
+      gaps: [],
+    })
+    // Even with 99% of docs present, identityStatus depends on identityFields, not evidence
+    expect(result.identityStatus).toBe('partial')
   })
 
   it('shows pending items when claims lack evidence', () => {
     const result = derivePassportBlock({
       institutionName: 'Test',
       institutionId: 'org-1',
-      completeness: null,
+      identityFields: fullIdentity,
       claims: [
         claim({ id: 'c1', evidenceCount: 3 }),
         claim({ id: 'c2', evidenceCount: 0 }),
@@ -465,7 +501,7 @@ describe('derivePassportBlock', () => {
     const result = derivePassportBlock({
       institutionName: 'Test',
       institutionId: 'org-1',
-      completeness: null,
+      identityFields: fullIdentity,
       claims: [],
       evidenceSummary: {
         totalDocuments: 5,
@@ -570,7 +606,7 @@ describe('score-free invariants', () => {
     const result = derivePassportBlock({
       institutionName: 'Test',
       institutionId: 'org-1',
-      completeness: { overall: 0.8, missingSections: [] },
+      identityFields: { name: true, type: true, location: true },
       claims: [claim({ evidenceCount: 3 })],
       evidenceSummary: null,
       passportGeneratedAt: '2026-01-01',
@@ -595,5 +631,142 @@ describe('score-free invariants', () => {
     expect(result.claimsByStatus.unknown).toBe(2)
     expect(result.claimsByStatus.supported).toBe(0)
     expect(result.claimsByStatus.declared).toBe(0)
+  })
+})
+
+// ─── Correction Tests — 4 Failure Modes ────────────────────────────────────
+
+describe('correction: no invented timestamps', () => {
+  it('deriveRecentChanges returns zero items when only claims (no events)', () => {
+    const result = deriveRecentChanges({
+      claims: [
+        claim({ id: 'c1', statement: 'Old claim', status: 'modified' }),
+        claim({ id: 'c2', statement: 'Another claim', derivedState: 'stale' }),
+      ],
+      events: [],
+    })
+    expect(result).toHaveLength(0)
+  })
+
+  it('deriveReviewQueue disputes have empty createdAt (not invented)', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [],
+      claims: [
+        claim({ id: 'c1', statement: 'Disputed claim', hasDispute: true }),
+      ],
+    })
+    const dispute = result.find(r => r.kind === 'dispute')
+    expect(dispute).toBeDefined()
+    expect(dispute!.createdAt).toBe('') // empty, not invented
+  })
+
+  it('recent changes timestamp is always from real event, never Date.now()', () => {
+    const realTimestamp = '2026-01-15T10:00:00Z'
+    const result = deriveRecentChanges({
+      claims: [],
+      events: [{
+        id: 'e1',
+        action: 'evidence_upload',
+        resourceType: 'evidence',
+        resourceId: 'ev-1',
+        summary: 'Upload',
+        createdAt: realTimestamp,
+      }],
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].timestamp).toBe(realTimestamp)
+    expect(result[0].timestamp).not.toBe('')
+  })
+})
+
+describe('correction: no binary from percentage threshold', () => {
+  it('PassportBlock has NO identityComplete boolean', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: { name: true, type: false, location: true },
+      claims: [],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    // identityComplete was removed — replaced by identityStatus + identityFields
+    expect((result as Record<string, unknown>).identityComplete).toBeUndefined()
+    expect(result.identityStatus).toBeDefined()
+    expect(result.identityFields).toBeDefined()
+  })
+
+  it('identity status is ternary (available/partial/pending), never binary', () => {
+    const available = derivePassportBlock({
+      institutionName: 'T', institutionId: 'o',
+      identityFields: { name: true, type: true, location: true },
+      claims: [], evidenceSummary: null, passportGeneratedAt: null, gaps: [],
+    })
+    const partial = derivePassportBlock({
+      institutionName: 'T', institutionId: 'o',
+      identityFields: { name: true, type: false, location: false },
+      claims: [], evidenceSummary: null, passportGeneratedAt: null, gaps: [],
+    })
+    const pending = derivePassportBlock({
+      institutionName: 'T', institutionId: 'o',
+      identityFields: { name: false, type: false, location: false },
+      claims: [], evidenceSummary: null, passportGeneratedAt: null, gaps: [],
+    })
+    expect(available.identityStatus).toBe('available')
+    expect(partial.identityStatus).toBe('partial')
+    expect(pending.identityStatus).toBe('pending')
+    // Three distinct states — never binary
+    const statuses = new Set([available.identityStatus, partial.identityStatus, pending.identityStatus])
+    expect(statuses.size).toBe(3)
+  })
+})
+
+describe('correction: confidence explanation is wired', () => {
+  it('buildConfidenceExplanation returns structured explanation, never just a number', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 3, derivedState: 'substantiated' }))
+    expect(result.level).toBeTruthy()
+    expect(result.explanation).toBeTruthy()
+    expect(result.freshness).toBeTruthy()
+    expect(result.evidenceCount).toBe(3)
+    // No bare number without explanation
+    expect(result.explanation.length).toBeGreaterThan(20)
+  })
+
+  it('buildConfidenceExplanation for expired evidence explains degradation', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 5, hasExpiredEvidence: true }))
+    expect(result.level).toBe('Reducida')
+    expect(result.freshness).toBe('Evidencia expirada')
+    expect(result.explanation).toContain('expirados')
+  })
+
+  it('buildConfidenceExplanation for disputed claims explains suspension', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 5, hasDispute: true }))
+    expect(result.level).toBe('En disputa')
+    expect(result.explanation).toContain('disputa')
+  })
+})
+
+describe('correction: api failure ≠ no issues', () => {
+  it('derivePriorityToday with empty data returns empty — correct when no real issues', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    expect(result).toEqual([])
+  })
+
+  it('derivePriorityToday with data that has no urgent issues also returns empty', () => {
+    const result = derivePriorityToday({
+      claims: [claim({ id: 'c1', evidenceCount: 3, derivedState: 'substantiated' })],
+      evidenceSummary: { totalDocuments: 10, documentsPresent: 10, documentsMissing: 0, documentsExpiringSoon: 0, documentsExpired: 0 },
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    // All evidence present, no stale items → correctly empty
+    expect(result).toEqual([])
   })
 })

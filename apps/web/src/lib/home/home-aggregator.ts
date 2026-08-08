@@ -354,13 +354,14 @@ export interface RecentEvent {
 }
 
 /**
- * Derives recent changes from claims state and available event data.
- * Falls back to claim state analysis when event feed is unavailable.
+ * Derives recent changes exclusively from real event data.
+ * Claims without a factual timestamp are never presented as "recent changes."
+ * No invented timestamps — an old claim with no event record is NOT a change.
  */
 export function deriveRecentChanges(input: RecentChangesInput): ChangeItem[] {
   const items: ChangeItem[] = []
 
-  // From events (if available)
+  // Only from real events — never from bare claims without timestamps
   for (const ev of input.events.slice(0, 10)) {
     items.push({
       id: `evt-${ev.id}`,
@@ -371,26 +372,6 @@ export function deriveRecentChanges(input: RecentChangesInput): ChangeItem[] {
       timestamp: ev.createdAt,
       href: mapEventHref(ev.resourceType, ev.resourceId),
     })
-  }
-
-  // Supplement from claims state
-  const recentlyChanged = input.claims.filter(c =>
-    c.status === 'modified' || c.status === 'submitted' ||
-    c.derivedState === 'stale'
-  )
-  for (const c of recentlyChanged.slice(0, 5)) {
-    // Avoid duplicates from events
-    if (!items.some(i => i.entityId === c.id)) {
-      items.push({
-        id: `chg-${c.id}`,
-        kind: c.derivedState === 'stale' ? 'confidence_updated' : 'claim_modified',
-        summary: c.statement.slice(0, 100),
-        entityType: 'claim',
-        entityId: c.id,
-        timestamp: new Date().toISOString(),
-        href: `/workspace/claims/${c.id}`,
-      })
-    }
   }
 
   items.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
@@ -460,26 +441,28 @@ export function deriveReviewQueue(input: ReviewQueueInput): ReviewQueueItem[] {
     })
   }
 
-  // From claims with disputes/contradictions
+  // From claims with disputes/contradictions — no invented timestamps
+  // Disputes without a creation timestamp are listed but NOT time-sorted
+  const disputeItems: ReviewQueueItem[] = []
   for (const c of input.claims) {
     if (c.hasDispute) {
-      // Avoid duplicates
-      if (!items.some(i => i.entityId === c.id && i.kind === 'dispute')) {
-        items.push({
-          id: `disp-${c.id}`,
-          kind: 'dispute',
-          title: c.statement.slice(0, 80),
-          status: 'pending',
-          entityType: 'claim',
-          entityId: c.id,
-          createdAt: new Date().toISOString(),
-          href: `/workspace/claims/${c.id}`,
-        })
-      }
+      disputeItems.push({
+        id: `disp-${c.id}`,
+        kind: 'dispute',
+        title: c.statement.slice(0, 80),
+        status: 'pending',
+        entityType: 'claim',
+        entityId: c.id,
+        createdAt: '', // no invented timestamp — factual only
+        href: `/workspace/claims/${c.id}`,
+      })
     }
   }
 
+  // Items with real timestamps first (tasks), then disputes
   items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  // Append disputes after time-sorted items (they have no timestamp)
+  items.push(...disputeItems)
   return items.slice(0, 10)
 }
 
@@ -495,7 +478,10 @@ function mapReviewKind(resourceType: string): ReviewQueueItem['kind'] {
 // ─── Block 5: PASSPORT ─────────────────────────────────────────────────────
 
 export interface PassportBlock {
-  identityComplete: boolean
+  /** Factual identity field presence — never a percentage threshold. */
+  identityStatus: 'available' | 'partial' | 'pending'
+  /** Which identity fields are present / missing. */
+  identityFields: { name: boolean; type: boolean; location: boolean }
   claimsWithSupport: number
   totalClaims: number
   visibleGaps: string[]
@@ -506,7 +492,8 @@ export interface PassportBlock {
 export interface PassportBlockInput {
   institutionName: string
   institutionId: string
-  completeness: { overall: number; missingSections: string[] } | null
+  /** Factual identity fields — never a composite percentage. */
+  identityFields: { name: boolean; type: boolean; location: boolean }
   claims: ClaimSummary[]
   evidenceSummary: EvidenceSummary | null
   passportGeneratedAt: string | null
@@ -515,7 +502,8 @@ export interface PassportBlockInput {
 
 /**
  * Derives Passport status as information product readiness,
- * never as a score.
+ * never as a score or binary derived from a percentage.
+ * Identity status is factual: checks specific fields, not thresholds.
  */
 export function derivePassportBlock(input: PassportBlockInput): PassportBlock {
   const claimsWithEvidence = input.claims.filter(c =>
@@ -523,14 +511,25 @@ export function derivePassportBlock(input: PassportBlockInput): PassportBlock {
   ).length
 
   const visibleGaps: string[] = []
-  if (input.completeness?.missingSections) {
-    visibleGaps.push(...input.completeness.missingSections)
-  }
   for (const g of input.gaps.slice(0, 3)) {
-    if (!visibleGaps.includes(g.description)) {
-      visibleGaps.push(g.description)
-    }
+    visibleGaps.push(g.description)
   }
+
+  // Missing identity fields — factual, not percentage-based
+  if (!input.identityFields.name && !visibleGaps.includes('Falta nombre de la institución')) {
+    visibleGaps.unshift('Falta nombre de la institución')
+  }
+  if (!input.identityFields.type && !visibleGaps.includes('Falta tipo de institución')) {
+    visibleGaps.unshift('Falta tipo de institución')
+  }
+
+  // Identity status from specific fields, NOT from overall percentage
+  const presentCount = [input.identityFields.name, input.identityFields.type, input.identityFields.location]
+    .filter(Boolean).length
+  const identityStatus: PassportBlock['identityStatus'] =
+    presentCount === 3 ? 'available' :
+    presentCount >= 1 ? 'partial' :
+    'pending'
 
   const pending: string[] = []
   if (claimsWithEvidence < input.claims.length) {
@@ -542,9 +541,12 @@ export function derivePassportBlock(input: PassportBlockInput): PassportBlock {
   if (input.evidenceSummary && input.evidenceSummary.documentsMissing > 0) {
     pending.push(`${input.evidenceSummary.documentsMissing} documentos faltantes`)
   }
+  if (!input.identityFields.name) pending.push('Nombre de la institución pendiente')
+  if (!input.identityFields.type) pending.push('Tipo de institución pendiente')
 
   return {
-    identityComplete: !!(input.completeness && input.completeness.overall >= 0.7),
+    identityStatus,
+    identityFields: input.identityFields,
     claimsWithSupport: claimsWithEvidence,
     totalClaims: input.claims.length,
     visibleGaps: visibleGaps.slice(0, 5),
