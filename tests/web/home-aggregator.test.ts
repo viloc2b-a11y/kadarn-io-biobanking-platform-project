@@ -683,7 +683,7 @@ describe('score-free invariants', () => {
     expect(str).not.toContain('rating')
   })
 
-  it('unknown is never converted to no in ReadinessBlock', () => {
+  it('never converts unknown to no in ReadinessBlock', () => {
     const result = deriveReadinessBlock({
       claims: [
         claim({ id: 'c1', derivedState: 'unknown' }),
@@ -696,6 +696,55 @@ describe('score-free invariants', () => {
     expect(result.claimsByStatus.unknown).toBe(2)
     expect(result.claimsByStatus.supported).toBe(0)
     expect(result.claimsByStatus.declared).toBe(0)
+  })
+
+  it('null evidenceCount → unknown, never declared', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', evidenceCount: null, derivedState: undefined, status: 'active' }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    expect(result.claimsByStatus.unknown).toBe(1)
+    expect(result.claimsByStatus.declared).toBe(0)
+  })
+
+  it('null evidenceCount → data unavailable, not simultaneous unknown+declared', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', evidenceCount: null }),
+        claim({ id: 'c2', evidenceCount: null }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    // Each claim should be in exactly one bucket — not both unknown AND declared
+    expect(result.claimsByStatus.unknown).toBe(2)
+    expect(result.claimsByStatus.declared).toBe(0)
+    expect(result.claimsByStatus.supported).toBe(0)
+    // Sum of all buckets should match total claims
+    const sum = result.claimsByStatus.supported + result.claimsByStatus.declared +
+      result.claimsByStatus.unknown + result.claimsByStatus.notApplicable +
+      result.claimsByStatus.staleExpired + result.claimsByStatus.disputed
+    expect(sum).toBe(2)
+  })
+
+  it('capability coverage also prevents null → declared', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', capabilityId: 'biobank', evidenceCount: null }),
+      ],
+      capabilities: [{ id: 'biobank', name: 'Biobank' }],
+      evidenceSummary: null,
+    })
+    const cap = result.capabilityCoverage.find(c => c.name === 'biobank' || c.name === 'Biobank')
+    expect(cap).toBeDefined()
+    if (cap) {
+      expect(cap.declaredClaims).toBe(0)
+      expect(cap.unknownClaims).toBe(1)
+      expect(cap.supportedClaims).toBe(0)
+    }
   })
 })
 

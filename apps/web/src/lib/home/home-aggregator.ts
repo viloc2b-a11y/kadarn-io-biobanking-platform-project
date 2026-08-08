@@ -265,31 +265,39 @@ export interface CapabilityInput {
 export function deriveReadinessBlock(input: ReadinessInput): ReadinessBlock {
   const claims = input.claims
 
-  // Claims by evidence support status
+  // Claims by evidence support status — mutually exclusive buckets
+  // A claim goes into exactly ONE bucket; first match wins (same order as deriveClaimState rules)
   const claimsByStatus = {
-    supported: claims.filter(c =>
-      c.derivedState === 'substantiated' ||
-      (c.evidenceCount && c.evidenceCount > 0 && c.confidence === 'High')
-    ).length,
-    unknown: claims.filter(c =>
-      c.derivedState === 'unknown' ||
-      (!c.derivedState && !c.status)
-    ).length,
-    declared: claims.filter(c =>
-      c.derivedState === 'declared' ||
-      c.derivedState === 'unsubstantiated' ||
-      ((!c.evidenceCount || c.evidenceCount === 0) && c.derivedState !== 'unknown')
-    ).length,
-    notApplicable: 0, // Derived from claim context, not claims list
-    staleExpired: claims.filter(c =>
-      c.derivedState === 'stale' ||
-      c.derivedState === 'expired' ||
-      c.hasExpiredEvidence === true
-    ).length,
-    disputed: claims.filter(c =>
-      c.derivedState === 'disputed' ||
-      c.hasDispute === true
-    ).length,
+    disputed: 0, staleExpired: 0, supported: 0, declared: 0, unknown: 0, notApplicable: 0,
+  }
+
+  for (const c of claims) {
+    // Rule 1 — disputed
+    if (c.derivedState === 'disputed' || c.hasDispute === true) {
+      claimsByStatus.disputed++
+    }
+    // Rule 2 — stale/expired
+    else if (c.derivedState === 'stale' || c.derivedState === 'expired' || c.hasExpiredEvidence === true) {
+      claimsByStatus.staleExpired++
+    }
+    // Rule 3 — supported
+    else if (c.derivedState === 'substantiated' ||
+      (c.evidenceCount !== null && c.evidenceCount !== undefined && c.evidenceCount > 0)) {
+      claimsByStatus.supported++
+    }
+    // Rule 4 — declared (explicitly zero evidence, not null)
+    // Only use evidenceCount when derivedState is not explicitly set
+    else if (c.derivedState === 'declared' || c.derivedState === 'unsubstantiated') {
+      claimsByStatus.declared++
+    }
+    else if (!c.derivedState &&
+      c.evidenceCount !== null && c.evidenceCount !== undefined && c.evidenceCount === 0) {
+      claimsByStatus.declared++
+    }
+    // Rule 5 — unknown / data unavailable (catch-all)
+    else {
+      claimsByStatus.unknown++
+    }
   }
 
   const evidenceFreshness = input.evidenceSummary ? {
@@ -319,10 +327,12 @@ export function deriveReadinessBlock(input: ReadinessInput): ReadinessBlock {
         c.derivedState === 'substantiated' || (c.evidenceCount && c.evidenceCount > 0)
       ).length,
       declaredClaims: v.claims.filter(c =>
-        !c.evidenceCount || c.evidenceCount === 0
+        c.derivedState === 'declared' || c.derivedState === 'unsubstantiated' ||
+        (!c.derivedState && c.evidenceCount !== null && c.evidenceCount !== undefined && c.evidenceCount === 0)
       ).length,
       unknownClaims: v.claims.filter(c =>
-        c.derivedState === 'unknown' || (!c.derivedState && !c.status)
+        c.derivedState === 'unknown' || (!c.derivedState && !c.status) ||
+        c.evidenceCount === null || c.evidenceCount === undefined
       ).length,
     })
   }
