@@ -27,11 +27,11 @@ function deriveStateFromWorkflow(
   if (workflowState === 'archived') return 'archived'
   if (isExpired) return 'stale'
   const hasContradicts = links.some(
-    (l: any) => l.relationship_type === 'CONTRADICTS'
+    (l: any) => l.role === 'contradicts'
   )
   if (hasContradicts) return 'disputed'
   const supportingCount = links.filter(
-    (l: any) => l.relationship_type === 'SUPPORTS' || l.relationship_type === 'PARTIALLY_SUPPORTS'
+    (l: any) => l.role === 'supports' || l.role === 'partially_supports'
   ).length
   if (supportingCount === 0) return 'awaiting_evidence'
   if (supportingCount >= 1) return 'substantiated'
@@ -91,11 +91,11 @@ export const GET = withAuth(async (request, user) => {
 
     // Batch-load evidence links — live schema uses relationship_type, claim_id, evidence_id
     let linksOk = true
-    let linksByClaim: Map<string, any[]> = new Map()
+    const linksByClaim: Map<string, any[]> = new Map()
     try {
       const { data: rawLinks, error: linksErr } = await supabase
         .from('claim_evidence_links')
-        .select('claim_id, evidence_id, relationship_type, created_at')
+        .select('claim_id, evidence_id, role, created_at')
         .in('claim_id', claimIds)
 
       if (linksErr) {
@@ -138,7 +138,7 @@ export const GET = withAuth(async (request, user) => {
       const evidenceCount = claimLinks.length
       const actuallyExpired = Boolean(c.expires_at && new Date(c.expires_at) < now)
       const hasDispute = claimLinks.some(
-        (l: any) => l.relationship_type === 'CONTRADICTS' || l.relationship_type === 'REQUIRES_REVIEW'
+        (l: any) => l.role === 'contradicts' || l.role === 'requires_review'
       )
 
       return {
