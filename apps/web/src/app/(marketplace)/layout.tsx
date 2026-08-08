@@ -11,7 +11,7 @@ export default function MarketplaceLayout({ children }: { children: React.ReactN
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--navy)' }}>
         <div style={{ textAlign: 'center', maxWidth: 420, padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🏗️</div>
+          <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3, fontWeight: 300 }}>MP</div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: 'var(--txd)' }}>Marketplace — Coming Post-MVP</h2>
           <p style={{ fontSize: 14, color: 'var(--txdd)', lineHeight: 1.6, marginBottom: 24 }}>
             Marketplace is built but deferred until after the institution-first pilot.
