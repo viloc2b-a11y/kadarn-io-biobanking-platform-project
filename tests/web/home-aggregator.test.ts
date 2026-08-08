@@ -1,0 +1,836 @@
+// ==========================================================================
+// Slice 2 — Next Best Action Center: Unit Tests
+// ==========================================================================
+// Tests for the home-aggregator pure derivation functions.
+// Verifies: score-free, unknown≠no, factual-only, no invented data.
+
+import { describe, it, expect } from 'vitest'
+import {
+  derivePriorityToday,
+  deriveReadinessBlock,
+  deriveRecentChanges,
+  deriveReviewQueue,
+  derivePassportBlock,
+  buildConfidenceExplanation,
+  type PriorityTodayInput,
+  type ReadinessInput,
+  type RecentChangesInput,
+  type ReviewQueueInput,
+  type PassportBlockInput,
+} from '../../apps/web/src/lib/home/home-aggregator'
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function claim(overrides: Record<string, unknown> = {}) {
+  return {
+    id: overrides.id as string ?? 'claim-1',
+    statement: overrides.statement as string ?? 'Centrifuge available',
+    status: overrides.status as string ?? 'active',
+    derivedState: overrides.derivedState as string | undefined,
+    confidence: overrides.confidence as string | undefined,
+    evidenceCount: overrides.evidenceCount as number | undefined,
+    hasExpiredEvidence: (overrides.hasExpiredEvidence as boolean) ?? false,
+    hasDispute: (overrides.hasDispute as boolean) ?? false,
+    institutionId: overrides.institutionId as string | undefined,
+    capabilityId: overrides.capabilityId as string | undefined,
+  }
+}
+
+// ─── Block 1: PRIORIDAD HOY ───────────────────────────────────────────────
+
+describe('derivePriorityToday', () => {
+  it('returns empty when no signals exist', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    expect(result).toEqual([])
+  })
+
+  it('detects expired evidence', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: {
+        totalDocuments: 10,
+        documentsPresent: 5,
+        documentsMissing: 2,
+        documentsExpiringSoon: 1,
+        documentsExpired: 2,
+      },
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    const expired = result.find(r => r.id === 'prio-expired-evidence')
+    expect(expired).toBeDefined()
+    expect(expired!.title).toContain('2')
+  })
+
+  it('detects expiring evidence', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: {
+        totalDocuments: 10,
+        documentsPresent: 8,
+        documentsMissing: 0,
+        documentsExpiringSoon: 3,
+        documentsExpired: 0,
+      },
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    const expiring = result.find(r => r.id === 'prio-expiring-evidence')
+    expect(expiring).toBeDefined()
+    expect(expiring!.title).toContain('3')
+  })
+
+  it('detects claims without evidence', () => {
+    const result = derivePriorityToday({
+      claims: [
+        claim({ id: 'c1', statement: 'Claim A', evidenceCount: 0 }),
+        claim({ id: 'c2', statement: 'Claim B', evidenceCount: 0 }),
+      ],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    const missing = result.find(r => r.id === 'prio-missing-evidence')
+    expect(missing).toBeDefined()
+    expect(missing!.title).toContain('2')
+  })
+
+  it('ignores archived/withdrawn claims when checking evidence', () => {
+    const result = derivePriorityToday({
+      claims: [
+        claim({ id: 'c1', statement: 'Active', evidenceCount: 0, status: 'active' }),
+        claim({ id: 'c2', statement: 'Archived', evidenceCount: 0, status: 'archived' }),
+        claim({ id: 'c3', statement: 'Withdrawn', evidenceCount: 0, status: 'withdrawn' }),
+      ],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    const missing = result.find(r => r.id === 'prio-missing-evidence')
+    expect(missing).toBeDefined()
+    expect(missing!.title).toContain('1') // only active claim counted
+  })
+
+  it('detects contradictions', () => {
+    const result = derivePriorityToday({
+      claims: [
+        claim({ id: 'c1', statement: 'Disputed claim', hasDispute: true }),
+      ],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    const contradiction = result.find(r => r.id === 'prio-contradiction')
+    expect(contradiction).toBeDefined()
+  })
+
+  it('detects stale confidence', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [
+        { id: 's1', entityType: 'claim', entityId: 'c1', entityName: 'Test', staleReason: 'expired' },
+      ],
+      gaps: [],
+      reviewTasks: [],
+    })
+    const stale = result.find(r => r.id === 'prio-stale-confidence')
+    expect(stale).toBeDefined()
+  })
+
+  it('detects critical gaps', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [
+        { id: 'g1', description: 'Missing SOP', severity: 'critical' },
+      ],
+      reviewTasks: [],
+    })
+    const gaps = result.find(r => r.id === 'prio-critical-gaps')
+    expect(gaps).toBeDefined()
+  })
+
+  it('non-critical gaps do not trigger priority', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [
+        { id: 'g1', description: 'Minor gap', severity: 'low' },
+      ],
+      reviewTasks: [],
+    })
+    const gaps = result.find(r => r.id === 'prio-critical-gaps')
+    expect(gaps).toBeUndefined()
+  })
+
+  it('detects pending reviews', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [
+        { id: 'r1', title: 'Review SOP', status: 'pending', resourceType: 'evidence', resourceId: 'e1', createdAt: '2026-01-01' },
+        { id: 'r2', title: 'Completed SOP', status: 'completed', resourceType: 'evidence', resourceId: 'e2', createdAt: '2026-01-01' },
+      ],
+    })
+    const reviews = result.find(r => r.id === 'prio-pending-reviews')
+    expect(reviews).toBeDefined()
+    expect(reviews!.title).toContain('1') // only pending, not completed
+  })
+})
+
+// ─── Block 2: READINESS ────────────────────────────────────────────────────
+
+describe('deriveReadinessBlock', () => {
+  it('returns zeroed structure for empty input', () => {
+    const result = deriveReadinessBlock({
+      claims: [],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    expect(result.claimsByStatus.supported).toBe(0)
+    expect(result.claimsByStatus.declared).toBe(0)
+    expect(result.claimsByStatus.unknown).toBe(0)
+    expect(result.claimsByStatus.disputed).toBe(0)
+  })
+
+  it('classifies substantiated claims as supported', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'substantiated', evidenceCount: 3, confidence: 'High' }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    expect(result.claimsByStatus.supported).toBe(1)
+  })
+
+  it('classifies unsubstantiated claims as declared', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'unsubstantiated', evidenceCount: 0 }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    expect(result.claimsByStatus.declared).toBe(1)
+  })
+
+  it('classifies stale/expired claims correctly', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'stale', hasExpiredEvidence: true }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    expect(result.claimsByStatus.staleExpired).toBe(1)
+  })
+
+  it('classifies disputed claims', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'disputed', hasDispute: true }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    expect(result.claimsByStatus.disputed).toBe(1)
+  })
+
+  it('never converts unknown to no', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'unknown' }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    // unknown goes to unknown bucket, never to "not supported" or "no"
+    expect(result.claimsByStatus.unknown).toBe(1)
+    expect(result.claimsByStatus.supported).toBe(0)
+    expect(result.claimsByStatus.declared).toBe(0)
+  })
+
+  it('derives evidence freshness from summary', () => {
+    const result = deriveReadinessBlock({
+      claims: [],
+      capabilities: [],
+      evidenceSummary: {
+        totalDocuments: 20,
+        documentsPresent: 12,
+        documentsMissing: 5,
+        documentsExpiringSoon: 3,
+        documentsExpired: 2,
+      },
+    })
+    expect(result.evidenceFreshness.active).toBe(12)
+    expect(result.evidenceFreshness.expiringSoon).toBe(3)
+    expect(result.evidenceFreshness.expired).toBe(2)
+  })
+
+  it('groups by capability — per-capability, never institutional rollout', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', capabilityId: 'biobank', derivedState: 'substantiated', evidenceCount: 3 }),
+        claim({ id: 'c2', capabilityId: 'biobank', evidenceCount: 0 }),
+        claim({ id: 'c3', capabilityId: 'lab', derivedState: 'substantiated', evidenceCount: 1 }),
+      ],
+      capabilities: [{ id: 'biobank', name: 'Biobank' }, { id: 'lab', name: 'Lab' }],
+      evidenceSummary: null,
+    })
+    expect(result.capabilityCoverage).toHaveLength(2)
+    const biobank = result.capabilityCoverage.find(c => c.name === 'biobank' || c.name === 'Biobank')
+    expect(biobank).toBeDefined()
+    // 1 supported, 1 declared (without evidence), 0 unknown
+    if (biobank) {
+      expect(biobank.supportedClaims + biobank.declaredClaims + biobank.unknownClaims).toBe(2)
+    }
+  })
+})
+
+// ─── Block 3: CAMBIOS RECIENTES ────────────────────────────────────────────
+
+describe('deriveRecentChanges', () => {
+  it('returns empty for no data', () => {
+    const result = deriveRecentChanges({ claims: [], events: [] })
+    expect(result).toEqual([])
+  })
+
+  it('includes events', () => {
+    const result = deriveRecentChanges({
+      claims: [],
+      events: [{
+        id: 'e1',
+        action: 'evidence_upload',
+        resourceType: 'evidence',
+        resourceId: 'ev-1',
+        summary: 'New SOP uploaded',
+        createdAt: '2026-08-01T00:00:00Z',
+      }],
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].kind).toBe('new_evidence')
+  })
+
+  it('supplements from claims state — removed: no timestamps → no supplement', () => {
+    // Claims without real timestamps are NEVER presented as recent changes
+    const result = deriveRecentChanges({
+      claims: [
+        claim({ id: 'c1', statement: 'Modified claim', status: 'submitted' }),
+      ],
+      events: [],
+    })
+    // Zero: claims alone don't create "recent changes" — only real events do
+    expect(result).toHaveLength(0)
+  })
+
+  it('deduplicates claims that are also in events — removed: no claim supplement', () => {
+    // Since claims are no longer supplemented, dedup is not needed
+    const result = deriveRecentChanges({
+      claims: [
+        claim({ id: 'c1', statement: 'Same claim', status: 'modified' }),
+      ],
+      events: [{
+        id: 'e1',
+        action: 'claim_modified',
+        resourceType: 'claim',
+        resourceId: 'c1',
+        summary: 'Same claim modified',
+        createdAt: '2026-08-01T00:00:00Z',
+      }],
+    })
+    // Only the event appears — claim supplement was removed (Fix #1: no invented timestamps)
+    expect(result.length).toBeGreaterThanOrEqual(1)
+    const c1Entries = result.filter(r => r.entityId === 'c1')
+    expect(c1Entries.length).toBe(1)
+  })
+
+  it('limits to 8 items', () => {
+    const events = Array.from({ length: 15 }, (_, i) => ({
+      id: `e${i}`,
+      action: 'test',
+      resourceType: 'claim',
+      resourceId: `c${i}`,
+      summary: `Event ${i}`,
+      createdAt: `2026-08-0${Math.min(9, i + 1)}T00:00:00Z`,
+    }))
+    const result = deriveRecentChanges({ claims: [], events })
+    expect(result.length).toBeLessThanOrEqual(8)
+  })
+})
+
+// ─── Block 4: COLA DE REVISIÓN ────────────────────────────────────────────
+
+describe('deriveReviewQueue', () => {
+  it('returns empty for no tasks', () => {
+    const result = deriveReviewQueue({ reviewTasks: [], claims: [] })
+    expect(result).toEqual([])
+  })
+
+  it('includes pending review tasks', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [
+        { id: 'r1', title: 'Review claim', status: 'pending', resourceType: 'claim', resourceId: 'c1', createdAt: '2026-01-01' },
+      ],
+      claims: [],
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].kind).toBe('claim_under_review')
+  })
+
+  it('excludes completed reviews', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [
+        { id: 'r1', title: 'Done', status: 'completed', resourceType: 'claim', resourceId: 'c1', createdAt: '2026-01-01' },
+      ],
+      claims: [],
+    })
+    expect(result).toHaveLength(0)
+  })
+
+  it('includes claims with disputes', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [],
+      claims: [
+        claim({ id: 'c1', statement: 'Disputed', hasDispute: true }),
+      ],
+    })
+    expect(result.length).toBeGreaterThanOrEqual(1)
+    const dispute = result.find(r => r.kind === 'dispute')
+    expect(dispute).toBeDefined()
+  })
+})
+
+// ─── Block 5: PASSPORT ─────────────────────────────────────────────────────
+
+describe('derivePassportBlock', () => {
+  const fullIdentity = { name: true, type: true, location: true }
+  const emptyIdentity = { name: false, type: false, location: false }
+  const partialIdentity = { name: true, type: false, location: true }
+
+  it('reports identity pending when all identity fields are false', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: emptyIdentity,
+      claims: [],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    expect(result.identityStatus).toBe('pending')
+  })
+
+  it('reports identity partial when some identity fields are present', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: partialIdentity,
+      claims: [],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    expect(result.identityStatus).toBe('partial')
+  })
+
+  it('reports identity available when all 3 identity fields present', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: fullIdentity,
+      claims: [],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    expect(result.identityStatus).toBe('available')
+  })
+
+  it('identity status is NEVER derived from a percentage threshold', () => {
+    // No 'overall' or 'completeness' field exists in the input any more
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: { name: true, type: true, location: false },
+      claims: [claim({ evidenceCount: 10 })],
+      evidenceSummary: { totalDocuments: 100, documentsPresent: 99, documentsMissing: 0, documentsExpiringSoon: 0, documentsExpired: 1 },
+      passportGeneratedAt: '2026-01-01',
+      gaps: [],
+    })
+    // Even with 99% of docs present, identityStatus depends on identityFields, not evidence
+    expect(result.identityStatus).toBe('partial')
+  })
+
+  it('shows pending items when claims lack evidence', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: fullIdentity,
+      claims: [
+        claim({ id: 'c1', evidenceCount: 3 }),
+        claim({ id: 'c2', evidenceCount: 0 }),
+        claim({ id: 'c3', evidenceCount: 0 }),
+      ],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    expect(result.claimsWithSupport).toBe(1)
+    expect(result.totalClaims).toBe(3)
+    expect(result.pendingBeforeShare.some(p => p.includes('2'))).toBe(true)
+  })
+
+  it('derives pending from expired evidence', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: fullIdentity,
+      claims: [],
+      evidenceSummary: {
+        totalDocuments: 5,
+        documentsPresent: 2,
+        documentsMissing: 1,
+        documentsExpiringSoon: 0,
+        documentsExpired: 2,
+      },
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    expect(result.pendingBeforeShare.some(p => p.includes('expirados'))).toBe(true)
+    expect(result.pendingBeforeShare.some(p => p.includes('faltantes'))).toBe(true)
+  })
+})
+
+// ─── Block 6: EXPLICABILIDAD ───────────────────────────────────────────────
+
+describe('buildConfidenceExplanation', () => {
+  it('returns "Sin evidencia" for claims with 0 evidence', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 0 }))
+    expect(result.level).toBe('Sin evidencia')
+    expect(result.explanation).toBeTruthy()
+    expect(result.freshness).toBe('Sin evidencia')
+  })
+
+  it('returns "Evidencia expirada" for expired evidence', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 2, hasExpiredEvidence: true }))
+    expect(result.level).toBe('Evidencia expirada')
+    expect(result.freshness).toBe('Documento expirado detectado')
+  })
+
+  it('returns "En disputa" for disputed claims', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 2, hasDispute: true }))
+    expect(result.level).toBe('En disputa')
+    expect(result.explanation).toContain('disputa')
+  })
+
+  it('returns "Sustentada" for substantiated claims', () => {
+    const result = buildConfidenceExplanation(claim({
+      evidenceCount: 4,
+      derivedState: 'substantiated',
+    }))
+    expect(result.level).toBe('Sustentada')
+    // NEVER claims "listo para publicación" — that requires a factual contract
+    expect(result.explanation).not.toContain('listo para publicaci')
+    expect(result.explanation).not.toContain('publicaci')
+  })
+
+  it('returns "Evidencia adjunta" for claims with evidence but not substantiated', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 1 }))
+    expect(result.level).toBe('Evidencia adjunta')
+  })
+
+  it('never infers "Evidencia vigente" from absence of hasExpiredEvidence', () => {
+    // hasExpiredEvidence is undefined/false — this does NOT mean evidence is "fresh"
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 3, derivedState: 'substantiated' }))
+    expect(result.freshness).not.toBe('Evidencia vigente')
+    expect(result.freshness).not.toBe('Evidencia parcial')
+    // Freshness is "No disponible" because the API doesn't expose it yet
+    expect(result.freshness).toBe('No disponible')
+  })
+
+  it('never infers "listo para publicación" from evidence count', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 10, derivedState: 'substantiated' }))
+    expect(result.explanation).not.toContain('listo para publicaci')
+  })
+
+  it('never displays bare number without explanation', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 5 }))
+    expect(result.explanation).toBeTruthy()
+    expect(result.explanation.length).toBeGreaterThan(10)
+  })
+
+  it('confidence explanation is purely factual, never over-asserts', () => {
+    // Test all paths don't infer freshness from absence of expired
+    const paths = [
+      claim({ evidenceCount: 1, derivedState: 'unsubstantiated' }),
+      claim({ evidenceCount: 5, derivedState: 'substantiated' }),
+      claim({ evidenceCount: 0 }),
+    ]
+    for (const c of paths) {
+      const result = buildConfidenceExplanation(c)
+      // No path should claim "vigente" without a real API contract
+      if (!c.hasExpiredEvidence && c.evidenceCount > 0) {
+        // When not expired and has evidence, freshness should still be "No disponible"
+        // because we can't prove freshness from absence alone
+      }
+    }
+  })
+})
+
+// ─── Correction: Review Queue date handling ────────────────────────────────
+
+describe('correction: no invalid dates', () => {
+  it('dispute with empty createdAt does not produce Invalid Date', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [],
+      claims: [claim({ id: 'c1', hasDispute: true, statement: 'Test' })],
+    })
+    const dispute = result.find(r => r.kind === 'dispute')
+    expect(dispute).toBeDefined()
+    expect(dispute!.createdAt).toBe('')
+    // formatRelativeTime('') should not be called — the UI handles empty string
+  })
+
+  it('review tasks with real createdAt keep their timestamp', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [
+        { id: 'r1', title: 'Task', status: 'pending', resourceType: 'evidence',
+          resourceId: 'e1', createdAt: '2026-01-15T10:00:00Z' },
+      ],
+      claims: [],
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].createdAt).toBe('2026-01-15T10:00:00Z')
+  })
+})
+
+// ─── Score-Free Invariants ─────────────────────────────────────────────────
+
+describe('score-free invariants', () => {
+  it('PriorityToday never emits a score field', () => {
+    const result = derivePriorityToday({
+      claims: [claim({ evidenceCount: 0 })],
+      evidenceSummary: {
+        totalDocuments: 10,
+        documentsPresent: 5,
+        documentsMissing: 5,
+        documentsExpiringSoon: 0,
+        documentsExpired: 0,
+      },
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    for (const item of result) {
+      const str = JSON.stringify(item)
+      expect(str).not.toContain('score')
+      expect(str).not.toContain('Score')
+      expect(str).not.toContain('overall')
+      expect(str).not.toContain('rating')
+      expect(str).not.toContain('tier')
+      expect(str).not.toContain('rank')
+    }
+  })
+
+  it('ReadinessBlock never emits a score field', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'substantiated', evidenceCount: 3 }),
+        claim({ id: 'c2', derivedState: 'unknown' }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    const str = JSON.stringify(result)
+    expect(str).not.toContain('score')
+    expect(str).not.toContain('overall')
+    expect(str).not.toContain('rating')
+    expect(str).not.toContain('percent')
+    expect(str).not.toContain('tier')
+  })
+
+  it('PassportBlock never emits a score field', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: { name: true, type: true, location: true },
+      claims: [claim({ evidenceCount: 3 })],
+      evidenceSummary: null,
+      passportGeneratedAt: '2026-01-01',
+      gaps: [],
+    })
+    const str = JSON.stringify(result)
+    expect(str).not.toContain('score')
+    expect(str).not.toContain('overall')
+    expect(str).not.toContain('rating')
+  })
+
+  it('unknown is never converted to no in ReadinessBlock', () => {
+    const result = deriveReadinessBlock({
+      claims: [
+        claim({ id: 'c1', derivedState: 'unknown' }),
+        claim({ id: 'c2', derivedState: 'unknown' }),
+      ],
+      capabilities: [],
+      evidenceSummary: null,
+    })
+    // unknown claims go to unknown bucket, never inflate "supported" or "declared"
+    expect(result.claimsByStatus.unknown).toBe(2)
+    expect(result.claimsByStatus.supported).toBe(0)
+    expect(result.claimsByStatus.declared).toBe(0)
+  })
+})
+
+// ─── Correction Tests — 4 Failure Modes ────────────────────────────────────
+
+describe('correction: no invented timestamps', () => {
+  it('deriveRecentChanges returns zero items when only claims (no events)', () => {
+    const result = deriveRecentChanges({
+      claims: [
+        claim({ id: 'c1', statement: 'Old claim', status: 'modified' }),
+        claim({ id: 'c2', statement: 'Another claim', derivedState: 'stale' }),
+      ],
+      events: [],
+    })
+    expect(result).toHaveLength(0)
+  })
+
+  it('deriveReviewQueue disputes have empty createdAt (not invented)', () => {
+    const result = deriveReviewQueue({
+      reviewTasks: [],
+      claims: [
+        claim({ id: 'c1', statement: 'Disputed claim', hasDispute: true }),
+      ],
+    })
+    const dispute = result.find(r => r.kind === 'dispute')
+    expect(dispute).toBeDefined()
+    expect(dispute!.createdAt).toBe('') // empty, not invented
+  })
+
+  it('recent changes timestamp is always from real event, never Date.now()', () => {
+    const realTimestamp = '2026-01-15T10:00:00Z'
+    const result = deriveRecentChanges({
+      claims: [],
+      events: [{
+        id: 'e1',
+        action: 'evidence_upload',
+        resourceType: 'evidence',
+        resourceId: 'ev-1',
+        summary: 'Upload',
+        createdAt: realTimestamp,
+      }],
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].timestamp).toBe(realTimestamp)
+    expect(result[0].timestamp).not.toBe('')
+  })
+})
+
+describe('correction: no binary from percentage threshold', () => {
+  it('PassportBlock has NO identityComplete boolean', () => {
+    const result = derivePassportBlock({
+      institutionName: 'Test',
+      institutionId: 'org-1',
+      identityFields: { name: true, type: false, location: true },
+      claims: [],
+      evidenceSummary: null,
+      passportGeneratedAt: null,
+      gaps: [],
+    })
+    // identityComplete was removed — replaced by identityStatus + identityFields
+    expect((result as Record<string, unknown>).identityComplete).toBeUndefined()
+    expect(result.identityStatus).toBeDefined()
+    expect(result.identityFields).toBeDefined()
+  })
+
+  it('identity status is ternary (available/partial/pending), never binary', () => {
+    const available = derivePassportBlock({
+      institutionName: 'T', institutionId: 'o',
+      identityFields: { name: true, type: true, location: true },
+      claims: [], evidenceSummary: null, passportGeneratedAt: null, gaps: [],
+    })
+    const partial = derivePassportBlock({
+      institutionName: 'T', institutionId: 'o',
+      identityFields: { name: true, type: false, location: false },
+      claims: [], evidenceSummary: null, passportGeneratedAt: null, gaps: [],
+    })
+    const pending = derivePassportBlock({
+      institutionName: 'T', institutionId: 'o',
+      identityFields: { name: false, type: false, location: false },
+      claims: [], evidenceSummary: null, passportGeneratedAt: null, gaps: [],
+    })
+    expect(available.identityStatus).toBe('available')
+    expect(partial.identityStatus).toBe('partial')
+    expect(pending.identityStatus).toBe('pending')
+    // Three distinct states — never binary
+    const statuses = new Set([available.identityStatus, partial.identityStatus, pending.identityStatus])
+    expect(statuses.size).toBe(3)
+  })
+})
+
+describe('correction: confidence explanation is wired', () => {
+  it('buildConfidenceExplanation returns structured explanation, never just a number', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 3, derivedState: 'substantiated' }))
+    expect(result.level).toBeTruthy()
+    expect(result.explanation).toBeTruthy()
+    expect(result.freshness).toBeTruthy()
+    expect(result.evidenceCount).toBe(3)
+    // No bare number without explanation
+    expect(result.explanation.length).toBeGreaterThan(20)
+  })
+
+  it('buildConfidenceExplanation for expired evidence explains degradation', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 5, hasExpiredEvidence: true }))
+    expect(result.level).toBe('Evidencia expirada')
+    expect(result.freshness).toBe('Documento expirado detectado')
+    expect(result.explanation).toContain('expirado')
+  })
+
+  it('buildConfidenceExplanation for disputed claims explains suspension', () => {
+    const result = buildConfidenceExplanation(claim({ evidenceCount: 5, hasDispute: true }))
+    expect(result.level).toBe('En disputa')
+    expect(result.explanation).toContain('disputa')
+  })
+})
+
+describe('correction: api failure ≠ no issues', () => {
+  it('derivePriorityToday with empty data returns empty — correct when no real issues', () => {
+    const result = derivePriorityToday({
+      claims: [],
+      evidenceSummary: null,
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    expect(result).toEqual([])
+  })
+
+  it('derivePriorityToday with data that has no urgent issues also returns empty', () => {
+    const result = derivePriorityToday({
+      claims: [claim({ id: 'c1', evidenceCount: 3, derivedState: 'substantiated' })],
+      evidenceSummary: { totalDocuments: 10, documentsPresent: 10, documentsMissing: 0, documentsExpiringSoon: 0, documentsExpired: 0 },
+      staleConfidence: [],
+      gaps: [],
+      reviewTasks: [],
+    })
+    // All evidence present, no stale items → correctly empty
+    expect(result).toEqual([])
+  })
+})

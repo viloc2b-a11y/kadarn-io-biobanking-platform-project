@@ -52,6 +52,9 @@ SCORE_FREE_SURFACES=(
   "apps/web/src/lib/onboarding/derived-read-models/roadmap-read-model.ts"
   "apps/web/src/lib/onboarding/institution-roadmap.ts"
   "apps/web/src/app/site-passport"
+  # Slice 2 — Next Best Action Center (score-free surfaces)
+  "apps/web/src/lib/home/home-aggregator.ts"
+  "apps/web/src/app/(workspace)/workspace/page.tsx"
   "apps/web/src/app/(onboarding)/onboarding/passport"
   "apps/web/src/app/(onboarding)/onboarding/readiness"
   "apps/web/src/app/(onboarding)/onboarding/roadmap"
