@@ -60,3 +60,4 @@ supabase/.branches/
 # Third-party vendored repos (contain nested .git)
 vendor/
 _tmp_*
+.jwt_token
