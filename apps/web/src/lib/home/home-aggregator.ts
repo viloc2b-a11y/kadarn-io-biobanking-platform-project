@@ -37,14 +37,19 @@ export interface PriorityTodayInput {
 export interface ClaimSummary {
   id: string
   statement: string
-  status: string
+  status?: string
   derivedState?: string
-  confidence?: string
-  evidenceCount?: number
-  hasExpiredEvidence?: boolean
-  hasDispute?: boolean
+  confidence?: string | null
+  /** Evidence count from backend. null = data unavailable (query failed). */
+  evidenceCount?: number | null
+  /** Whether evidence has expired items. null = data unavailable. */
+  hasExpiredEvidence?: boolean | null
+  /** Whether claim has active dispute. null = data unavailable. */
+  hasDispute?: boolean | null
   institutionId?: string
   capabilityId?: string
+  /** When true, evidence data couldn't be loaded — do NOT treat as absence. */
+  _evidenceLoadFailed?: boolean
 }
 
 export interface EvidenceSummary {
@@ -123,9 +128,11 @@ export function derivePriorityToday(input: PriorityTodayInput): PriorityItem[] {
     }
   }
 
-  // Rule 3: Claims without evidence
+  // Rule 3: Claims without evidence (only when evidenceCount is a real number)
   const unevidenced = input.claims.filter(c =>
-    (!c.evidenceCount || c.evidenceCount === 0) &&
+    c.evidenceCount !== null &&
+    c.evidenceCount !== undefined &&
+    c.evidenceCount === 0 &&
     c.status !== 'archived' && c.status !== 'withdrawn'
   )
   if (unevidenced.length > 0) {
@@ -142,9 +149,9 @@ export function derivePriorityToday(input: PriorityTodayInput): PriorityItem[] {
     })
   }
 
-  // Rule 4: Claims with contradictions
+  // Rule 4: Claims with contradictions (only when data available)
   const contradicted = input.claims.filter(c =>
-    c.hasDispute ||
+    c.hasDispute === true ||
     c.derivedState === 'contradicted'
   )
   if (contradicted.length > 0) {
@@ -258,31 +265,39 @@ export interface CapabilityInput {
 export function deriveReadinessBlock(input: ReadinessInput): ReadinessBlock {
   const claims = input.claims
 
-  // Claims by evidence support status
+  // Claims by evidence support status — mutually exclusive buckets
+  // A claim goes into exactly ONE bucket; first match wins (same order as deriveClaimState rules)
   const claimsByStatus = {
-    supported: claims.filter(c =>
-      c.derivedState === 'substantiated' ||
-      (c.evidenceCount && c.evidenceCount > 0 && c.confidence === 'High')
-    ).length,
-    unknown: claims.filter(c =>
-      c.derivedState === 'unknown' ||
-      (!c.derivedState && !c.status)
-    ).length,
-    declared: claims.filter(c =>
-      c.derivedState === 'declared' ||
-      c.derivedState === 'unsubstantiated' ||
-      ((!c.evidenceCount || c.evidenceCount === 0) && c.derivedState !== 'unknown')
-    ).length,
-    notApplicable: 0, // Derived from claim context, not claims list
-    staleExpired: claims.filter(c =>
-      c.derivedState === 'stale' ||
-      c.derivedState === 'expired' ||
-      c.hasExpiredEvidence
-    ).length,
-    disputed: claims.filter(c =>
-      c.derivedState === 'disputed' ||
-      c.hasDispute
-    ).length,
+    disputed: 0, staleExpired: 0, supported: 0, declared: 0, unknown: 0, notApplicable: 0,
+  }
+
+  for (const c of claims) {
+    // Rule 1 — disputed
+    if (c.derivedState === 'disputed' || c.hasDispute === true) {
+      claimsByStatus.disputed++
+    }
+    // Rule 2 — stale/expired
+    else if (c.derivedState === 'stale' || c.derivedState === 'expired' || c.hasExpiredEvidence === true) {
+      claimsByStatus.staleExpired++
+    }
+    // Rule 3 — supported
+    else if (c.derivedState === 'substantiated' ||
+      (c.evidenceCount !== null && c.evidenceCount !== undefined && c.evidenceCount > 0)) {
+      claimsByStatus.supported++
+    }
+    // Rule 4 — declared (explicitly zero evidence, not null)
+    // Only use evidenceCount when derivedState is not explicitly set
+    else if (c.derivedState === 'declared' || c.derivedState === 'unsubstantiated') {
+      claimsByStatus.declared++
+    }
+    else if (!c.derivedState &&
+      c.evidenceCount !== null && c.evidenceCount !== undefined && c.evidenceCount === 0) {
+      claimsByStatus.declared++
+    }
+    // Rule 5 — unknown / data unavailable (catch-all)
+    else {
+      claimsByStatus.unknown++
+    }
   }
 
   const evidenceFreshness = input.evidenceSummary ? {
@@ -312,10 +327,12 @@ export function deriveReadinessBlock(input: ReadinessInput): ReadinessBlock {
         c.derivedState === 'substantiated' || (c.evidenceCount && c.evidenceCount > 0)
       ).length,
       declaredClaims: v.claims.filter(c =>
-        !c.evidenceCount || c.evidenceCount === 0
+        c.derivedState === 'declared' || c.derivedState === 'unsubstantiated' ||
+        (!c.derivedState && c.evidenceCount !== null && c.evidenceCount !== undefined && c.evidenceCount === 0)
       ).length,
       unknownClaims: v.claims.filter(c =>
-        c.derivedState === 'unknown' || (!c.derivedState && !c.status)
+        c.derivedState === 'unknown' || (!c.derivedState && !c.status) ||
+        c.evidenceCount === null || c.evidenceCount === undefined
       ).length,
     })
   }
@@ -445,7 +462,7 @@ export function deriveReviewQueue(input: ReviewQueueInput): ReviewQueueItem[] {
   // Disputes without a creation timestamp are listed but NOT time-sorted
   const disputeItems: ReviewQueueItem[] = []
   for (const c of input.claims) {
-    if (c.hasDispute) {
+    if (c.hasDispute === true) {
       disputeItems.push({
         id: `disp-${c.id}`,
         kind: 'dispute',
@@ -574,19 +591,24 @@ export function buildConfidenceExplanation(
   claim: ClaimSummary,
 ): ConfidenceExplanation {
   const evidenceCount = claim.evidenceCount ?? 0
+  const evidenceAvailable = claim.evidenceCount !== null && claim.evidenceCount !== undefined
 
   let level: string
   let explanation: string
   let freshness: string
 
-  if (claim.hasExpiredEvidence) {
+  if (claim.hasExpiredEvidence === true) {
     level = 'Evidencia expirada'
     explanation = `El claim tiene ${evidenceCount} pieza(s) de evidencia, pero al menos un documento está expirado.`
     freshness = 'Documento expirado detectado'
-  } else if (claim.hasDispute) {
+  } else if (claim.hasDispute === true) {
     level = 'En disputa'
     explanation = 'Este claim tiene una disputa activa. La confianza está suspendida hasta que se resuelva.'
     freshness = 'Disputa activa'
+  } else if (!evidenceAvailable) {
+    level = 'No evaluada'
+    explanation = 'Los datos de evidencia no están disponibles para este claim.'
+    freshness = 'No disponible'
   } else if (evidenceCount === 0) {
     level = 'Sin evidencia'
     explanation = 'No hay evidencia adjunta a este claim.'
@@ -594,7 +616,7 @@ export function buildConfidenceExplanation(
   } else if (claim.derivedState === 'substantiated') {
     level = 'Sustentada'
     explanation = `${evidenceCount} pieza(s) de evidencia adjunta(s). El claim está marcado como sustentado.`
-    freshness = 'No disponible' // factual: API no expone freshness aún
+    freshness = 'No disponible'
   } else if (evidenceCount >= 1) {
     level = 'Evidencia adjunta'
     explanation = `${evidenceCount} pieza(s) de evidencia adjunta(s). El estado derivado es "${claim.derivedState || 'desconocido'}".`
