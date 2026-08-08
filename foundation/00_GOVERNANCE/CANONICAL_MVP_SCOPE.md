@@ -123,8 +123,8 @@ The following ADR ID collisions are resolved for MVP purposes:
 | **KEMS-002** | v1.0 + v1.1 | **v1.1 is canonical.** v1.0 is superseded. Update GOVERNANCE_INDEX.md |
 | **KEMS-003** | v1.0 | **Active.** Product Constitution |
 | **KEMS-004** | v1.0 | **Active.** Claim Provenance |
-| **KEMS-005** | v1.0 | **Active.** Evidence Core |
-| **KEMS-006** | v1.0 | **Active.** Capability Model |
+| **KEMS-005** | v1.0 | **Active.** Schema Evolution Standard |
+| **KEMS-006** | v1.0 | **Active.** Systems Integration Standard |
 | **KEMS-007** | v1.0 | **Frozen.** Delivery Architecture — binding for Passport contracts |
 
 ---

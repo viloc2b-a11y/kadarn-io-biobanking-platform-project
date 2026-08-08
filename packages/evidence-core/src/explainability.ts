@@ -1,5 +1,5 @@
 // ==========================================================================
-// Evidence Core — Explainability Framework (KEMS-001 §6)
+// Evidence Core package — Explainability Framework (KEMS-001 §6: Confidence Graph Model)
 // ==========================================================================
 // Baseline AF-1.0. Sprint 18.1.
 //
