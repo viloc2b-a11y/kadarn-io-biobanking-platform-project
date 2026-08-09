@@ -240,3 +240,15 @@
 .surface button {
   font: inherit;
 }
+
+.surface input[type="text"],
+.surface input[type="url"],
+.surface input[type="number"],
+.surface input[type="email"],
+.surface input[type="search"],
+.surface select,
+.surface textarea {
+  background: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
+}
