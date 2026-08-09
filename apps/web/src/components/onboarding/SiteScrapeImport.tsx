@@ -9,7 +9,7 @@
 // Each field can be individually approved or rejected before pre-populating
 // the form. This is the "wow moment" for sales demos.
 //
-// Dark theme (Qdrant style): bg #131722, accent #8b86e5, Inter font.
+// Light theme: blue accent, white backgrounds, matches onboarding flow.
 // ==========================================================================
 
 import { useState, useCallback } from 'react'
@@ -98,26 +98,23 @@ function formatValue(value: string | string[] | null): string {
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
-function SparklesIcon() {
+function QuickImportIcon() {
   return (
-    <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 0L9.5 5.5L15 5L10.5 8L12 14L8 10.5L4 14L5.5 8L1 5L6.5 5.5L8 0Z" fill="currentColor" opacity="0.9"/>
-      <path d="M13 2L13.5 3.5L15 3L14 4L14.5 6L13 4.5L11.5 6L12 4L11 3L12.5 3.5L13 2Z" fill="currentColor" opacity="0.5"/>
-    </svg>
+    <span className="text-blue-600 font-bold text-sm">→</span>
   )
 }
 
 function LoadingPulse() {
   return (
-    <div className="flex items-center gap-4 p-6 rounded-xl border border-[#8b86e5]/20 bg-[#8b86e5]/5">
+    <div className="flex items-center gap-4 p-6 rounded-xl border border-blue-500/20 bg-blue-50">
       <div className="flex gap-1.5">
-        <div className="w-2 h-2 rounded-full bg-[#8b86e5] animate-pulse" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 rounded-full bg-[#8b86e5] animate-pulse" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 rounded-full bg-[#8b86e5] animate-pulse" style={{ animationDelay: '300ms' }} />
+        <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" style={{ animationDelay: '0ms' }} />
+        <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" style={{ animationDelay: '150ms' }} />
+        <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" style={{ animationDelay: '300ms' }} />
       </div>
       <div>
-        <p className="text-sm font-medium text-[#c0c0d0]">Analyzing website...</p>
-        <p className="text-xs text-[#6b6b80] mt-0.5">
+        <p className="text-sm font-medium text-gray-700">Analyzing website...</p>
+        <p className="text-xs text-gray-500 mt-0.5">
           Extracting institution profile, research focus, therapeutic areas, people, and locations.
         </p>
       </div>
@@ -152,7 +149,7 @@ function FieldReviewRow({
       className={`flex items-start gap-4 p-4 rounded-lg border transition-all cursor-pointer ${
         item.approved
           ? 'border-emerald-500/40 bg-emerald-500/5'
-          : 'border-[#2a2a40] bg-[#0d0d22]/50 hover:border-[#8b86e5]/20'
+          : 'border-gray-200 bg-white hover:border-blue-500/20'
       }`}
       onClick={onToggle}
     >
@@ -162,7 +159,7 @@ function FieldReviewRow({
           className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
             item.approved
               ? 'bg-emerald-500 border-emerald-500'
-              : 'border-[#3a3a50] bg-transparent'
+              : 'border-gray-300 bg-transparent'
           }`}
         >
           {item.approved && (
@@ -176,12 +173,12 @@ function FieldReviewRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-medium text-[#e0e0f0]">{item.label}</span>
+          <span className="text-sm font-medium text-gray-900">{item.label}</span>
           <ConfidenceBadge confidence={item.field.confidence} />
         </div>
-        <div className="text-sm text-[#9a9ab0] truncate">{formatValue(item.field.value)}</div>
+        <div className="text-sm text-gray-600 truncate">{formatValue(item.field.value)}</div>
         {item.field.rationale && (
-          <div className="text-[10px] text-[#4a4a60] mt-1 italic">{item.field.rationale}</div>
+          <div className="text-[10px] text-gray-400 mt-1 italic">{item.field.rationale}</div>
         )}
       </div>
     </div>
@@ -313,21 +310,21 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
     <div className="space-y-4">
       {/* Header badge */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8b86e5]/10 border border-[#8b86e5]/20">
-          <SparklesIcon />
-          <span className="text-xs font-semibold text-[#8b86e5] uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 border border-blue-500/20">
+          <QuickImportIcon />
+          <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
             Quick Import
           </span>
         </div>
-        <span className="text-[10px] text-[#6b6b80]">
+        <span className="text-[10px] text-gray-500">
           Paste your institution&rsquo;s website URL and KADARN will extract your profile automatically.
         </span>
       </div>
 
       {/* Main card */}
-      <div className="rounded-xl border border-[#1e1e35] bg-[#0d0d22]/50 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
         {/* URL Input */}
-        <div className="px-5 py-4 border-b border-[#1e1e35]">
+        <div className="px-5 py-4 border-b border-gray-200">
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <input
@@ -337,14 +334,14 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
                 onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
                 placeholder="https://www.your-institution.org"
                 disabled={status === 'loading'}
-                className="w-full rounded-lg border border-[#2a2a40] bg-[#0f0f1a] px-4 py-2.5 text-sm text-[#e0e0f0] placeholder-[#4a4a60] focus:outline-none focus:ring-2 focus:ring-[#8b86e5]/50 focus:border-[#8b86e5]/50 transition-colors disabled:opacity-50"
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors disabled:opacity-50"
               />
             </div>
             <button
               type="button"
               onClick={handleScrape}
               disabled={status === 'loading' || !url.trim()}
-              className="px-5 py-2.5 rounded-lg bg-[#8b86e5] text-white text-sm font-medium hover:bg-[#7a75d4] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center gap-2"
             >
               {status === 'loading' ? (
                 <>
@@ -353,7 +350,7 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
                 </>
               ) : (
                 <>
-                  <SparklesIcon />
+                  <QuickImportIcon />
                   Analyze
                 </>
               )}
@@ -391,10 +388,10 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
             {/* Summary bar */}
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-semibold text-[#e0e0f0]">
+                <h4 className="text-sm font-semibold text-gray-900">
                   Found {totalCount} fields from {result.title || result.url}
                 </h4>
-                <p className="text-[11px] text-[#6b6b80] mt-0.5">
+                <p className="text-[11px] text-gray-500 mt-0.5">
                   Review and approve the fields you want to import. High-confidence fields are pre-selected.
                 </p>
               </div>
@@ -402,15 +399,15 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="text-[10px] text-[#8b86e5] hover:text-[#a78bfa] transition-colors"
+                  className="text-[10px] text-blue-600 hover:text-[#3b82f6] transition-colors"
                 >
                   Select all
                 </button>
-                <span className="text-[#4a4a60]">|</span>
+                <span className="text-gray-400">|</span>
                 <button
                   type="button"
                   onClick={deselectAll}
-                  className="text-[10px] text-[#6b6b80] hover:text-[#9a9ab0] transition-colors"
+                  className="text-[10px] text-gray-500 hover:text-gray-600 transition-colors"
                 >
                   Clear all
                 </button>
@@ -429,8 +426,8 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
             </div>
 
             {/* Apply button */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#1e1e35]">
-              <span className="text-xs text-[#6b6b80]">
+            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+              <span className="text-xs text-gray-500">
                 {approvedCount} of {totalCount} fields selected
               </span>
               <button
@@ -448,10 +445,10 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
         {/* Empty / no results */}
         {status === 'success' && result && reviews.length === 0 && (
           <div className="px-5 py-8 text-center">
-            <p className="text-sm text-[#6b6b80]">
+            <p className="text-sm text-gray-500">
               No structured fields could be extracted from this website.
             </p>
-            <p className="text-xs text-[#4a4a60] mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Try a different URL or continue filling the form manually.
             </p>
           </div>
@@ -460,18 +457,18 @@ export function SiteScrapeImport({ onApply }: SiteScrapeImportProps) {
         {/* Idle state — show inside the card body */}
         {status === 'idle' && (
           <div className="px-5 py-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-[#8b86e5]/5 border border-[#8b86e5]/10">
-              <div className="mt-0.5 text-[#8b86e5]">
-                <SparklesIcon />
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-500/10">
+              <div className="mt-0.5 text-blue-600">
+                <QuickImportIcon />
               </div>
               <div>
-                <p className="text-xs text-[#c0c0d0] leading-relaxed">
-                  <span className="font-medium text-[#e0e0f0]">Save time.</span> Enter your
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  <span className="font-medium text-gray-900">Save time.</span> Enter your
                   institution&rsquo;s website URL above and KADARN will automatically extract your
                   organization name, type, research focus, therapeutic areas, mission statement,
                   and more.
                 </p>
-                <p className="text-[10px] text-[#6b6b80] mt-2">
+                <p className="text-[10px] text-gray-500 mt-2">
                   You&rsquo;ll review and approve every field before it&rsquo;s imported.
                 </p>
               </div>
