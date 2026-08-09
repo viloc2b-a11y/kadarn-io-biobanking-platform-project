@@ -184,14 +184,6 @@ export default function OrganizationPage() {
         </InterviewQuestion>
       </div>
 
-      {/* Web & Contact */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Contact & Online Presence</h2>
-        <InterviewQuestion number={11} question="What is your institutional website?" help="Sponsors will use this to learn more about you.">
-          <input type="url" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://www.your-institution.org" {...input('org_website')} />
-        </InterviewQuestion>
-      </div>
-
       {/* Navigation */}
       <div className="flex justify-between items-center pt-8 border-t border-gray-200">
         <a href="/onboarding" className="text-gray-500 hover:text-gray-700 text-sm">← Back to Overview</a>
