@@ -21,6 +21,7 @@ import {
 import { RESEARCH_FOCUS_GROUPS, type ResearchFocusGroup } from '@/lib/onboarding/research-focus-taxonomy'
 import { RESEARCH_MODALITY_GROUPS, THERAPEUTIC_AREA_GROUPS, type ResearchExperienceDomainGroup } from '@/lib/onboarding/research-experience-taxonomy'
 import { DomainHeader, InterviewQuestion, DomainWhatYouGet } from '../../components/domain-header'
+import { SiteScrapeImport } from '@/components/onboarding/SiteScrapeImport'
 
 const INSTITUTION_TYPE_OPTIONS = [
   'Independent Research Site',
@@ -65,6 +66,26 @@ export default function OrganizationPage() {
     <div className="max-w-3xl mx-auto py-8">
       <DomainHeader domain="organization" questionCount={11} questionsAnswered={questionsAnswered} />
       <DomainWhatYouGet domain="organization" />
+
+      {/* Quick Import — scrape website to pre-populate */}
+      <div className="mb-8">
+        <QuickImportForOnboarding
+          onApply={(scraped) => {
+            const patch: Record<string, OnboardingAnswerValue> = {}
+            if (scraped.name) patch['org_name'] = scraped.name
+            if (scraped.institution_type) patch['org_type'] = scraped.institution_type
+            if (scraped.mission_statement) patch['org_mission'] = scraped.mission_statement
+            if (scraped.founded_year) patch['org_founded_year'] = scraped.founded_year
+            if (scraped.website) patch['org_website'] = scraped.website
+            if (scraped.dba_name) patch['org_dba'] = scraped.dba_name
+            if (scraped.research_focus && scraped.research_focus.length > 0) patch['org_research_focus'] = scraped.research_focus
+            if (scraped.therapeutic_areas && scraped.therapeutic_areas.length > 0) patch['org_therapeutic_areas'] = scraped.therapeutic_areas
+            if (scraped.research_modalities && scraped.research_modalities.length > 0) patch['org_research_modalities'] = scraped.research_modalities
+            if (scraped.name) setInstitutionName(scraped.name)
+            setAnswers(patch)
+          }}
+        />
+      </div>
 
       {/* Identity */}
       <div className="mb-8">
@@ -1249,3 +1270,11 @@ const operationalFootprintHintStyle = {
   lineHeight: 1.45,
   margin: 0,
 } satisfies CSSProperties
+
+// ─── Quick Import adapter for onboarding context ────────────────────────────
+
+import type { OrganizationStepData } from '@/components/onboarding/OrganizationStep'
+
+function QuickImportForOnboarding({ onApply }: { onApply: (fields: Partial<OrganizationStepData>) => void }) {
+  return <SiteScrapeImport onApply={onApply} />
+}
