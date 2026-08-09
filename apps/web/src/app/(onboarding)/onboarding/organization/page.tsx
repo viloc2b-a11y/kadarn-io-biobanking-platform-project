@@ -1053,6 +1053,7 @@ const researchExperienceOptionsStyle = {
 
 const researchExperienceOptionStyle = {
   alignItems: 'center',
+  background: '#ffffff',
   border: '1px solid #e5e7eb',
   borderRadius: 10,
   color: '#374151',
@@ -1245,6 +1246,7 @@ const coverageOptionsStyle = {
 
 const coverageOptionStyle = {
   alignItems: 'center',
+  background: '#ffffff',
   border: '1px solid #e5e7eb',
   borderRadius: 10,
   color: '#374151',
