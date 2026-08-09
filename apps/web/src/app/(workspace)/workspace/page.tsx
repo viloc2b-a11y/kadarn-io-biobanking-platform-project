@@ -119,25 +119,116 @@ export default function WorkspacePage() {
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1200, margin: '0 auto' }}>
-      {/* ─── Header ─────────────────────────────────────────────────── */}
-      <header style={{ marginBottom: 28 }}>
-        <h1 style={{
-          fontSize: 24,
-          fontWeight: 900,
-          color: C.navy,
-          margin: 0,
-          letterSpacing: -0.5,
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* WELCOME */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <section style={{ marginBottom: 32 }}>
+        <div style={{
+          padding: '28px 32px',
+          borderRadius: 14,
+          border: `1px solid ${C.border}`,
+          background: C.white,
         }}>
-          {data.orgName || 'KADARN'}
-        </h1>
-        <p style={{
-          fontSize: 13,
-          color: C.txd,
-          margin: '4px 0 0 0',
-        }}>
-          Next Best Action Center — qu&eacute; necesita atenci&oacute;n ahora
-        </p>
-      </header>
+          {/* Greeting */}
+          <div style={{ marginBottom: 20 }}>
+            <h1 style={{
+              fontSize: 22,
+              fontWeight: 900,
+              color: C.navy,
+              margin: 0,
+              letterSpacing: -0.4,
+            }}>
+              Welcome{data.orgName ? `, ${data.orgName}` : ' to KADARN'}
+            </h1>
+            <p style={{
+              fontSize: 13,
+              color: C.txd,
+              margin: '6px 0 0 0',
+              lineHeight: 1.5,
+            }}>
+              Next Best Action Center — qu&eacute; necesita atenci&oacute;n ahora
+            </p>
+          </div>
+
+          {/* Quick Start — profile incomplete */}
+          {(!data.identityFields.name || !data.identityFields.type || !data.identityFields.location) && (
+            <Link
+              href="/onboarding/wizard"
+              style={{
+                display: 'block',
+                padding: '18px 22px',
+                borderRadius: 10,
+                border: `2px dashed ${C.accent}40`,
+                background: `linear-gradient(135deg, ${C.accent}08, ${C.green}06)`,
+                textDecoration: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                {/* Icon */}
+                <div style={{
+                  width: 42, height: 42,
+                  borderRadius: 10,
+                  background: `${C.accent}12`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0L9.5 5.5L15 5L10.5 8L12 14L8 10.5L4 14L5.5 8L1 5L6.5 5.5L8 0Z" fill={C.accent} opacity="0.9"/>
+                  </svg>
+                </div>
+
+                {/* Content */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>
+                    Completa tu perfil en segundos
+                  </div>
+                  <div style={{ fontSize: 11, color: C.txd, lineHeight: 1.5 }}>
+                    Pega la URL de tu sitio web. KADARN extrae automaticamente
+                    nombre, tipo de institucion, areas terapeuticas, personas y ubicaciones.
+                    Tu revisas y apruebas cada campo antes de importarlo.
+                  </div>
+                </div>
+
+                {/* CTA Button */}
+                <div style={{
+                  padding: '8px 18px',
+                  borderRadius: 8,
+                  background: C.accent,
+                  color: C.white,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}>
+                  Quick Import →
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Profile complete — summary */}
+          {data.identityFields.name && data.identityFields.type && data.identityFields.location && (
+            <div style={{
+              display: 'flex', gap: 16,
+              padding: '14px 18px',
+              borderRadius: 10,
+              background: `${C.green}08`,
+              border: `1px solid ${C.green}15`,
+            }}>
+              <span style={{ fontSize: 14, color: C.green, fontWeight: 700 }}>✓</span>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.navy }}>
+                  Perfil institucional completo
+                </div>
+                <div style={{ fontSize: 11, color: C.txd, marginTop: 2 }}>
+                  Tu institucion tiene identidad, tipo y ubicacion registrados.
+                  Mantene tu evidencia actualizada para conservar la readiness.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ─── API Error Banner ────────────────────────────────────────── */}
       {data.apiErrors.length > 0 && (
@@ -154,61 +245,6 @@ export default function WorkspacePage() {
           Algunos datos no pudieron cargarse: {data.apiErrors.join(', ')}.
           La informaci&oacute;n mostrada puede estar incompleta.
         </div>
-      )}
-
-      {/* ─── Quick Start — Complete your profile in seconds ─────────── */}
-      {(!data.identityFields.name || !data.identityFields.type || !data.identityFields.location) && (
-        <section style={{ marginBottom: 28 }}>
-          <Link
-            href="/onboarding/wizard"
-            style={{
-              display: 'block',
-              padding: '20px 24px',
-              borderRadius: 12,
-              border: `2px dashed ${C.accent}50`,
-              background: `${C.accent}06`,
-              textDecoration: 'none',
-              transition: 'border-color 0.15s, background 0.15s',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              {/* Icon */}
-              <div style={{
-                width: 44, height: 44,
-                borderRadius: 10,
-                background: `${C.accent}15`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 0L9.5 5.5L15 5L10.5 8L12 14L8 10.5L4 14L5.5 8L1 5L6.5 5.5L8 0Z" fill={C.accent} opacity="0.9"/>
-                </svg>
-              </div>
-
-              {/* Content */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 4 }}>
-                  Completa tu perfil institucional en segundos
-                </div>
-                <div style={{ fontSize: 12, color: C.txd, lineHeight: 1.5 }}>
-                  Pega la URL de tu sitio web y KADARN extraera automaticamente
-                  nombre, tipo de institucion, areas terapeuticas, personas y ubicaciones.
-                  Tu revisas y apruebas cada campo.
-                </div>
-              </div>
-
-              {/* Arrow */}
-              <div style={{
-                fontSize: 20,
-                color: C.accent,
-                fontWeight: 700,
-                flexShrink: 0,
-              }}>
-                →
-              </div>
-            </div>
-          </Link>
-        </section>
       )}
 
       {/* ─── Block 1: PRIORITY TODAY ────────────────────────────────── */}
