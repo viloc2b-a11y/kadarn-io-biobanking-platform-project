@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiGet, apiPost, apiPatch } from '@/lib/api-client'
 import type { SiteProfile, ProfileState } from '@kadarn/types'
+import { SiteScrapeImport } from './SiteScrapeImport'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -344,6 +345,11 @@ export function OrganizationStep({
     setData((prev) => ({ ...prev, [key]: toggleArrayValue(prev[key] as string[], value) }))
   }, [])
 
+  // Handle Quick Import scrape results — pre-populate form fields
+  const handleScrapeApply = useCallback((scraped: Partial<OrganizationStepData>) => {
+    setData((prev) => ({ ...prev, ...scraped }))
+  }, [])
+
   // Computed completion
   const sections = [
     {
@@ -411,6 +417,11 @@ export function OrganizationStep({
           {error}
         </div>
       )}
+
+      {/* Quick Import — scrape website to pre-populate */}
+      <div className="mb-8">
+        <SiteScrapeImport onApply={handleScrapeApply} />
+      </div>
 
       {/* Progress */}
       <div className="mb-6 flex items-center gap-4 text-xs text-[#6b6b80]">

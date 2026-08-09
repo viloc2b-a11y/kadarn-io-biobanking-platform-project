@@ -156,6 +156,61 @@ export default function WorkspacePage() {
         </div>
       )}
 
+      {/* ─── Quick Start — Complete your profile in seconds ─────────── */}
+      {(!data.identityFields.name || !data.identityFields.type || !data.identityFields.location) && (
+        <section style={{ marginBottom: 28 }}>
+          <Link
+            href="/onboarding/wizard"
+            style={{
+              display: 'block',
+              padding: '20px 24px',
+              borderRadius: 12,
+              border: `2px dashed ${C.accent}50`,
+              background: `${C.accent}06`,
+              textDecoration: 'none',
+              transition: 'border-color 0.15s, background 0.15s',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {/* Icon */}
+              <div style={{
+                width: 44, height: 44,
+                borderRadius: 10,
+                background: `${C.accent}15`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 0L9.5 5.5L15 5L10.5 8L12 14L8 10.5L4 14L5.5 8L1 5L6.5 5.5L8 0Z" fill={C.accent} opacity="0.9"/>
+                </svg>
+              </div>
+
+              {/* Content */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 4 }}>
+                  Completa tu perfil institucional en segundos
+                </div>
+                <div style={{ fontSize: 12, color: C.txd, lineHeight: 1.5 }}>
+                  Pega la URL de tu sitio web y KADARN extraera automaticamente
+                  nombre, tipo de institucion, areas terapeuticas, personas y ubicaciones.
+                  Tu revisas y apruebas cada campo.
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div style={{
+                fontSize: 20,
+                color: C.accent,
+                fontWeight: 700,
+                flexShrink: 0,
+              }}>
+                →
+              </div>
+            </div>
+          </Link>
+        </section>
+      )}
+
       {/* ─── Block 1: PRIORITY TODAY ────────────────────────────────── */}
       <section style={{ marginBottom: 28 }}>
         <BlockHeader
